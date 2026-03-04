@@ -29,6 +29,8 @@ body {
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
+  background-color: #000000;
+  color: #ffffff;
 }
 
 /* Custom focus styles for better accessibility */

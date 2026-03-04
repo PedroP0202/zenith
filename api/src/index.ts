@@ -61,7 +61,7 @@ app.post('/auth/google', async (c) => {
         } else {
             userId = crypto.randomUUID();
             await db.prepare('INSERT INTO users (id, name, email, password_hash, google_id, is_verified, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
-                .bind(userId, name || 'User', email, null, googleId, 1, now).run();
+                .bind(userId, name || 'User', email, 'OAUTH_USER', googleId, 1, now).run();
         }
 
         const secret = c.env.JWT_SECRET || 'zenith-local-dev-secret';
@@ -101,7 +101,7 @@ app.post('/auth/apple', async (c) => {
         } else {
             userId = crypto.randomUUID();
             await db.prepare('INSERT INTO users (id, name, email, password_hash, apple_id, is_verified, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
-                .bind(userId, finalName, finalEmail, null, appleId, 1, now).run();
+                .bind(userId, finalName, finalEmail, 'OAUTH_USER', appleId, 1, now).run();
         }
 
         const secret = c.env.JWT_SECRET || 'zenith-local-dev-secret';

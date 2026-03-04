@@ -36,8 +36,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <body className={inter.className}>
+    <html lang="en" className="bg-black overscroll-none">
+      <body className={`${inter.className} bg-black text-white overscroll-none min-h-screen`}>
         <AuthGuard>
           {children}
           <BottomNav />

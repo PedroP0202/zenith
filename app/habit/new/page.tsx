@@ -1,10 +1,11 @@
-'use client';
 import { useState } from 'react';
 import { useStore } from '../../../store/useStore';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft } from 'lucide-react';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 export default function NewHabit() {
+    const { t } = useTranslation();
     const [title, setTitle] = useState('');
     const [selectedDays, setSelectedDays] = useState<number[]>([0, 1, 2, 3, 4, 5, 6]);
     const [isHardMode, setIsHardMode] = useState(false);
@@ -30,15 +31,7 @@ export default function NewHabit() {
         }
     };
 
-    const daysOfWeek = [
-        { label: 'D', index: 0 },
-        { label: 'S', index: 1 },
-        { label: 'T', index: 2 },
-        { label: 'Q', index: 3 },
-        { label: 'Q', index: 4 },
-        { label: 'S', index: 5 },
-        { label: 'S', index: 6 },
-    ];
+    const daysOfWeek = t.habit.daysOfWeek.map((label, index) => ({ label, index }));
 
     return (
         <main className="min-h-[100dvh] bg-black text-white p-6 font-sans flex flex-col items-center">
@@ -52,7 +45,7 @@ export default function NewHabit() {
 
                 <form onSubmit={handleSubmit} className="flex flex-col gap-8">
                     <label htmlFor="title" className="text-2xl font-bold tracking-tight text-white/90">
-                        O que te comprometes a fazer?
+                        {t.habit.questionTitle}
                     </label>
 
                     <input
@@ -60,7 +53,7 @@ export default function NewHabit() {
                         type="text"
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
-                        placeholder="Ex: Ler 10 páginas"
+                        placeholder={t.habit.namePlaceholder}
                         autoFocus
                         className="bg-transparent border-b-2 border-white/20 focus:border-white text-2xl py-4 outline-none transition-colors placeholder:text-white/20"
                         autoComplete="off"
@@ -68,7 +61,7 @@ export default function NewHabit() {
 
                     <div className="mt-4">
                         <label className="text-sm font-medium text-white/50 mb-4 block uppercase tracking-widest">
-                            Frequência
+                            {t.habit.frequency}
                         </label>
                         <div className="flex justify-between">
                             {daysOfWeek.map(day => {
@@ -93,10 +86,10 @@ export default function NewHabit() {
                     <div className="mt-2 flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5">
                         <div className="flex flex-col pr-4">
                             <label className="text-sm font-bold text-white/90">
-                                Modo Difícil (Hard Mode)
+                                {t.habit.hardMode}
                             </label>
                             <span className="text-xs text-white/40 mt-1 leading-snug">
-                                Bloqueia a funcionalidade de corrigir o histórico no calendário (&quot;Curingas&quot;).
+                                {t.habit.hardModeDesc}
                             </span>
                         </div>
                         <button
@@ -114,10 +107,10 @@ export default function NewHabit() {
                         <div className="flex items-center justify-between">
                             <div className="flex flex-col pr-4">
                                 <label className="text-sm font-bold text-white/90">
-                                    Lembrete Específico
+                                    {t.habit.reminder}
                                 </label>
                                 <span className="text-xs text-white/40 mt-1 leading-snug">
-                                    Notifica-te de forma inteligente para executares este hábito.
+                                    {t.habit.reminderDesc}
                                 </span>
                             </div>
                             <button
@@ -133,7 +126,7 @@ export default function NewHabit() {
 
                         {isReminderEnabled && (
                             <div className="mt-4 pt-4 border-t border-white/10 flex justify-between items-center">
-                                <span className="text-sm font-medium text-white/60">Hora do lembrete</span>
+                                <span className="text-sm font-medium text-white/60">{t.habit.reminderTime}</span>
                                 <input
                                     type="time"
                                     value={reminderTime}
@@ -149,7 +142,7 @@ export default function NewHabit() {
                         disabled={!title.trim()}
                         className="mt-8 bg-white text-black font-bold text-lg py-4 rounded-full disabled:opacity-30 disabled:scale-100 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
                     >
-                        Criar Hábito
+                        {t.habit.create}
                     </button>
                 </form>
             </div>

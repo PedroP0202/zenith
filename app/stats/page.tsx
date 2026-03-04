@@ -5,8 +5,10 @@ import { getCompletionsThisMonth, getCompletedDaysThisMonth, getYearlyStats } fr
 import HabitCalendar from '../../components/HabitCalendar';
 import { format } from 'date-fns';
 import { enUS, pt } from 'date-fns/locale';
+import { useTranslation } from '../../hooks/useTranslation';
 
 export default function StatsPage() {
+    const { t, language } = useTranslation();
     const { habits, logs } = useStore();
     const [mounted, setMounted] = useState(false);
 
@@ -22,7 +24,8 @@ export default function StatsPage() {
     const activeLogs = logs.filter(l => activeHabitIds.has(l.habitId));
 
     const now = mounted ? new Date() : new Date();
-    const monthName = mounted ? format(now, 'MMMM', { locale: pt }) : '...';
+    const localeObj = language === 'pt' ? pt : enUS;
+    const monthName = mounted ? format(now, 'MMMM', { locale: localeObj }) : '...';
     const year = now.getFullYear();
 
     const yearlyStats = getYearlyStats(activeLogs, now);
@@ -32,24 +35,24 @@ export default function StatsPage() {
             <div className="w-full max-w-md pt-8">
                 <header className="mb-14 flex flex-col items-start transition-opacity duration-500 opacity-100">
                     <span className="text-[12px] font-bold text-white/50 tracking-wider mb-2 uppercase">
-                        Visão Geral
+                        {t.stats.overview}
                     </span>
                     <h1 className="text-[2.5rem] leading-tight font-medium tracking-tight text-white capitalize">
-                        Estatísticas
+                        {t.stats.title}
                     </h1>
                 </header>
 
                 <div className="mb-12">
                     <h2 className="text-[13px] font-bold text-white/50 tracking-wider mb-4 uppercase">
-                        O Teu Ano ({year})
+                        {t.stats.yourYear} ({year})
                     </h2>
                     <div className="flex gap-4">
                         <div className="flex-1 bg-[#111111] rounded-3xl p-5 flex flex-col justify-between">
-                            <span className="text-white/40 text-xs font-semibold uppercase tracking-widest mb-4">Consistência</span>
+                            <span className="text-white/40 text-xs font-semibold uppercase tracking-widest mb-4">{t.stats.consistency}</span>
                             <span className="text-3xl font-bold text-white">{yearlyStats.productivityPercentage}%</span>
                         </div>
                         <div className="flex-1 bg-[#111111] rounded-3xl p-5 flex flex-col justify-between">
-                            <span className="text-white/40 text-xs font-semibold uppercase tracking-widest mb-4">Dias Foco</span>
+                            <span className="text-white/40 text-xs font-semibold uppercase tracking-widest mb-4">{t.stats.focusDays}</span>
                             <span className="text-3xl font-bold text-white">{yearlyStats.activeDays}</span>
                         </div>
                     </div>
@@ -60,7 +63,7 @@ export default function StatsPage() {
                         {monthName}
                     </h2>
                     {activeHabits.length === 0 ? (
-                        <p className="text-center opacity-50 mt-12">Sem dados para mostrar.</p>
+                        <p className="text-center opacity-50 mt-12">{t.stats.noData}</p>
                     ) : (
                         activeHabits.map((habit) => {
                             const habitLogs = logs.filter(l => l.habitId === habit.id);
@@ -77,7 +80,7 @@ export default function StatsPage() {
                                                 {completions}
                                             </span>
                                             <span className="text-[10px] font-medium text-white/40 uppercase tracking-widest">
-                                                {completions === 1 ? 'Dia' : 'Dias'}
+                                                {completions === 1 ? t.stats.day : t.stats.days}
                                             </span>
                                         </div>
                                     </div>

@@ -6,10 +6,11 @@ import { ChevronLeft, Trash2, Loader2 } from 'lucide-react';
 import { Suspense, useState, useEffect, useRef } from 'react';
 
 import { Habit, LogEntry } from '../../../types';
-import HabitCalendar from '../../../components/HabitCalendar';
-import { getCompletedDaysThisMonth } from '../../../utils/streak';
+import InfiniteCalendar from '../../../components/InfiniteCalendar';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 function HabitDetailContent() {
+    const { t } = useTranslation();
     const searchParams = useSearchParams();
     const id = searchParams.get('id');
     const router = useRouter();
@@ -23,7 +24,6 @@ function HabitDetailContent() {
     const habit = habits.find((h: Habit) => h.id === id);
     const habitLogs = logs.filter((l: LogEntry) => l.habitId === id);
     const streak = calculateStreak(habitLogs, habit?.frequency);
-    const completedDaysArray = getCompletedDaysThisMonth(habitLogs, new Date());
 
     useEffect(() => {
         if (habit) {
@@ -37,18 +37,18 @@ function HabitDetailContent() {
         }
     }, [habit]);
 
-    if (!id) return <p>Hábito não especificado.</p>;
+    if (!id) return <p>{t.habit.notFound}</p>;
 
     if (!habit) {
         return (
             <main className="min-h-[100dvh] bg-black text-white flex items-center justify-center">
-                <p>Hábito não encontrado.</p>
+                <p>{t.habit.notFound}</p>
             </main>
         );
     }
 
     const handleDelete = () => {
-        if (confirm('Tens a certeza? Isto não pode ser desfeito.')) {
+        if (confirm(t.habit.deleteConfirm)) {
             removeHabit(habit.id);
             router.push('/');
         }
@@ -68,6 +68,7 @@ function HabitDetailContent() {
                     <button
                         onClick={handleDelete}
                         className="h-12 w-12 flex items-center justify-center rounded-full text-red-500/70 hover:text-red-500 hover:bg-red-500/10 transition-colors"
+                        aria-label={t.common.delete}
                     >
                         <Trash2 size={20} />
                     </button>
@@ -92,13 +93,12 @@ function HabitDetailContent() {
                             }
                         }}
                         className="gap-2 text-3xl font-medium text-white/50 focus:text-white/90 transition-colors mb-12 bg-transparent border-none outline-none text-center w-full caret-white"
-                        aria-label="Nome do Hábito"
+                        aria-label={t.habit.editTitle}
                     />
 
                     {habit && (
-                        <HabitCalendar
-                            completedDays={completedDaysArray}
-                            monthDate={new Date()}
+                        <InfiniteCalendar
+                            habitLogs={habitLogs}
                             frequency={habit.frequency}
                             isHardMode={habit.isHardMode}
                             onDayClick={(date) => {
@@ -137,7 +137,7 @@ function HabitDetailContent() {
                         </span>
                         <div className="flex items-center gap-3 mt-4">
                             <span className="text-xl font-medium text-white/40 uppercase tracking-widest">
-                                {streak === 1 ? 'Dia Seguido' : 'Dias Seguidos'}
+                                {streak === 1 ? t.habit.streakDay : t.habit.streakDays}
                             </span>
                             {streak > 0 && (
                                 <span className="text-2xl animate-bounce">🔥</span>
@@ -150,10 +150,10 @@ function HabitDetailContent() {
                         <div className="flex items-center justify-between">
                             <div className="flex flex-col pr-4">
                                 <label className="text-sm font-bold text-white/90">
-                                    Lembrete Específico
+                                    {t.habit.reminder}
                                 </label>
                                 <span className="text-xs text-white/40 mt-1 leading-snug">
-                                    Notifica-te de forma inteligente na hora definida.
+                                    {t.habit.reminderDesc}
                                 </span>
                             </div>
                             <button
@@ -177,7 +177,7 @@ function HabitDetailContent() {
 
                         {isReminderEnabled && (
                             <div className="mt-4 pt-4 border-t border-white/10 flex justify-between items-center">
-                                <span className="text-sm font-medium text-white/60">Editar hora</span>
+                                <span className="text-sm font-medium text-white/60">{t.habit.editTime}</span>
                                 <input
                                     type="time"
                                     value={localReminderTime}

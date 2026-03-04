@@ -9,7 +9,9 @@ CREATE TABLE users (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     email TEXT UNIQUE NOT NULL,
-    password_hash TEXT NOT NULL,
+    password_hash TEXT,
+    google_id TEXT UNIQUE,
+    apple_id TEXT UNIQUE,
     is_verified BOOLEAN NOT NULL DEFAULT 0,
     created_at INTEGER NOT NULL
 );

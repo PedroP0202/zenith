@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import { Habit, LogEntry } from '../types';
 import { syncWidgetData } from '../utils/widgetSync';
 import { scheduleAllNotifications, cancelAllNotifications } from '../utils/notifications';
+import { Language, translations } from '../locales';
 
 /**
  * Represents the global application state managed by Zustand.
@@ -14,6 +15,8 @@ interface AppState {
     logs: LogEntry[];
     /** The user's personalized display name. */
     userName: string;
+    /** Current language preference (pt or en) */
+    language: Language;
     /** Whether the daily Morning Reminder is enabled. */
     isMorningReminderActive: boolean;
     /** The preferred time of day for notifications, in 'HH:mm' format */
@@ -83,6 +86,12 @@ interface AppState {
     setUserName: (name: string) => void;
 
     /**
+     * Sets the user's preferred language.
+     * @param language 'pt' or 'en'
+     */
+    setLanguage: (language: Language) => void;
+
+    /**
      * Toggles the daily local notification reminder flag.
      * @param isActive True if notifications are turned on.
      */
@@ -128,6 +137,7 @@ export const useStore = create<AppState>()(
             habits: [],
             logs: [],
             userName: 'Pedro',
+            language: 'pt',
             isMorningReminderActive: false,
             morningReminderTime: '09:00',
             hasPromptedForNotifications: false,
@@ -136,6 +146,7 @@ export const useStore = create<AppState>()(
             syncStatus: 'idle',
 
             setUserName: (name) => set({ userName: name }),
+            setLanguage: (language) => set({ language }),
             setJwt: (jwt) => set({ jwt }),
 
             clearUserData: () => {
@@ -154,7 +165,8 @@ export const useStore = create<AppState>()(
                     logs: [],
                     lastSyncedAt: 0,
                     syncStatus: 'idle',
-                    userName: 'Pedro' // Reset to default
+                    userName: 'Pedro', // Reset to default
+                    language: 'pt'
                 });
                 // Ensure no ghost notifications remain after logout
                 cancelAllNotifications().catch(console.error);

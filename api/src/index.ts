@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import { sign, jwt } from 'hono/jwt';
+import { sign, jwt, verify, decode } from 'hono/jwt';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { hashPassword, verifyPassword } from './crypto';
@@ -36,6 +36,81 @@ const loginSchema = z.object({
 
 const sendCodeSchema = z.object({
     email: z.string().email(),
+});
+
+app.post('/auth/google', async (c) => {
+    try {
+        const { idToken } = await c.req.json();
+        if (!idToken) return c.json({ error: 'Falta o token do Google.' }, 400);
+
+        const response = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${idToken}`);
+        if (!response.ok) return c.json({ error: 'Token do Google inválido.' }, 401);
+        const googleUser = await response.json() as any;
+
+        const { email, name, sub: googleId } = googleUser;
+        const db = c.env.DB;
+
+        let user = await db.prepare('SELECT id, name, email FROM users WHERE google_id = ? OR email = ?').bind(googleId, email).first() as any;
+
+        const now = Date.now();
+        let userId;
+
+        if (user) {
+            userId = user.id;
+            await db.prepare('UPDATE users SET google_id = ? WHERE id = ?').bind(googleId, userId).run();
+        } else {
+            userId = crypto.randomUUID();
+            await db.prepare('INSERT INTO users (id, name, email, password_hash, google_id, is_verified, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
+                .bind(userId, name || 'User', email, null, googleId, 1, now).run();
+        }
+
+        const secret = c.env.JWT_SECRET || 'zenith-local-dev-secret';
+        const token = await sign({ id: userId, name: user?.name || name, email, exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30 }, secret);
+
+        return c.json({ token, user: { id: userId, name: user?.name || name, email } });
+    } catch (e: any) {
+        return c.json({ error: 'Erro de Autenticação Google: ' + e.message }, 500);
+    }
+});
+
+app.post('/auth/apple', async (c) => {
+    try {
+        const { appleId, email, name, identityToken } = await c.req.json();
+        if (!appleId || !identityToken) return c.json({ error: 'Faltam dados da Apple.' }, 400);
+
+        const db = c.env.DB;
+        let query = 'SELECT id, name, email FROM users WHERE apple_id = ?';
+        let bindParams = [appleId] as string[];
+        if (email) {
+            query += ' OR email = ?';
+            bindParams.push(email);
+        }
+
+        let user = await db.prepare(query).bind(...bindParams).first() as any;
+
+        const now = Date.now();
+        let userId;
+        let finalEmail = email || (user ? user.email : `${appleId}@privaterelay.appleid.com`);
+        let finalName = name || (user ? user.name : "Utilizador Apple");
+
+        if (user) {
+            userId = user.id;
+            await db.prepare('UPDATE users SET apple_id = ? WHERE id = ?').bind(appleId, userId).run();
+            finalEmail = user.email;
+            finalName = user.name;
+        } else {
+            userId = crypto.randomUUID();
+            await db.prepare('INSERT INTO users (id, name, email, password_hash, apple_id, is_verified, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
+                .bind(userId, finalName, finalEmail, null, appleId, 1, now).run();
+        }
+
+        const secret = c.env.JWT_SECRET || 'zenith-local-dev-secret';
+        const token = await sign({ id: userId, name: finalName, email: finalEmail, exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30 }, secret);
+
+        return c.json({ token, user: { id: userId, name: finalName, email: finalEmail } });
+    } catch (e: any) {
+        return c.json({ error: 'Erro de Autenticação Apple: ' + e.message }, 500);
+    }
 });
 
 app.post('/auth/send-code', zValidator('json', sendCodeSchema), async (c) => {
@@ -162,6 +237,110 @@ app.post('/auth/login', zValidator('json', loginSchema), async (c) => {
     const token = await sign({ id: user.id, name: user.name, email: user.email, exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30 }, secret);
 
     return c.json({ token, user: { id: user.id, name: user.name, email: user.email } });
+});
+
+app.delete('/auth/account', async (c) => {
+    const authHeader = c.req.header('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return c.json({ error: 'Não autorizado' }, 401);
+    }
+    const token = authHeader.split(' ')[1];
+    const secret = c.env.JWT_SECRET || 'zenith-local-dev-secret';
+    let payload;
+    try {
+        payload = await verify(token, secret);
+    } catch {
+        return c.json({ error: 'Token inválido' }, 401);
+    }
+
+    const userId = payload.id;
+    const body = await c.req.json().catch(() => ({}));
+    const password = body.password;
+
+    if (!password) {
+        return c.json({ error: 'A password é obrigatória para esta ação.' }, 400);
+    }
+
+    const db = c.env.DB;
+    type UserRow = { id: string, password_hash: string };
+    const user = await db.prepare('SELECT id, password_hash FROM users WHERE id = ?').bind(userId).first<UserRow>();
+
+    if (!user) {
+        return c.json({ error: 'Conta não encontrada.' }, 404);
+    }
+
+    const isValid = await verifyPassword(password, user.password_hash);
+    if (!isValid) {
+        return c.json({ error: 'Password incorreta.' }, 401);
+    }
+
+    try {
+        // Apaga em cascata (Logs -> Hábitos -> Utilizador)
+        await db.batch([
+            db.prepare('DELETE FROM logs WHERE habit_id IN (SELECT id FROM habits WHERE user_id = ?)').bind(userId),
+            db.prepare('DELETE FROM habits WHERE user_id = ?').bind(userId),
+            db.prepare('DELETE FROM users WHERE id = ?').bind(userId)
+        ]);
+        return c.json({ success: true, message: 'Conta apagada com sucesso.' });
+    } catch (e: any) {
+        return c.json({ error: 'Erro ao apagar conta: ' + e.message }, 500);
+    }
+});
+
+app.post('/auth/forgot-password', async (c) => {
+    try {
+        const { email } = await c.req.json();
+        const db = c.env.DB;
+
+        const user = await db.prepare('SELECT id FROM users WHERE email = ?').bind(email).first();
+        if (!user) return c.json({ error: 'Conta não encontrada.' }, 404);
+
+        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        const expiresAt = Date.now() + 15 * 60 * 1000;
+
+        await db.prepare('INSERT OR REPLACE INTO verification_codes (email, code, expires_at) VALUES (?, ?, ?)')
+            .bind(email, code, expiresAt)
+            .run();
+
+        if (c.env.RESEND_API_KEY) {
+            await fetch('https://api.resend.com/emails', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${c.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    from: 'Zenith <onboarding@resend.dev>',
+                    to: email,
+                    subject: 'Código de Recuperação - Zenith',
+                    html: `<p>O teu código de recuperação de palavra-passe é: <strong>${code}</strong></p><p>Este código expira em 15 minutos.</p>`
+                })
+            });
+            return c.json({ message: 'Código enviado.' });
+        } else {
+            return c.json({ testCode: code });
+        }
+    } catch (e) {
+        return c.json({ error: 'Erro interno.' }, 500);
+    }
+});
+
+app.post('/auth/reset-password', async (c) => {
+    try {
+        const { email, code, newPassword } = await c.req.json();
+        if (!email || !code || !newPassword) return c.json({ error: 'Dados incompletos.' }, 400);
+
+        const db = c.env.DB;
+        const record = await db.prepare('SELECT code, expires_at FROM verification_codes WHERE email = ?').bind(email).first() as any;
+
+        if (!record || record.code !== code) return c.json({ error: 'Código inválido.' }, 401);
+        if (Date.now() > record.expires_at) return c.json({ error: 'Código expirado.' }, 401);
+
+        const hashed = await hashPassword(newPassword);
+        await db.prepare('UPDATE users SET password_hash = ? WHERE email = ?').bind(hashed, email).run();
+        await db.prepare('DELETE FROM verification_codes WHERE email = ?').bind(email).run();
+
+        return c.json({ message: 'Palavra-passe atualizada com sucesso.' });
+    } catch (e) {
+        return c.json({ error: 'Erro ao repor palavra-passe.' }, 500);
+    }
 });
 
 // --- SYNC ROUTES ---

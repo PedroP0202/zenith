@@ -1,0 +1,15 @@
+name = "zenith-api"
+main = "src/index.ts"
+compatibility_date = "2024-02-28"
+
+[vars]
+# We'll define secrets like JWT_SECRET via `wrangler secret put JWT_SECRET` later on.
+ENVIRONMENT = "dev"
+
+# Bind a D1 database
+# We'll need to run `npx wrangler d1 create zenith-db` to get the actual database_id.
+# For now we'll put a placeholder.
+[[d1_databases]]
+binding = "DB"
+database_name = "zenith-db"
+database_id = "1ee6cb6d-c66d-4a21-a3f5-1a319af3b3b8"

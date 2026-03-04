@@ -1,0 +1,40 @@
+{
+  "name": "zenith",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@capacitor/cli": "^8.0.0",
+    "@capacitor/core": "^7.4.4",
+    "@capacitor/geolocation": "^7.1.7",
+    "@capacitor/haptics": "^7.0.3",
+    "@capacitor/ios": "^7.4.4",
+    "@capacitor/local-notifications": "^7.0.5",
+    "@capacitor/preferences": "^7.0.4",
+    "@google/generative-ai": "^0.24.1",
+    "date-fns": "^4.1.0",
+    "framer-motion": "^12.34.3",
+    "lucide-react": "^0.562.0",
+    "next": "15.1.4",
+    "react": "^18",
+    "react-dom": "^18",
+    "zustand": "^5.0.11"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^8",
+    "eslint-config-next": "15.1.4",
+    "postcss": "^8",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5"
+  }
+}

@@ -62,7 +62,7 @@ export default function InfiniteCalendar({ habitLogs, onDayClick, frequency, isH
                     const monthYearStr = format(monthDate, 'MMMM yyyy', { locale: dateLocale });
 
                     return (
-                        <div key={index} className="flex-shrink-0 w-[260px] snap-center bg-white/[0.02] border border-white/5 rounded-[2rem] p-5 flex flex-col items-center select-none">
+                        <div key={index} className="flex-shrink-0 w-[300px] snap-center bg-white/[0.02] border border-white/5 rounded-[2rem] p-6 flex flex-col items-center select-none">
                             <h3 className="text-xs font-bold text-white/40 uppercase tracking-[0.2em] mb-4 capitalize">
                                 {monthYearStr}
                             </h3>
@@ -70,7 +70,7 @@ export default function InfiniteCalendar({ habitLogs, onDayClick, frequency, isH
                             <div className="w-full">
                                 <div className="grid grid-cols-7 gap-1.5 mb-2 text-center select-none">
                                     {weekDays.map((d, i) => (
-                                        <div key={i} className="text-[9px] font-bold text-white/30 cursor-default">
+                                        <div key={i} className="text-[10px] font-bold text-white/30 cursor-default">
                                             {d}
                                         </div>
                                     ))}
@@ -112,7 +112,7 @@ export default function InfiniteCalendar({ habitLogs, onDayClick, frequency, isH
                                                 key={day}
                                                 onClick={() => isClickable && onDayClick(cellDate)}
                                                 disabled={!isClickable}
-                                                className={`aspect-square flex items-center justify-center rounded-lg text-xs font-bold transition-all duration-300 w-full ${isClickable ? 'cursor-pointer hover:scale-110 active:scale-95' : 'cursor-default'} ${!isClickable && !isCompleted
+                                                className={`aspect-square flex items-center justify-center rounded-lg text-sm font-bold transition-all duration-300 w-full ${isClickable ? 'cursor-pointer hover:scale-110 active:scale-95' : 'cursor-default'} ${!isClickable && !isCompleted
                                                     ? 'opacity-20 text-white/10'
                                                     : isCompleted
                                                         ? 'bg-[var(--zenith-active)] text-black shadow-[0_0_12px_rgba(255,255,255,0.4)] opacity-100'

@@ -248,7 +248,7 @@ app.delete('/auth/account', async (c) => {
     const secret = c.env.JWT_SECRET || 'zenith-local-dev-secret';
     let payload;
     try {
-        payload = await verify(token, secret);
+        payload = await verify(token, secret, 'HS256');
     } catch {
         return c.json({ error: 'Token inválido' }, 401);
     }

@@ -8,6 +8,7 @@ import { scheduleAllNotifications, cancelAllNotifications, requestNotificationPe
 import { motion } from "framer-motion";
 import { useTranslation } from "@/hooks/useTranslation";
 import { Language } from "@/locales";
+import { API_URL } from "@/utils/constants";
 
 export default function SettingsPage() {
     const router = useRouter();
@@ -32,6 +33,9 @@ export default function SettingsPage() {
 
     // Local ephemeral states for optimistic rendering
     const [nameInput, setNameInput] = useState("");
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [deletePassword, setDeletePassword] = useState("");
+    const [isDeleting, setIsDeleting] = useState(false);
 
     useEffect(() => {
         setMounted(true);
@@ -66,9 +70,7 @@ export default function SettingsPage() {
         }
     };
 
-    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-    const [deletePassword, setDeletePassword] = useState("");
-    const [isDeleting, setIsDeleting] = useState(false);
+
 
     const handleExportData = () => {
         const data = { habits, logs };
@@ -92,7 +94,7 @@ export default function SettingsPage() {
         if (!deletePassword) return;
         setIsDeleting(true);
         try {
-            const res = await fetch('https://zenith-api.dronee.blog/auth/account', {
+            const res = await fetch(`${API_URL}/auth/account`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',

@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import { ChevronLeft, Cloud, Loader2, Eye, EyeOff } from "lucide-react";
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { SignInWithApple } from '@capacitor-community/apple-sign-in';
+import { API_URL, GOOGLE_CLIENT_ID } from "@/utils/constants";
 export default function LoginPage() {
     const router = useRouter();
     const { setJwt, syncWithCloud, clearUserData, setUserName } = useStore();
@@ -24,7 +25,7 @@ export default function LoginPage() {
 
         try {
             // In Production, this will be the Cloudflare Edge URL
-            const res = await fetch('https://zenith-api.zenith-pedro.workers.dev/auth/login', {
+            const res = await fetch(`${API_URL}/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password })
@@ -62,13 +63,13 @@ export default function LoginPage() {
         setError("");
         try {
             await GoogleAuth.initialize({
-                clientId: '471890064632-6pehr2hlbfudc3qbf0je5kjpd2bjavlv.apps.googleusercontent.com',
+                clientId: GOOGLE_CLIENT_ID,
                 scopes: ['profile', 'email'],
                 grantOfflineAccess: true,
             });
             const googleUser = await GoogleAuth.signIn();
 
-            const res = await fetch('https://zenith-api.zenith-pedro.workers.dev/auth/google', {
+            const res = await fetch(`${API_URL}/auth/google`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ idToken: googleUser.authentication.idToken })
@@ -97,7 +98,7 @@ export default function LoginPage() {
                 scopes: 'email name'
             });
 
-            const res = await fetch('https://zenith-api.zenith-pedro.workers.dev/auth/apple', {
+            const res = await fetch(`${API_URL}/auth/apple`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

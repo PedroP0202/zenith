@@ -4,6 +4,7 @@ import { Habit, LogEntry } from '../types';
 import { syncWidgetData } from '../utils/widgetSync';
 import { scheduleAllNotifications, cancelAllNotifications } from '../utils/notifications';
 import { Language, translations } from '../locales';
+import { API_URL } from '@/utils/constants';
 
 /**
  * Represents the global application state managed by Zustand.
@@ -292,7 +293,7 @@ export const useStore = create<AppState>()(
                 const { jwt, lastSyncedAt, habits, logs } = get();
                 if (!jwt) return; // Not logged in
 
-                const API_URL = 'https://zenith-api.zenith-pedro.workers.dev'; // Production Cloudflare URL
+                // const API_URL = 'https://zenith-api.zenith-pedro.workers.dev'; // Production Cloudflare URL
                 set({ syncStatus: 'syncing' });
 
                 try {

@@ -142,9 +142,12 @@ export default function LoginPage() {
             <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="max-w-md mx-auto"
+                className="max-w-md mx-auto w-full"
             >
-                <h1 className="text-3xl font-black tracking-tight mb-2">Bem-vindo.</h1>
+                <div className="flex justify-between items-center mb-2">
+                    <h1 className="text-3xl font-black tracking-tight">Bem-vindo.</h1>
+                    <span className="text-[10px] font-bold text-white/20 uppercase tracking-widest bg-white/5 px-2 py-1 rounded">v4.2</span>
+                </div>
                 <p className="text-white/60 text-sm mb-12">Faz login para sincronizar os teus hábitos de forma invisível.</p>
 
                 <form onSubmit={handleLogin} className="space-y-6">

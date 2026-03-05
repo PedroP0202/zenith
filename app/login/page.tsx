@@ -7,7 +7,8 @@ import { motion } from "framer-motion";
 import { ChevronLeft, Cloud, Loader2, Eye, EyeOff } from "lucide-react";
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { SignInWithApple } from '@capacitor-community/apple-sign-in';
-import { API_URL, GOOGLE_CLIENT_ID } from "@/utils/constants";
+import { API_URL, GOOGLE_CLIENT_ID, GOOGLE_IOS_CLIENT_ID } from "@/utils/constants";
+import { Capacitor } from '@capacitor/core';
 export default function LoginPage() {
     const router = useRouter();
     const { setJwt, syncWithCloud, clearUserData, setUserName } = useStore();
@@ -63,7 +64,7 @@ export default function LoginPage() {
         setError("");
         try {
             await GoogleAuth.initialize({
-                clientId: GOOGLE_CLIENT_ID,
+                clientId: Capacitor.getPlatform() === 'ios' ? GOOGLE_IOS_CLIENT_ID : GOOGLE_CLIENT_ID,
                 scopes: ['profile', 'email'],
                 grantOfflineAccess: true,
             });

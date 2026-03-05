@@ -96,7 +96,7 @@ export default function RegisterPage() {
         setError("");
         try {
             await GoogleAuth.initialize({
-                clientId: '702891963060-6js42o8ftqf55oaqi2v58dohihmheq0k.apps.googleusercontent.com', // Placeholder Client ID
+                clientId: '471890064632-6pehr2hlbfudc3qbf0je5kjpd2bjavlv.apps.googleusercontent.com',
                 scopes: ['profile', 'email'],
                 grantOfflineAccess: true,
             });

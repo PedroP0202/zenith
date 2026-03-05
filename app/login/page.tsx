@@ -65,8 +65,7 @@ export default function LoginPage() {
         try {
             await GoogleAuth.initialize({
                 clientId: Capacitor.getPlatform() === 'ios' ? GOOGLE_IOS_CLIENT_ID : GOOGLE_CLIENT_ID,
-                scopes: ['profile', 'email'],
-                grantOfflineAccess: true,
+                scopes: ['profile', 'email']
             });
             const googleUser = await GoogleAuth.signIn();
 

@@ -37,6 +37,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="bg-black overscroll-none">
+      <head>
+        <meta name="google-signin-client_id" content="471890064632-6pehr2hlbfudc3qbf0je5kjpd2bjavlv.apps.googleusercontent.com" />
+      </head>
       <body className={`${inter.className} bg-black text-white overscroll-none min-h-screen`}>
         <AuthGuard>
           {children}

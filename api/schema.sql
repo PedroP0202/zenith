@@ -1,11 +1,13 @@
 -- api/schema.sql
 -- Run locally via: npx wrangler d1 execute zenith-db --local --file=./schema.sql
 
+DROP TABLE IF EXISTS beta_feedbacks;
 DROP TABLE IF EXISTS logs;
 DROP TABLE IF EXISTS habits;
+DROP TABLE IF EXISTS verification_codes;
 DROP TABLE IF EXISTS users;
 
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     email TEXT UNIQUE NOT NULL,
@@ -16,13 +18,13 @@ CREATE TABLE users (
     created_at INTEGER NOT NULL
 );
 
-CREATE TABLE verification_codes (
+CREATE TABLE IF NOT EXISTS verification_codes (
     email TEXT PRIMARY KEY,
     code TEXT NOT NULL,
     expires_at INTEGER NOT NULL
 );
 
-CREATE TABLE habits (
+CREATE TABLE IF NOT EXISTS habits (
     id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL,
     title TEXT NOT NULL,
@@ -35,7 +37,7 @@ CREATE TABLE habits (
     FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
-CREATE TABLE logs (
+CREATE TABLE IF NOT EXISTS logs (
     id TEXT PRIMARY KEY,
     habit_id TEXT NOT NULL,
     completed_at INTEGER NOT NULL,
@@ -43,7 +45,7 @@ CREATE TABLE logs (
     FOREIGN KEY(habit_id) REFERENCES habits(id) ON DELETE CASCADE
 );
 
-CREATE TABLE beta_feedbacks (
+CREATE TABLE IF NOT EXISTS beta_feedbacks (
     id TEXT PRIMARY KEY,
     user_name TEXT NOT NULL,
     platform TEXT,

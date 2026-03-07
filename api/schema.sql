@@ -43,6 +43,16 @@ CREATE TABLE logs (
     FOREIGN KEY(habit_id) REFERENCES habits(id) ON DELETE CASCADE
 );
 
+CREATE TABLE beta_feedbacks (
+    id TEXT PRIMARY KEY,
+    user_name TEXT NOT NULL,
+    platform TEXT,
+    content TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'unread', -- can be 'unread', 'read', 'resolved'
+    created_at INTEGER NOT NULL
+);
+
 -- Indexes for performance
 CREATE INDEX idx_habits_user_id ON habits(user_id);
 CREATE INDEX idx_logs_habit_id ON logs(habit_id);
+CREATE INDEX idx_beta_feedbacks_status ON beta_feedbacks(status);

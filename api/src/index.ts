@@ -494,22 +494,70 @@ app.post('/beta/feedback', zValidator('json', feedbackSchema), async (c) => {
     const { feedback, user, platform } = c.req.valid('json');
     const db = c.env.DB;
 
-    console.log(`[ZENITH_BETA] Feedback from ${user || 'Unknown'}: ${feedback} (${platform})`);
+    const userName = user || 'Unknown';
+    const plat = platform || 'Unknown';
+
+    console.log(`[ZENITH_BETA] Feedback from ${userName}: ${feedback} (${plat})`);
 
     try {
-        // We store feedback in a dedicated table or just log it for now
-        // Assuming a 'feedback' table exists or we can just send it to a Discord webhook in the future
-        await db.prepare('INSERT INTO logs (id, habit_id, completed_at, synced_at) VALUES (?, ?, ?, ?)').bind(
+        await db.prepare(
+            'INSERT INTO beta_feedbacks (id, user_name, platform, content, status, created_at) VALUES (?, ?, ?, ?, ?, ?)'
+        ).bind(
             crypto.randomUUID(),
-            'FEEDBACK_MARKER', // Marker to identify feedback in logs if table doesn't exist
-            Date.now(),
+            userName,
+            plat,
+            feedback,
+            'unread',
             Date.now()
-        ).run().catch(() => { }); // Fallback if table doesn't exist
+        ).run();
 
         return c.json({ success: true, message: 'Obrigado pelo feedback!' });
     } catch (err: any) {
-        // Even if DB fails, we already logged it to console
-        return c.json({ success: true, message: 'Logado no sistema.' });
+        console.error('[ZENITH_BETA_ERROR]', err.message);
+        return c.json({ error: 'Falha ao guardar feedback internamente.' }, 500);
+    }
+});
+
+// --- ADMIN ROUTES ---
+// Simple Admin Auth (in production, use a more secure approach or Cloudflare Access)
+const ADMIN_SECRET = 'zenith-admin-only-2025'; // This should come from c.env.ADMIN_SECRET ideally
+
+app.get('/admin/feedbacks', async (c) => {
+    const authHeader = c.req.header('Authorization');
+
+    // Check if the provided secret matches our Admin Secret
+    if (!authHeader || authHeader !== `Bearer ${ADMIN_SECRET}`) {
+        return c.json({ error: 'Acesso Restrito Admnistrativo.' }, 401);
+    }
+
+    const db = c.env.DB;
+    try {
+        const { results } = await db.prepare('SELECT * FROM beta_feedbacks ORDER BY created_at DESC').all();
+        return c.json({ feedbacks: results });
+    } catch (err: any) {
+        return c.json({ error: 'Erro ao carregar feedbacks: ' + err.message }, 500);
+    }
+});
+
+app.post('/admin/feedbacks/:id/status', async (c) => {
+    const authHeader = c.req.header('Authorization');
+    if (!authHeader || authHeader !== `Bearer ${ADMIN_SECRET}`) {
+        return c.json({ error: 'Acesso Restrito Admnistrativo.' }, 401);
+    }
+
+    const id = c.req.param('id');
+    const { status } = await c.req.json().catch(() => ({ status: '' }));
+
+    if (!['unread', 'read', 'resolved'].includes(status)) {
+        return c.json({ error: 'Estado inválido.' }, 400);
+    }
+
+    const db = c.env.DB;
+    try {
+        await db.prepare('UPDATE beta_feedbacks SET status = ? WHERE id = ?').bind(status, id).run();
+        return c.json({ success: true, message: `Estado atualizado para ${status}` });
+    } catch (err: any) {
+        return c.json({ error: 'Erro ao atualizar feedback: ' + err.message }, 500);
     }
 });
 

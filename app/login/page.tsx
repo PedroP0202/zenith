@@ -93,7 +93,7 @@ export default function LoginPage() {
         setError("");
         try {
             const result = await SignInWithApple.authorize({
-                clientId: 'com.seusite.zenith',
+                clientId: 'com.pedropiedade.zenithapp',
                 redirectURI: 'https://zenith-api.zenith-pedro.workers.dev/auth/apple/callback',
                 scopes: 'email name'
             });

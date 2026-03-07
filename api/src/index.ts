@@ -76,7 +76,12 @@ app.post('/auth/google', async (c) => {
 app.post('/auth/apple', async (c) => {
     try {
         const { appleId, email, name, identityToken } = await c.req.json();
-        if (!appleId || !identityToken) return c.json({ error: 'Faltam dados da Apple.' }, 400);
+
+        // Basic presence check for critical Apple data
+        if (!appleId || !identityToken) {
+            console.error('[ZENITH_AUTH] Missing Apple credentials:', { appleId, hasToken: !!identityToken });
+            return c.json({ error: 'Faltam dados da Apple.' }, 400);
+        }
 
         const db = c.env.DB;
         let query = 'SELECT id, name, email FROM users WHERE apple_id = ?';
@@ -107,8 +112,10 @@ app.post('/auth/apple', async (c) => {
         const secret = c.env.JWT_SECRET || 'zenith-local-dev-secret';
         const token = await sign({ id: userId, name: finalName, email: finalEmail, exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30 }, secret);
 
+        console.log(`[ZENITH_AUTH] Apple Login success for ${finalEmail}`);
         return c.json({ token, user: { id: userId, name: finalName, email: finalEmail } });
     } catch (e: any) {
+        console.error('[ZENITH_AUTH] Apple Auth Error:', e.message);
         return c.json({ error: 'Erro de Autenticação Apple: ' + e.message }, 500);
     }
 });

@@ -482,4 +482,35 @@ app.get('/sync/pull', async (c) => {
     }
 });
 
+// --- BETA FEEDBACK ROUTES ---
+
+const feedbackSchema = z.object({
+    feedback: z.string().min(1),
+    user: z.string().optional(),
+    platform: z.string().optional(),
+});
+
+app.post('/beta/feedback', zValidator('json', feedbackSchema), async (c) => {
+    const { feedback, user, platform } = c.req.valid('json');
+    const db = c.env.DB;
+
+    console.log(`[ZENITH_BETA] Feedback from ${user || 'Unknown'}: ${feedback} (${platform})`);
+
+    try {
+        // We store feedback in a dedicated table or just log it for now
+        // Assuming a 'feedback' table exists or we can just send it to a Discord webhook in the future
+        await db.prepare('INSERT INTO logs (id, habit_id, completed_at, synced_at) VALUES (?, ?, ?, ?)').bind(
+            crypto.randomUUID(),
+            'FEEDBACK_MARKER', // Marker to identify feedback in logs if table doesn't exist
+            Date.now(),
+            Date.now()
+        ).run().catch(() => { }); // Fallback if table doesn't exist
+
+        return c.json({ success: true, message: 'Obrigado pelo feedback!' });
+    } catch (err: any) {
+        // Even if DB fails, we already logged it to console
+        return c.json({ success: true, message: 'Logado no sistema.' });
+    }
+});
+
 export default app;

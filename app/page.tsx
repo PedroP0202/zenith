@@ -9,6 +9,8 @@ import { enUS } from 'date-fns/locale';
 import { AnimatePresence } from 'framer-motion';
 import SwipeableHabit from '../components/SwipeableHabit';
 import NotificationOnboarding from '../components/NotificationOnboarding';
+import BetaFeedback from '../components/BetaFeedback';
+import BetaWelcomeModal from '../components/BetaWelcomeModal';
 import { useTranslation } from '../hooks/useTranslation';
 
 export default function Home() {
@@ -137,6 +139,8 @@ export default function Home() {
             </div>
 
             <NotificationOnboarding />
+            <BetaFeedback />
+            <BetaWelcomeModal />
         </main>
     );
 }

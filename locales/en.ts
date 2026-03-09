@@ -89,7 +89,18 @@ export const en = {
         deleteConfirm: "Are you sure? This cannot be undone.",
         streakDay: "Day Streak",
         streakDays: "Days Streak",
-        editTime: "Edit time"
+        editTime: "Edit time",
+        suggestions: [
+            "Read 10 pages",
+            "Meditate 5 minutes",
+            "Drink 2L of water",
+            "Workout 30 mins",
+            "Wake up at 7am",
+            "Journaling",
+            "Morning walk",
+            "No sugar",
+            "Learn something new"
+        ]
     },
     stats: {
         title: "Statistics",

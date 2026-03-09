@@ -89,7 +89,18 @@ export const pt = {
         deleteConfirm: "Tens a certeza? Isto não pode ser desfeito.",
         streakDay: "Dia Seguido",
         streakDays: "Dias Seguidos",
-        editTime: "Editar hora"
+        editTime: "Editar hora",
+        suggestions: [
+            "Ler 10 páginas",
+            "Meditar 5 minutos",
+            "Beber 2L de água",
+            "Treinar 30 minutos",
+            "Acordar às 7h",
+            "Escrever no diário",
+            "Caminhada matinal",
+            "Sem açúcar",
+            "Aprender algo novo"
+        ]
     },
     stats: {
         title: "Estatísticas",

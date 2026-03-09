@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/store/useStore";
 import { motion } from "framer-motion";
@@ -18,6 +18,23 @@ export default function LoginPage() {
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+
+    useEffect(() => {
+        // Initialize Google Auth on mount for proper Web and iOS behavior
+        const initGoogleAuth = async () => {
+            try {
+                await GoogleAuth.initialize({
+                    clientId: Capacitor.getPlatform() === 'ios' ? GOOGLE_IOS_CLIENT_ID : GOOGLE_CLIENT_ID,
+                    scopes: ['profile', 'email'],
+                    grantOfflineAccess: true
+                });
+                console.log("[ZENITH_AUTH] Google Auth initialized successfully");
+            } catch (err) {
+                console.error("[ZENITH_AUTH] Failed to initialize Google Auth:", err);
+            }
+        };
+        initGoogleAuth();
+    }, []);
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -63,11 +80,10 @@ export default function LoginPage() {
         setLoading(true);
         setError("");
         try {
-            await GoogleAuth.initialize({
-                clientId: Capacitor.getPlatform() === 'ios' ? GOOGLE_IOS_CLIENT_ID : GOOGLE_CLIENT_ID,
-                scopes: ['profile', 'email']
-            });
+            console.log("[ZENITH_AUTH] Attempting Google Sign In...");
             const googleUser = await GoogleAuth.signIn();
+
+            console.log("[ZENITH_AUTH] Google Auth Sign In successful. Sending to backend...");
 
             const res = await fetch(`${API_URL}/auth/google`, {
                 method: 'POST',
@@ -83,7 +99,10 @@ export default function LoginPage() {
             syncWithCloud().catch(console.error);
             router.replace('/');
         } catch (err: any) {
-            setError('Google Login falhou: ' + (err.message || 'Operação Cancelada.'));
+            console.error("[ZENITH_AUTH] Full Google Error:", err);
+            let errorMessage = err.message || 'Operação Cancelada.';
+            if (err.error) errorMessage += ` (${err.error})`;
+            setError('Google Login falhou: ' + errorMessage);
             setLoading(false);
         }
     };

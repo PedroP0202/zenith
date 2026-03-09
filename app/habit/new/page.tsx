@@ -1,9 +1,10 @@
 "use client";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useStore } from '../../../store/useStore';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft } from 'lucide-react';
 import { useTranslation } from '../../../hooks/useTranslation';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function NewHabit() {
     const { t } = useTranslation();
@@ -12,8 +13,24 @@ export default function NewHabit() {
     const [isHardMode, setIsHardMode] = useState(false);
     const [isReminderEnabled, setIsReminderEnabled] = useState(false);
     const [reminderTime, setReminderTime] = useState('09:00');
+    const [placeholderIndex, setPlaceholderIndex] = useState(0);
     const { addHabit } = useStore();
     const router = useRouter();
+
+    const suggestions = t.habit.suggestions || [
+        "Ler 10 páginas",
+        "Meditar 5 minutos",
+        "Treinar 30 minutos"
+    ];
+
+    useEffect(() => {
+        if (!title.trim()) {
+            const interval = setInterval(() => {
+                setPlaceholderIndex((prev) => (prev + 1) % suggestions.length);
+            }, 3000);
+            return () => clearInterval(interval);
+        }
+    }, [title, suggestions.length]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -49,16 +66,31 @@ export default function NewHabit() {
                         {t.habit.questionTitle}
                     </label>
 
-                    <input
-                        id="title"
-                        type="text"
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                        placeholder={t.habit.namePlaceholder}
-                        autoFocus
-                        className="bg-transparent border-b-2 border-white/20 focus:border-white text-2xl py-4 outline-none transition-colors placeholder:text-white/20"
-                        autoComplete="off"
-                    />
+                    <div className="relative">
+                        <input
+                            id="title"
+                            type="text"
+                            value={title}
+                            onChange={(e) => setTitle(e.target.value)}
+                            autoFocus
+                            className="w-full bg-transparent border-b-2 border-white/20 focus:border-[var(--zenith-active)] text-2xl py-4 outline-none transition-colors relative z-10"
+                            autoComplete="off"
+                        />
+                        <AnimatePresence mode="wait">
+                            {!title && (
+                                <motion.div
+                                    key={placeholderIndex}
+                                    initial={{ opacity: 0, y: 15 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -15, filter: "blur(4px)" }}
+                                    transition={{ duration: 0.5, ease: "easeOut" }}
+                                    className="absolute left-0 top-1/2 -translate-y-1/2 text-2xl text-white/20 pointer-events-none tracking-tight font-medium w-full truncate pr-4"
+                                >
+                                    Ex: {suggestions[placeholderIndex]}...
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
 
                     <div className="mt-4">
                         <label className="text-sm font-medium text-white/50 mb-4 block uppercase tracking-widest">

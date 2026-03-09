@@ -4,10 +4,16 @@ import { useRouter } from 'next/navigation';
 import { ChevronLeft, RotateCcw, Trash2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { pt } from 'date-fns/locale';
+import ConfirmationModal from '../../components/ConfirmationModal';
+import { useTranslation } from '../../hooks/useTranslation';
+import { useState } from 'react';
 
 export default function TrashPage() {
     const { habits, restoreHabit, permanentlyDeleteHabit } = useStore();
+    const { t } = useTranslation();
     const router = useRouter();
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [habitToDelete, setHabitToDelete] = useState<string | null>(null);
 
     const deletedHabits = habits.filter(h => !h.isActive).sort((a, b) => (b.deletedAt || 0) - (a.deletedAt || 0));
 
@@ -53,7 +59,10 @@ export default function TrashPage() {
                                         <RotateCcw size={18} />
                                     </button>
                                     <button
-                                        onClick={() => permanentlyDeleteHabit(habit.id)}
+                                        onClick={() => {
+                                            setHabitToDelete(habit.id);
+                                            setShowDeleteModal(true);
+                                        }}
                                         className="h-10 w-10 flex items-center justify-center rounded-full text-red-500/50 hover:text-red-500 hover:bg-red-500/10 transition-colors"
                                         aria-label="Apagar permanentemente"
                                     >
@@ -65,6 +74,24 @@ export default function TrashPage() {
                     </div>
                 )}
             </div>
+
+            <ConfirmationModal
+                isOpen={showDeleteModal}
+                onClose={() => {
+                    setShowDeleteModal(false);
+                    setHabitToDelete(null);
+                }}
+                onConfirm={() => {
+                    if (habitToDelete) {
+                        permanentlyDeleteHabit(habitToDelete);
+                        setHabitToDelete(null);
+                    }
+                }}
+                title={t.habit.permanentlyDelete}
+                description={t.habit.deleteConfirm}
+                confirmLabel={t.common.delete}
+                cancelLabel={t.common.cancel}
+            />
         </main>
     );
 }

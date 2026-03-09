@@ -8,6 +8,7 @@ import { Suspense, useState, useEffect, useRef } from 'react';
 import { Habit, LogEntry } from '../../../types';
 import InfiniteCalendar from '../../../components/InfiniteCalendar';
 import { useTranslation } from '../../../hooks/useTranslation';
+import ConfirmationModal from '../../../components/ConfirmationModal';
 
 function HabitDetailContent() {
     const { t } = useTranslation();
@@ -19,6 +20,7 @@ function HabitDetailContent() {
     const [localTitle, setLocalTitle] = useState('');
     const [isReminderEnabled, setIsReminderEnabled] = useState(false);
     const [localReminderTime, setLocalReminderTime] = useState('09:00');
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
 
     const habit = habits.find((h: Habit) => h.id === id);
@@ -48,10 +50,12 @@ function HabitDetailContent() {
     }
 
     const handleDelete = () => {
-        if (confirm(t.habit.deleteConfirm)) {
-            removeHabit(habit.id);
-            router.push('/');
-        }
+        setShowDeleteModal(true);
+    };
+
+    const handleConfirmDelete = () => {
+        removeHabit(habit.id);
+        router.push('/');
     };
 
     return (
@@ -193,6 +197,16 @@ function HabitDetailContent() {
                 </div>
 
             </div>
+
+            <ConfirmationModal
+                isOpen={showDeleteModal}
+                onClose={() => setShowDeleteModal(false)}
+                onConfirm={handleConfirmDelete}
+                title={t.habit.deleteWarning}
+                description={t.habit.deleteDesc}
+                confirmLabel={t.common.delete}
+                cancelLabel={t.common.cancel}
+            />
         </main>
     );
 }

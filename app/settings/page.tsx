@@ -9,6 +9,7 @@ import { motion } from "framer-motion";
 import { useTranslation } from "@/hooks/useTranslation";
 import { Language } from "@/locales";
 import { API_URL } from "@/utils/constants";
+import ConfirmationModal from "@/components/ConfirmationModal";
 
 export default function SettingsPage() {
     const router = useRouter();
@@ -92,6 +93,8 @@ export default function SettingsPage() {
         }
 
         if (!deletePassword) return;
+        setIsDeleting(false); // Reset just in case
+        setShowDeleteConfirm(false); // Close modal
         setIsDeleting(true);
         try {
             const res = await fetch(`${API_URL}/auth/account`, {
@@ -114,6 +117,7 @@ export default function SettingsPage() {
             alert(t.common.error);
         } finally {
             setIsDeleting(false);
+            setDeletePassword("");
         }
     };
 
@@ -323,42 +327,43 @@ export default function SettingsPage() {
                                 <p className="text-xs text-white/50 mt-1 max-w-[200px] leading-relaxed">{t.settings.dangerZone.deleteWarning}</p>
                             </div>
                             <button
-                                onClick={() => setShowDeleteConfirm(!showDeleteConfirm)}
+                                onClick={() => setShowDeleteConfirm(true)}
                                 className="text-[11px] font-bold text-red-500 bg-red-500/10 px-4 py-2 rounded-xl transition-colors hover:bg-red-500/20 active:scale-95 uppercase tracking-wider">
                                 {t.common.delete}
                             </button>
                         </div>
-
-                        {showDeleteConfirm && (
-                            <motion.div
-                                initial={{ opacity: 0, height: 0 }}
-                                animate={{ opacity: 1, height: 'auto' }}
-                                className="mt-2 p-4 rounded-xl bg-red-500/5 border border-red-500/20 flex flex-col gap-3 overflow-hidden origin-top"
-                            >
-                                {jwt && (
-                                    <input
-                                        type="password"
-                                        value={deletePassword}
-                                        onChange={(e) => setDeletePassword(e.target.value)}
-                                        placeholder={t.settings.dangerZone.passwordConfirm}
-                                        className="w-full bg-black/50 text-sm font-medium outline-none border border-red-500/30 rounded-lg px-3 py-2 text-white placeholder:text-white/30 focus:border-red-500/70 transition-colors"
-                                    />
-                                )}
-                                <div className="flex justify-end gap-3 mt-1">
-                                    <button onClick={() => setShowDeleteConfirm(false)} className="text-xs text-white/50 px-3 py-1.5 hover:text-white uppercase tracking-wider font-bold transition-colors">{t.common.cancel}</button>
-                                    <button
-                                        onClick={handleDeleteAccount}
-                                        disabled={isDeleting || (jwt ? !deletePassword : false)}
-                                        className="text-xs text-red-500 bg-red-500/10 px-3 py-1.5 rounded-lg hover:bg-red-500/20 uppercase tracking-wider font-bold transition-colors disabled:opacity-50"
-                                    >
-                                        {isDeleting ? t.common.loading : t.settings.dangerZone.deleteAction}
-                                    </button>
-                                </div>
-                            </motion.div>
-                        )}
                     </div>
                 </section>
             </div>
+
+            <ConfirmationModal
+                isOpen={showDeleteConfirm}
+                onClose={() => {
+                    setShowDeleteConfirm(false);
+                    setDeletePassword("");
+                }}
+                onConfirm={handleDeleteAccount}
+                title={t.settings.dangerZone.deleteAccount}
+                description={t.settings.dangerZone.deleteWarning}
+                confirmLabel={t.settings.dangerZone.deleteAction}
+                cancelLabel={t.common.cancel}
+            >
+                {jwt && (
+                    <div className="mt-6 w-full text-left">
+                        <label className="text-xs font-bold text-white/40 uppercase tracking-widest mb-2 block ml-1">
+                            {t.settings.dangerZone.passwordConfirm}
+                        </label>
+                        <input
+                            type="password"
+                            value={deletePassword}
+                            onChange={(e) => setDeletePassword(e.target.value)}
+                            placeholder="••••••••"
+                            className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-4 text-white outline-none focus:border-red-500/50 transition-colors"
+                            autoFocus
+                        />
+                    </div>
+                )}
+            </ConfirmationModal>
         </main>
     );
 }

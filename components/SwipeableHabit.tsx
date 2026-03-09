@@ -5,6 +5,8 @@ import { motion, useAnimation, useMotionValue, useTransform, PanInfo } from 'fra
 import { Check, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { Habit } from '../types';
+import ConfirmationModal from './ConfirmationModal';
+import { useTranslation } from '../hooks/useTranslation';
 
 interface SwipeableHabitProps {
     habit: Habit;
@@ -16,8 +18,10 @@ interface SwipeableHabitProps {
 
 export default function SwipeableHabit({ habit, streak, doneToday, onToggle, onDelete }: SwipeableHabitProps) {
     const x = useMotionValue(0);
+    const { t } = useTranslation();
     const controls = useAnimation();
     const [isDeleting, setIsDeleting] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
 
     // Transform x into opacity/scale for the trash icon
     const trashOpacity = useTransform(x, [0, -75], [0, 1]);
@@ -29,13 +33,14 @@ export default function SwipeableHabit({ habit, streak, doneToday, onToggle, onD
 
         // Check if dragged far enough to left
         if (offset.x < swipeThreshold || velocity.x < -400) {
-            // Trigger delete animation
-            setIsDeleting(true);
-            await controls.start({
-                x: -window.innerWidth,
-                transition: { type: 'spring', stiffness: 200, damping: 20 }
+            // Show confirmation modal instead of immediate delete
+            setShowDeleteModal(true);
+
+            // Snap back for now, let onDelete happen after confirmation
+            controls.start({
+                x: 0,
+                transition: { type: 'spring', stiffness: 400, damping: 30 }
             });
-            onDelete();
         } else {
             // Snap back
             controls.start({
@@ -43,6 +48,16 @@ export default function SwipeableHabit({ habit, streak, doneToday, onToggle, onD
                 transition: { type: 'spring', stiffness: 400, damping: 30 }
             });
         }
+    };
+
+    const handleConfirmDelete = async () => {
+        setIsDeleting(true);
+        await controls.start({
+            x: -window.innerWidth,
+            transition: { type: 'spring', stiffness: 200, damping: 20 }
+        });
+        onDelete();
+        setShowDeleteModal(false);
     };
 
     if (isDeleting) return null;
@@ -127,6 +142,16 @@ export default function SwipeableHabit({ habit, streak, doneToday, onToggle, onD
                 </button>
 
             </motion.div>
+
+            <ConfirmationModal
+                isOpen={showDeleteModal}
+                onClose={() => setShowDeleteModal(false)}
+                onConfirm={handleConfirmDelete}
+                title={t.habit.deleteWarning}
+                description={t.habit.deleteDesc}
+                confirmLabel={t.common.delete}
+                cancelLabel={t.common.cancel}
+            />
         </motion.div>
     );
 }

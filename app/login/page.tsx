@@ -325,6 +325,7 @@ export default function LoginPage() {
                     </div>
 
                     <div className="flex flex-col gap-3">
+                        {/* Apple Login Hidden (Requires paid Developer Account)
                         <button
                             type="button"
                             onClick={handleAppleLogin}
@@ -336,6 +337,7 @@ export default function LoginPage() {
                             </svg>
                             Continuar com Apple
                         </button>
+                        */}
                         <button
                             type="button"
                             onClick={handleGoogleLogin}

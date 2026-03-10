@@ -73,6 +73,45 @@ app.post('/auth/google', async (c) => {
     }
 });
 
+app.post('/auth/google/web', async (c) => {
+    try {
+        const { accessToken } = await c.req.json();
+        if (!accessToken) return c.json({ error: 'Falta o token de acesso do Google (Web).' }, 400);
+
+        // Fetch user profile using the access token
+        const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+            headers: { Authorization: `Bearer ${accessToken}` }
+        });
+
+        if (!response.ok) return c.json({ error: 'Token de acesso do Google inválido.' }, 401);
+        const googleUser = await response.json() as any;
+
+        const { email, name, sub: googleId } = googleUser;
+        const db = c.env.DB;
+
+        let user = await db.prepare('SELECT id, name, email FROM users WHERE google_id = ? OR email = ?').bind(googleId, email).first() as any;
+
+        const now = Date.now();
+        let userId;
+
+        if (user) {
+            userId = user.id;
+            await db.prepare('UPDATE users SET google_id = ? WHERE id = ?').bind(googleId, userId).run();
+        } else {
+            userId = crypto.randomUUID();
+            await db.prepare('INSERT INTO users (id, name, email, password_hash, google_id, is_verified, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
+                .bind(userId, name || 'User', email, 'OAUTH_USER', googleId, 1, now).run();
+        }
+
+        const secret = c.env.JWT_SECRET || 'zenith-local-dev-secret';
+        const token = await sign({ id: userId, name: user?.name || name, email, exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30 }, secret);
+
+        return c.json({ token, user: { id: userId, name: user?.name || name, email } });
+    } catch (e: any) {
+        return c.json({ error: 'Erro de Autenticação Google (Web): ' + e.message }, 500);
+    }
+});
+
 app.post('/auth/apple', async (c) => {
     try {
         const { appleId, email, name, identityToken } = await c.req.json();

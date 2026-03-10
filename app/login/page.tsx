@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import { ChevronLeft, Cloud, Loader2, Eye, EyeOff } from "lucide-react";
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { SignInWithApple } from '@capacitor-community/apple-sign-in';
+import { useGoogleLogin } from '@react-oauth/google';
 import { API_URL, GOOGLE_CLIENT_ID, GOOGLE_IOS_CLIENT_ID } from "@/utils/constants";
 import { Capacitor } from '@capacitor/core';
 export default function LoginPage() {
@@ -20,20 +21,21 @@ export default function LoginPage() {
     const [error, setError] = useState("");
 
     useEffect(() => {
-        // Initialize Google Auth on mount for proper Web and iOS behavior
-        const initGoogleAuth = async () => {
-            try {
-                await GoogleAuth.initialize({
-                    clientId: Capacitor.getPlatform() === 'ios' ? GOOGLE_IOS_CLIENT_ID : GOOGLE_CLIENT_ID,
-                    scopes: ['profile', 'email'],
-                    grantOfflineAccess: true
-                });
-                console.log("[ZENITH_AUTH] Google Auth initialized successfully");
-            } catch (err) {
-                console.error("[ZENITH_AUTH] Failed to initialize Google Auth:", err);
-            }
-        };
-        initGoogleAuth();
+        // Only initialize Capacitor Google Auth on Native platforms
+        if (Capacitor.getPlatform() === 'ios' || Capacitor.getPlatform() === 'android') {
+            const initGoogleAuth = async () => {
+                try {
+                    await GoogleAuth.initialize({
+                        clientId: Capacitor.getPlatform() === 'ios' ? GOOGLE_IOS_CLIENT_ID : GOOGLE_CLIENT_ID,
+                        scopes: ['profile', 'email']
+                    });
+                    console.log("[ZENITH_AUTH] Capacitor Google Auth initialized for native");
+                } catch (err) {
+                    console.error("[ZENITH_AUTH] Failed to initialize Google Auth:", err);
+                }
+            };
+            initGoogleAuth();
+        }
     }, []);
 
     const handleLogin = async (e: React.FormEvent) => {
@@ -76,14 +78,62 @@ export default function LoginPage() {
         }
     };
 
+    // -- WEB GOOGLE LOGIN HANDLER --
+    const loginWebGoogle = useGoogleLogin({
+        onSuccess: async (codeResponse) => {
+            setLoading(true);
+            setError("");
+            try {
+                console.log("[ZENITH_AUTH] Web Google Login successful. Response:", codeResponse);
+
+                // We send the access_token to the backend, where it will fetch user profile
+                const res = await fetch(`${API_URL}/auth/google/web`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accessToken: codeResponse.access_token })
+                });
+
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(data.error || 'Erro Google (Web).');
+
+                clearUserData();
+                setJwt(data.token);
+                if (data.user?.name) setUserName(data.user.name);
+                syncWithCloud().catch(console.error);
+                router.replace('/');
+
+            } catch (err: any) {
+                console.error("[ZENITH_AUTH] Web Google Error:", err);
+                let errorMessage = err.message || 'Operação Cancelada (Web).';
+                if (err.error) errorMessage += ` (${err.error})`;
+                setError('Google Login falhou: ' + errorMessage);
+                setLoading(false);
+            }
+        },
+        onError: (error) => {
+            console.error("[ZENITH_AUTH] useGoogleLogin Error:", error);
+            setError('Falha ao iniciar Google Login.');
+        }
+    });
+
+    // -- UNIFIED GOOGLE LOGIN HANDLER --
     const handleGoogleLogin = async () => {
+        const platform = Capacitor.getPlatform();
+
+        if (platform === 'web') {
+            console.log("[ZENITH_AUTH] Using Web Google Login fallback...");
+            loginWebGoogle();
+            return;
+        }
+
+        // Native Flow (iOS/Android)
         setLoading(true);
         setError("");
         try {
-            console.log("[ZENITH_AUTH] Attempting Google Sign In...");
+            console.log("[ZENITH_AUTH] Attempting Native Google Sign In...");
             const googleUser = await GoogleAuth.signIn();
 
-            console.log("[ZENITH_AUTH] Google Auth Sign In successful. Sending to backend...");
+            console.log("[ZENITH_AUTH] Native Google Auth Sign In successful. Sending to backend...");
 
             const res = await fetch(`${API_URL}/auth/google`, {
                 method: 'POST',
@@ -99,7 +149,7 @@ export default function LoginPage() {
             syncWithCloud().catch(console.error);
             router.replace('/');
         } catch (err: any) {
-            console.error("[ZENITH_AUTH] Full Google Error:", err);
+            console.error("[ZENITH_AUTH] Full Native Google Error:", err);
             let errorMessage = err.message || 'Operação Cancelada.';
             if (err.error) errorMessage += ` (${err.error})`;
             setError('Google Login falhou: ' + errorMessage);

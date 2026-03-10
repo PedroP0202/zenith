@@ -6,6 +6,8 @@ import BottomNav from '../components/BottomNav';
 const inter = Inter({ subsets: ['latin'] });
 
 import AuthGuard from '../components/AuthGuard';
+import { GoogleOAuthProvider } from '@react-oauth/google';
+import { GOOGLE_CLIENT_ID } from '@/utils/constants';
 
 export const metadata: Metadata = {
   title: 'Zenith',
@@ -41,10 +43,12 @@ export default function RootLayout({
         <meta name="google-signin-client_id" content="471890064632-6pehr2hlbfudc3qbf0je5kjpd2bjavlv.apps.googleusercontent.com" />
       </head>
       <body className={`${inter.className} bg-black text-white overscroll-none min-h-screen`}>
-        <AuthGuard>
-          {children}
-          <BottomNav />
-        </AuthGuard>
+        <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+          <AuthGuard>
+            {children}
+            <BottomNav />
+          </AuthGuard>
+        </GoogleOAuthProvider>
       </body>
     </html>
   );

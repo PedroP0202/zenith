@@ -12,7 +12,7 @@ import { Capacitor } from '@capacitor/core';
 
 export default function RegisterPage() {
     const router = useRouter();
-    const { setJwt, syncWithCloud, setUserName, clearUserData } = useStore();
+    const { setJwt, syncWithCloud, setUserName, setLanguage, clearUserData } = useStore();
 
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
@@ -84,6 +84,7 @@ export default function RegisterPage() {
 
             setJwt(data.token);
             setUserName(data.user?.name || name || 'User');
+            if (data.user?.language) setLanguage(data.user.language as any);
 
             syncWithCloud().catch(console.error);
             router.replace('/');
@@ -114,6 +115,7 @@ export default function RegisterPage() {
             clearUserData();
             setJwt(data.token);
             if (data.user?.name) setUserName(data.user.name);
+            if (data.user?.language) setLanguage(data.user.language as any);
             syncWithCloud().catch(console.error);
             router.replace('/');
         } catch (err: any) {
@@ -148,6 +150,7 @@ export default function RegisterPage() {
             clearUserData();
             setJwt(data.token);
             if (data.user?.name) setUserName(data.user.name);
+            if (data.user?.language) setLanguage(data.user.language as any);
             syncWithCloud().catch(console.error);
             router.replace('/');
         } catch (err: any) {

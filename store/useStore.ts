@@ -127,6 +127,11 @@ interface AppState {
     clearUserData: () => void;
 
     /**
+     * Internal helper to sync profile (name, language) to the cloud.
+     */
+    syncProfile: () => Promise<void>;
+
+    /**
      * Logs the user out, clearing all sensitive data and credentials.
      */
     logout: () => void;
@@ -146,8 +151,14 @@ export const useStore = create<AppState>()(
             lastSyncedAt: 0,
             syncStatus: 'idle',
 
-            setUserName: (name) => set({ userName: name }),
-            setLanguage: (language) => set({ language }),
+            setUserName: (name) => {
+                set({ userName: name });
+                get().syncProfile().catch(console.error);
+            },
+            setLanguage: (language) => {
+                set({ language });
+                get().syncProfile().catch(console.error);
+            },
             setJwt: (jwt) => set({ jwt }),
 
             clearUserData: () => {
@@ -160,14 +171,15 @@ export const useStore = create<AppState>()(
             },
 
             logout: () => {
+                const currentLanguage = get().language; // Preserve language
                 set({
                     jwt: null,
                     habits: [],
                     logs: [],
                     lastSyncedAt: 0,
                     syncStatus: 'idle',
-                    userName: 'Pedro', // Reset to default
-                    language: 'pt'
+                    userName: 'Pedro',
+                    language: currentLanguage
                 });
                 // Ensure no ghost notifications remain after logout
                 cancelAllNotifications().catch(console.error);
@@ -368,6 +380,24 @@ export const useStore = create<AppState>()(
                 } catch (error: any) {
                     console.error('Sync error details:', error?.message || error);
                     set({ syncStatus: 'error' });
+                }
+            },
+
+            syncProfile: async () => {
+                const { jwt, userName, language } = get();
+                if (!jwt) return;
+
+                try {
+                    await fetch(`${API_URL}/auth/profile`, {
+                        method: 'PATCH',
+                        headers: {
+                            'Authorization': `Bearer ${jwt}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ name: userName, language })
+                    });
+                } catch (e) {
+                    console.error("Failed to sync profile:", e);
                 }
             }
         }),

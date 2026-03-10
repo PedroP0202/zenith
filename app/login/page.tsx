@@ -12,7 +12,7 @@ import { API_URL, GOOGLE_CLIENT_ID, GOOGLE_IOS_CLIENT_ID } from "@/utils/constan
 import { Capacitor } from '@capacitor/core';
 export default function LoginPage() {
     const router = useRouter();
-    const { setJwt, syncWithCloud, clearUserData, setUserName } = useStore();
+    const { setJwt, syncWithCloud, clearUserData, setUserName, setLanguage } = useStore();
 
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -73,6 +73,10 @@ export default function LoginPage() {
             if (data.user?.name) {
                 setUserName(data.user.name);
             }
+            // Sync the user language from the database
+            if (data.user?.language) {
+                setLanguage(data.user.language as any);
+            }
 
             // Sync in the background so it doesn't block the UI transition
             syncWithCloud().catch(console.error);
@@ -110,6 +114,7 @@ export default function LoginPage() {
                 clearUserData();
                 setJwt(data.token);
                 if (data.user?.name) setUserName(data.user.name);
+                if (data.user?.language) setLanguage(data.user.language as any);
                 syncWithCloud().catch(console.error);
                 router.replace('/');
 
@@ -157,6 +162,7 @@ export default function LoginPage() {
             clearUserData();
             setJwt(data.token);
             if (data.user?.name) setUserName(data.user.name);
+            if (data.user?.language) setLanguage(data.user.language as any); // Added this line
             syncWithCloud().catch(console.error);
             router.replace('/');
         } catch (err: any) {
@@ -209,6 +215,7 @@ export default function LoginPage() {
             clearUserData();
             setJwt(data.token);
             if (data.user?.name) setUserName(data.user.name);
+            if (data.user?.language) setLanguage(data.user.language as any);
             syncWithCloud().catch(console.error);
             router.replace('/');
         } catch (err: any) {

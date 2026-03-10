@@ -50,24 +50,25 @@ app.post('/auth/google', async (c) => {
         const { email, name, sub: googleId } = googleUser;
         const db = c.env.DB;
 
-        let user = await db.prepare('SELECT id, name, email FROM users WHERE google_id = ? OR email = ?').bind(googleId, email).first() as any;
+        let user = await db.prepare('SELECT id, name, email, language FROM users WHERE google_id = ? OR email = ?').bind(googleId, email).first() as any;
 
         const now = Date.now();
         let userId;
+        let userLanguage = user?.language || 'pt';
 
         if (user) {
             userId = user.id;
             await db.prepare('UPDATE users SET google_id = ? WHERE id = ?').bind(googleId, userId).run();
         } else {
             userId = crypto.randomUUID();
-            await db.prepare('INSERT INTO users (id, name, email, password_hash, google_id, is_verified, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
-                .bind(userId, name || 'User', email, 'OAUTH_USER', googleId, 1, now).run();
+            await db.prepare('INSERT INTO users (id, name, email, password_hash, google_id, is_verified, created_at, language) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+                .bind(userId, name || 'User', email, 'OAUTH_USER', googleId, 1, now, userLanguage).run();
         }
 
         const secret = c.env.JWT_SECRET || 'zenith-local-dev-secret';
         const token = await sign({ id: userId, name: user?.name || name, email, exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30 }, secret);
 
-        return c.json({ token, user: { id: userId, name: user?.name || name, email } });
+        return c.json({ token, user: { id: userId, name: user?.name || name, email, language: userLanguage } });
     } catch (e: any) {
         return c.json({ error: 'Erro de Autenticação Google: ' + e.message }, 500);
     }
@@ -89,24 +90,25 @@ app.post('/auth/google/web', async (c) => {
         const { email, name, sub: googleId } = googleUser;
         const db = c.env.DB;
 
-        let user = await db.prepare('SELECT id, name, email FROM users WHERE google_id = ? OR email = ?').bind(googleId, email).first() as any;
+        let user = await db.prepare('SELECT id, name, email, language FROM users WHERE google_id = ? OR email = ?').bind(googleId, email).first() as any;
 
         const now = Date.now();
         let userId;
+        let userLanguage = user?.language || 'pt';
 
         if (user) {
             userId = user.id;
             await db.prepare('UPDATE users SET google_id = ? WHERE id = ?').bind(googleId, userId).run();
         } else {
             userId = crypto.randomUUID();
-            await db.prepare('INSERT INTO users (id, name, email, password_hash, google_id, is_verified, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
-                .bind(userId, name || 'User', email, 'OAUTH_USER', googleId, 1, now).run();
+            await db.prepare('INSERT INTO users (id, name, email, password_hash, google_id, is_verified, created_at, language) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+                .bind(userId, name || 'User', email, 'OAUTH_USER', googleId, 1, now, userLanguage).run();
         }
 
         const secret = c.env.JWT_SECRET || 'zenith-local-dev-secret';
         const token = await sign({ id: userId, name: user?.name || name, email, exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30 }, secret);
 
-        return c.json({ token, user: { id: userId, name: user?.name || name, email } });
+        return c.json({ token, user: { id: userId, name: user?.name || name, email, language: userLanguage } });
     } catch (e: any) {
         return c.json({ error: 'Erro de Autenticação Google (Web): ' + e.message }, 500);
     }
@@ -123,7 +125,7 @@ app.post('/auth/apple', async (c) => {
         }
 
         const db = c.env.DB;
-        let query = 'SELECT id, name, email FROM users WHERE apple_id = ?';
+        let query = 'SELECT id, name, email, language FROM users WHERE apple_id = ?';
         let bindParams = [appleId] as string[];
         if (email) {
             query += ' OR email = ?';
@@ -136,6 +138,7 @@ app.post('/auth/apple', async (c) => {
         let userId;
         let finalEmail = email || (user ? user.email : `${appleId}@privaterelay.appleid.com`);
         let finalName = name || (user ? user.name : "Utilizador Apple");
+        let userLanguage = user?.language || 'pt';
 
         if (user) {
             userId = user.id;
@@ -144,15 +147,15 @@ app.post('/auth/apple', async (c) => {
             finalName = user.name;
         } else {
             userId = crypto.randomUUID();
-            await db.prepare('INSERT INTO users (id, name, email, password_hash, apple_id, is_verified, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
-                .bind(userId, finalName, finalEmail, 'OAUTH_USER', appleId, 1, now).run();
+            await db.prepare('INSERT INTO users (id, name, email, password_hash, apple_id, is_verified, created_at, language) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+                .bind(userId, finalName, finalEmail, 'OAUTH_USER', appleId, 1, now, userLanguage).run();
         }
 
         const secret = c.env.JWT_SECRET || 'zenith-local-dev-secret';
         const token = await sign({ id: userId, name: finalName, email: finalEmail, exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30 }, secret);
 
         console.log(`[ZENITH_AUTH] Apple Login success for ${finalEmail}`);
-        return c.json({ token, user: { id: userId, name: finalName, email: finalEmail } });
+        return c.json({ token, user: { id: userId, name: finalName, email: finalEmail, language: userLanguage } });
     } catch (e: any) {
         console.error('[ZENITH_AUTH] Apple Auth Error:', e.message);
         return c.json({ error: 'Erro de Autenticação Apple: ' + e.message }, 500);
@@ -188,18 +191,19 @@ app.post('/auth/apple/callback', async (c) => {
         }
 
         const db = c.env.DB;
-        let user = await db.prepare('SELECT id, name, email FROM users WHERE apple_id = ? OR email = ?').bind(appleId, email).first() as any;
+        let user = await db.prepare('SELECT id, name, email, language FROM users WHERE apple_id = ? OR email = ?').bind(appleId, email).first() as any;
 
         const now = Date.now();
         let userId;
+        let userLanguage = user?.language || 'pt';
 
         if (user) {
             userId = user.id;
             await db.prepare('UPDATE users SET apple_id = ? WHERE id = ?').bind(appleId, userId).run();
         } else {
             userId = crypto.randomUUID();
-            await db.prepare('INSERT INTO users (id, name, email, password_hash, apple_id, is_verified, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
-                .bind(userId, name, email, 'OAUTH_USER', appleId, 1, now).run();
+            await db.prepare('INSERT INTO users (id, name, email, password_hash, apple_id, is_verified, created_at, language) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+                .bind(userId, name, email, 'OAUTH_USER', appleId, 1, now, userLanguage).run();
         }
 
         const secret = c.env.JWT_SECRET || 'zenith-local-dev-secret';
@@ -210,7 +214,7 @@ app.post('/auth/apple/callback', async (c) => {
         let frontendUrl = "https://zenith-rsnv.vercel.app";
         if (state && state.includes('localhost')) frontendUrl = "http://localhost:3000";
 
-        return c.redirect(`${frontendUrl}/login?token=${token}`);
+        return c.redirect(`${frontendUrl}/login?token=${token}&language=${userLanguage}`);
     } catch (e: any) {
         return c.text('Error during Apple Callback: ' + e.message, 500);
     }
@@ -276,9 +280,10 @@ app.post('/auth/send-code', zValidator('json', sendCodeSchema), async (c) => {
     }
 });
 
-app.post('/auth/register', zValidator('json', registerSchema), async (c) => {
-    const { name, email, password, code } = c.req.valid('json');
+app.post('/auth/register', zValidator('json', registerSchema.extend({ language: z.string().optional() })), async (c) => {
+    const { name, email, password, code, language } = c.req.valid('json');
     const db = c.env.DB;
+    const userLanguage = language || 'pt';
 
     // 1. Verify Code
     const stored = await db.prepare('SELECT code, expires_at FROM verification_codes WHERE email = ?').bind(email).first<{ code: string, expires_at: number }>();
@@ -303,8 +308,8 @@ app.post('/auth/register', zValidator('json', registerSchema), async (c) => {
     const userName = name || 'User';
 
     try {
-        await db.prepare('INSERT INTO users (id, name, email, password_hash, is_verified, created_at) VALUES (?, ?, ?, ?, ?, ?)')
-            .bind(id, userName, email, passwordHash, 1, createdAt)
+        await db.prepare('INSERT INTO users (id, name, email, password_hash, is_verified, created_at, language) VALUES (?, ?, ?, ?, ?, ?, ?)')
+            .bind(id, userName, email, passwordHash, 1, createdAt, userLanguage)
             .run();
 
         // Delete the code after use
@@ -314,7 +319,7 @@ app.post('/auth/register', zValidator('json', registerSchema), async (c) => {
         const secret = c.env.JWT_SECRET || 'zenith-local-dev-secret';
         const token = await sign({ id, name: userName, email, exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30 }, secret);
 
-        return c.json({ token, user: { id, name: userName, email } });
+        return c.json({ token, user: { id, name: userName, email, language: userLanguage } });
     } catch (error: any) {
         return c.json({ error: error.message }, 500);
     }
@@ -324,7 +329,7 @@ app.post('/auth/login', zValidator('json', loginSchema), async (c) => {
     const { email, password } = c.req.valid('json');
     const db = c.env.DB;
 
-    type UserRow = { id: string, name: string, email: string, password_hash: string };
+    type UserRow = { id: string, name: string, email: string, password_hash: string, language: string };
     const user = await db.prepare('SELECT * FROM users WHERE email = ?').bind(email).first<UserRow>();
 
     if (!user) {
@@ -339,7 +344,43 @@ app.post('/auth/login', zValidator('json', loginSchema), async (c) => {
     const secret = c.env.JWT_SECRET || 'zenith-local-dev-secret';
     const token = await sign({ id: user.id, name: user.name, email: user.email, exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30 }, secret);
 
-    return c.json({ token, user: { id: user.id, name: user.name, email: user.email } });
+    return c.json({ token, user: { id: user.id, name: user.name, email: user.email, language: user.language || 'pt' } });
+});
+
+// User Profile Sync Endpoint
+app.patch('/auth/profile', async (c) => {
+    const authHeader = c.req.header('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return c.json({ error: 'Não autorizado' }, 401);
+    }
+    const token = authHeader.split(' ')[1];
+    const secret = c.env.JWT_SECRET || 'zenith-local-dev-secret';
+    let payload;
+    try {
+        payload = await verify(token, secret, 'HS256');
+    } catch {
+        return c.json({ error: 'Token inválido' }, 401);
+    }
+
+    const userId = payload.id;
+    const body = await c.req.json().catch(() => ({}));
+    const { name, language } = body;
+
+    const db = c.env.DB;
+
+    try {
+        if (name && language) {
+            await db.prepare('UPDATE users SET name = ?, language = ? WHERE id = ?').bind(name, language, userId).run();
+        } else if (name) {
+            await db.prepare('UPDATE users SET name = ? WHERE id = ?').bind(name, userId).run();
+        } else if (language) {
+            await db.prepare('UPDATE users SET language = ? WHERE id = ?').bind(language, userId).run();
+        }
+
+        return c.json({ success: true });
+    } catch (e: any) {
+        return c.json({ error: 'Erro ao atualizar perfil: ' + e.message }, 500);
+    }
 });
 
 app.delete('/auth/account', async (c) => {

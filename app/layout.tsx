@@ -38,11 +38,12 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className="bg-black overscroll-none">
+    <html lang="pt" className="bg-black overscroll-none">
       <head>
         <meta name="google-signin-client_id" content="471890064632-6pehr2hlbfudc3qbf0je5kjpd2bjavlv.apps.googleusercontent.com" />
       </head>
       <body className={`${inter.className} bg-black text-white overscroll-none min-h-screen`}>
+        <LangHandler />
         <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
           <AuthGuard>
             {children}
@@ -52,4 +53,18 @@ export default function RootLayout({
       </body>
     </html>
   );
+}
+
+// Client-side helper to sync html lang attribute with store
+import { useStore } from '../store/useStore';
+import { useEffect } from 'react';
+
+function LangHandler() {
+  const { language } = useStore();
+
+  useEffect(() => {
+    document.documentElement.lang = language;
+  }, [language]);
+
+  return null;
 }

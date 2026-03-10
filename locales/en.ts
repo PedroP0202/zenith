@@ -110,6 +110,9 @@ export const en = {
         focusDays: "Focus Days",
         noData: "No data to show.",
         day: "Day",
-        days: "Days"
+        days: "Days",
+        activity: "Activity",
+        productivityByDay: "Productivity by Day",
+        bestStreak: "Best Streak"
     }
 };

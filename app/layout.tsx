@@ -8,6 +8,7 @@ const inter = Inter({ subsets: ['latin'] });
 import AuthGuard from '../components/AuthGuard';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { GOOGLE_CLIENT_ID } from '@/utils/constants';
+import LangHandler from '../components/LangHandler';
 
 export const metadata: Metadata = {
   title: 'Zenith',
@@ -53,18 +54,4 @@ export default function RootLayout({
       </body>
     </html>
   );
-}
-
-// Client-side helper to sync html lang attribute with store
-import { useStore } from '../store/useStore';
-import { useEffect } from 'react';
-
-function LangHandler() {
-  const { language } = useStore();
-
-  useEffect(() => {
-    document.documentElement.lang = language;
-  }, [language]);
-
-  return null;
 }

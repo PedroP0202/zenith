@@ -1,8 +1,10 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useStore } from '../../store/useStore';
-import { getCompletionsThisMonth, getCompletedDaysThisMonth, getYearlyStats } from '../../utils/streak';
+import { getCompletionsThisMonth, getCompletedDaysThisMonth, getYearlyStats, getBestStreak, calculateStreak, getDailyActivityMap, getWeekdayDistribution } from '../../utils/streak';
 import HabitCalendar from '../../components/HabitCalendar';
+import ActivityHeatmap from '../../components/ActivityHeatmap';
+import WeekdayChart from '../../components/WeekdayChart';
 import { format } from 'date-fns';
 import { enUS, pt } from 'date-fns/locale';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -29,6 +31,8 @@ export default function StatsPage() {
     const year = now.getFullYear();
 
     const yearlyStats = getYearlyStats(activeLogs, now);
+    const activityMap = getDailyActivityMap(activeLogs, 63, now); // 9 weeks
+    const weekdayDist = getWeekdayDistribution(activeLogs);
 
     return (
         <main className="min-h-[100dvh] bg-black text-white p-6 pb-32 font-sans flex flex-col items-center">
@@ -41,6 +45,10 @@ export default function StatsPage() {
                         {t.stats.title}
                     </h1>
                 </header>
+
+                <ActivityHeatmap data={activityMap} />
+
+                <WeekdayChart distribution={weekdayDist} />
 
                 <div className="mb-12">
                     <h2 className="text-[13px] font-bold text-white/50 tracking-wider mb-4 uppercase">
@@ -82,6 +90,17 @@ export default function StatsPage() {
                                             <span className="text-[10px] font-medium text-white/40 uppercase tracking-widest">
                                                 {completions === 1 ? t.stats.day : t.stats.days}
                                             </span>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex gap-4 mb-6 mt-4">
+                                        <div className="flex-1 bg-white/5 rounded-2xl p-4 flex flex-col justify-between items-center text-center">
+                                            <span className="text-white/40 text-[10px] font-semibold uppercase tracking-widest mb-1">{t.habit.currentStreak}</span>
+                                            <span className="text-xl font-bold text-[var(--zenith-active)] shadow-sm">{calculateStreak(habitLogs, habit.frequency, now)}</span>
+                                        </div>
+                                        <div className="flex-1 bg-white/5 rounded-2xl p-4 flex flex-col justify-between items-center text-center">
+                                            <span className="text-white/40 text-[10px] font-semibold uppercase tracking-widest mb-1">{t.stats.bestStreak}</span>
+                                            <span className="text-xl font-bold text-white shadow-sm">{getBestStreak(habitLogs, habit.frequency)}</span>
                                         </div>
                                     </div>
 

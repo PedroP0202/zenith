@@ -167,3 +167,99 @@ export function getYearlyStats(logs: LogEntry[], todayDate: Date = new Date()) {
         activeDays: uniqueActiveDays.size
     };
 }
+
+/**
+ * Calculates the best (longest) streak for a habit over its entire history.
+ */
+export function getBestStreak(logs: LogEntry[], frequency: number[] = [0, 1, 2, 3, 4, 5, 6]): number {
+    if (!logs || logs.length === 0) return 0;
+
+    const sortedLogs = [...logs].sort((a, b) => a.completedAt - b.completedAt); // Oldest first
+    const uniqueLogsByDay: Date[] = [];
+    const seenDays = new Set<string>();
+
+    for (const log of sortedLogs) {
+        const d = startOfDay(new Date(log.completedAt));
+        const dayStr = d.toISOString();
+        if (!seenDays.has(dayStr)) {
+            seenDays.add(dayStr);
+            uniqueLogsByDay.push(d);
+        }
+    }
+
+    if (uniqueLogsByDay.length === 0) return 0;
+
+    const isScheduled = (d: Date) => frequency.includes(d.getDay());
+    const scheduledLogs = uniqueLogsByDay.filter(d => isScheduled(d));
+
+    if (scheduledLogs.length === 0) return 0;
+
+    let maxStreak = 0;
+    let currentStreak = 1;
+
+    for (let i = 1; i < scheduledLogs.length; i++) {
+        let expectedPrevDate = subDays(scheduledLogs[i], 1);
+        while (!isScheduled(expectedPrevDate)) {
+            expectedPrevDate = subDays(expectedPrevDate, 1);
+        }
+
+        if (isSameDay(scheduledLogs[i - 1], expectedPrevDate)) {
+            currentStreak++;
+        } else {
+            if (currentStreak > maxStreak) maxStreak = currentStreak;
+            currentStreak = 1;
+        }
+    }
+
+    if (currentStreak > maxStreak) maxStreak = currentStreak;
+    return maxStreak;
+}
+
+/**
+ * Generates an array of daily activity counts for a given number of past days.
+ * Useful for a GitHub-style heatmap.
+ */
+export function getDailyActivityMap(logs: LogEntry[], daysCount: number, todayDate: Date = new Date()): { date: Date, count: number }[] {
+    const activityMap: { date: Date, count: number }[] = [];
+
+    // Group logs by day
+    const logsByDay: Record<string, number> = {};
+    for (const log of logs) {
+        const dayStr = startOfDay(new Date(log.completedAt)).toISOString();
+        logsByDay[dayStr] = (logsByDay[dayStr] || 0) + 1;
+    }
+
+    // Generate last N days
+    for (let i = daysCount - 1; i >= 0; i--) {
+        const date = startOfDay(subDays(todayDate, i));
+        activityMap.push({
+            date,
+            count: logsByDay[date.toISOString()] || 0
+        });
+    }
+
+    return activityMap;
+}
+
+/**
+ * Calculates the distribution of habit completions across the days of the week.
+ * @returns Array where index is 0-6 (Sun-Sat) and value is the completion count.
+ */
+export function getWeekdayDistribution(logs: LogEntry[]): number[] {
+    const distribution = [0, 0, 0, 0, 0, 0, 0];
+    const seenCombos = new Set<string>(); // To count 1 habit max 1 time per day
+
+    for (const log of logs) {
+        const logDate = new Date(log.completedAt);
+        const dayStr = startOfDay(logDate).toISOString();
+        const comboKey = `${log.habitId}-${dayStr}`;
+
+        if (!seenCombos.has(comboKey)) {
+            seenCombos.add(comboKey);
+            const dayOfWeek = logDate.getDay();
+            distribution[dayOfWeek]++;
+        }
+    }
+
+    return distribution;
+}

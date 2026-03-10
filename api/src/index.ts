@@ -159,6 +159,63 @@ app.post('/auth/apple', async (c) => {
     }
 });
 
+// Apple Web Redirect Callback (Always POST from Apple)
+app.post('/auth/apple/callback', async (c) => {
+    try {
+        const formData = await c.req.formData();
+        const idToken = formData.get('id_token') as string;
+        const userJson = formData.get('user') as string; // Only comes on first sign-in
+        const state = formData.get('state') as string; // Used to determine redirect back
+
+        if (!idToken) return c.text('Missing id_token', 400);
+
+        // Decode Apple JWT
+        const { payload } = decode(idToken);
+        const appleId = payload.sub as string;
+        const email = payload.email as string;
+
+        // Extract name if provided
+        let name = "Zenith User";
+        if (userJson) {
+            try {
+                const parsedUser = JSON.parse(userJson);
+                if (parsedUser.name) {
+                    name = `${parsedUser.name.firstName || ''} ${parsedUser.name.lastName || ''}`.trim() || name;
+                }
+            } catch (e) {
+                console.error("Failed to parse Apple User JSON", e);
+            }
+        }
+
+        const db = c.env.DB;
+        let user = await db.prepare('SELECT id, name, email FROM users WHERE apple_id = ? OR email = ?').bind(appleId, email).first() as any;
+
+        const now = Date.now();
+        let userId;
+
+        if (user) {
+            userId = user.id;
+            await db.prepare('UPDATE users SET apple_id = ? WHERE id = ?').bind(appleId, userId).run();
+        } else {
+            userId = crypto.randomUUID();
+            await db.prepare('INSERT INTO users (id, name, email, password_hash, apple_id, is_verified, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
+                .bind(userId, name, email, 'OAUTH_USER', appleId, 1, now).run();
+        }
+
+        const secret = c.env.JWT_SECRET || 'zenith-local-dev-secret';
+        const token = await sign({ id: userId, name: user?.name || name, email, exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30 }, secret);
+
+        // Redirect back to frontend. We assume state might contain the original origin, or we use defaults.
+        // For security, usually we should check standard origins.
+        let frontendUrl = "https://zenith-rsnv.vercel.app";
+        if (state && state.includes('localhost')) frontendUrl = "http://localhost:3000";
+
+        return c.redirect(`${frontendUrl}/login?token=${token}`);
+    } catch (e: any) {
+        return c.text('Error during Apple Callback: ' + e.message, 500);
+    }
+});
+
 app.post('/auth/send-code', zValidator('json', sendCodeSchema), async (c) => {
     const { email } = c.req.valid('json');
     const db = c.env.DB;

@@ -21,7 +21,18 @@ export default function LoginPage() {
     const [error, setError] = useState("");
 
     useEffect(() => {
-        // Only initialize Capacitor Google Auth on Native platforms
+        // 1. Check for token in URL (Back from Apple Web Redirect)
+        const urlParams = new URLSearchParams(window.location.search);
+        const tokenFromUrl = urlParams.get('token');
+        if (tokenFromUrl) {
+            setLoading(true);
+            setJwt(tokenFromUrl);
+            syncWithCloud().catch(console.error);
+            router.replace('/');
+            return;
+        }
+
+        // 2. Initialize Capacitor Google Auth on Native platforms
         if (Capacitor.getPlatform() === 'ios' || Capacitor.getPlatform() === 'android') {
             const initGoogleAuth = async () => {
                 try {
@@ -36,7 +47,7 @@ export default function LoginPage() {
             };
             initGoogleAuth();
         }
-    }, []);
+    }, [router, setJwt, syncWithCloud]);
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -158,6 +169,21 @@ export default function LoginPage() {
     };
 
     const handleAppleLogin = async () => {
+        const platform = Capacitor.getPlatform();
+
+        if (platform === 'web') {
+            const clientId = 'com.pedropiedade.zenithapp'; // Should be Service ID for Web
+            const redirectUri = 'https://zenith-api.zenith-pedro.workers.dev/auth/apple/callback';
+            const state = window.location.origin; // Pass origin to know where to redirect back
+
+            const appleUrl = `https://appleid.apple.com/auth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code id_token&state=${encodeURIComponent(state)}&scope=name email&response_mode=form_post`;
+
+            console.log("[ZENITH_AUTH] Redirecting to Apple Web Auth...");
+            window.location.href = appleUrl;
+            return;
+        }
+
+        // Native Flow
         setLoading(true);
         setError("");
         try {
@@ -186,6 +212,7 @@ export default function LoginPage() {
             syncWithCloud().catch(console.error);
             router.replace('/');
         } catch (err: any) {
+            console.error("[ZENITH_AUTH] Apple Native Error:", err);
             setError('Apple Login falhou: ' + (err.message || 'Operação Cancelada.'));
             setLoading(false);
         }

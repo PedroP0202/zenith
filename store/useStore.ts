@@ -285,6 +285,7 @@ export const useStore = create<AppState>()(
 
                 syncWidgetData(get().habits, get().logs).catch(console.error);
                 get().syncWithCloud().catch(console.error);
+                console.log("[STORE] Toggled log. Total logs:", get().logs.length);
             },
 
             setMorningReminder: (isActive: boolean) => {
@@ -388,7 +389,7 @@ export const useStore = create<AppState>()(
                 if (!jwt) return;
 
                 try {
-                    await fetch(`${API_URL}/auth/profile`, {
+                    const res = await fetch(`${API_URL}/auth/profile`, {
                         method: 'PATCH',
                         headers: {
                             'Authorization': `Bearer ${jwt}`,
@@ -396,8 +397,10 @@ export const useStore = create<AppState>()(
                         },
                         body: JSON.stringify({ name: userName, language })
                     });
+                    const data = await res.json();
+                    console.log("[STORE] Profile Sync Response:", data);
                 } catch (e) {
-                    console.error("Failed to sync profile:", e);
+                    console.error("[STORE] Failed to sync profile:", e);
                 }
             }
         }),

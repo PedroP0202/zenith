@@ -43,7 +43,7 @@ export default function ActivityHeatmap({ data }: ActivityHeatmapProps) {
                             <div
                                 key={i}
                                 className={`w-[14px] h-[14px] rounded-[3px] transition-colors duration-300 ${isEmpty ? 'bg-white/5' : ''}`}
-                                style={!isEmpty ? { backgroundColor: `rgba(255, 255, 255, ${Math.max(0.15, intensity)})` } : {}}
+                                style={!isEmpty ? { backgroundColor: `rgba(255, 255, 255, ${Math.min(0.2 + intensity * 0.8, 1)})` } : {}}
                                 title={`${format(day.date, 'dd MMM', { locale: localeObj })}: ${day.count} ${day.count === 1 ? t.stats.day : t.stats.days}`}
                             />
                         );

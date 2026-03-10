@@ -523,6 +523,7 @@ const pushSchema = z.object({
     habits: z.array(habitSchema),
     logs: z.array(logSchema),
     lastSyncedAt: z.number(),
+    deletedHabitIds: z.array(z.string().uuid()).optional(),
 });
 
 app.post('/sync/push', zValidator('json', pushSchema), async (c) => {
@@ -569,6 +570,15 @@ app.post('/sync/push', zValidator('json', pushSchema), async (c) => {
         VALUES (?, ?, ?, ?)
       `).bind(log.id, log.habitId, log.completedAt, now)
         );
+    }
+
+    // Handle Deletions (Tombstones)
+    if (payload.deletedHabitIds && payload.deletedHabitIds.length > 0) {
+        for (const habitId of payload.deletedHabitIds) {
+            // Delete logs first, then the habit itself
+            stmts.push(db.prepare('DELETE FROM logs WHERE habit_id = ?').bind(habitId));
+            stmts.push(db.prepare('DELETE FROM habits WHERE id = ? AND user_id = ?').bind(habitId, user.id));
+        }
     }
 
     try {

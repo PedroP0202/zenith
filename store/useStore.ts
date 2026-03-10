@@ -30,6 +30,8 @@ interface AppState {
     lastSyncedAt: number;
     /** Current sync status indicator */
     syncStatus: 'idle' | 'syncing' | 'error';
+    /** IDs of habits permanently deleted locally but not yet synced */
+    deletedHabitIds: string[];
 
     /**
      * Creates a new habit and adds it to the global state.
@@ -150,6 +152,7 @@ export const useStore = create<AppState>()(
             jwt: null,
             lastSyncedAt: 0,
             syncStatus: 'idle',
+            deletedHabitIds: [],
 
             setUserName: (name) => {
                 set({ userName: name });
@@ -166,7 +169,8 @@ export const useStore = create<AppState>()(
                     habits: [],
                     logs: [],
                     lastSyncedAt: 0,
-                    syncStatus: 'idle'
+                    syncStatus: 'idle',
+                    deletedHabitIds: []
                 });
             },
 
@@ -178,6 +182,7 @@ export const useStore = create<AppState>()(
                     logs: [],
                     lastSyncedAt: 0,
                     syncStatus: 'idle',
+                    deletedHabitIds: [],
                     userName: 'Pedro',
                     language: currentLanguage
                 });
@@ -230,10 +235,11 @@ export const useStore = create<AppState>()(
                 // For MVP, we will keep it simple.
                 set((state) => ({
                     habits: state.habits.filter((h) => h.id !== id),
-                    logs: state.logs.filter((l) => l.habitId !== id)
+                    logs: state.logs.filter((l) => l.habitId !== id),
+                    deletedHabitIds: [...state.deletedHabitIds, id]
                 }));
                 syncWidgetData(get().habits, get().logs).catch(console.error);
-                scheduleAllNotifications(get().habits, get().isMorningReminderActive, get().morningReminderTime).catch(console.error);
+                scheduleAllNotifications(get().habits, get().isMorningReminderActive, get().isMorningReminderActive ? get().morningReminderTime : undefined).catch(console.error);
                 get().syncWithCloud().catch(console.error);
             },
 
@@ -303,32 +309,33 @@ export const useStore = create<AppState>()(
             },
 
             syncWithCloud: async () => {
-                const { jwt, lastSyncedAt, habits, logs } = get();
-                if (!jwt) return; // Not logged in
+                const { jwt, lastSyncedAt, habits, logs, deletedHabitIds } = get();
+                if (!jwt) return;
 
-                // const API_URL = 'https://zenith-api.zenith-pedro.workers.dev'; // Production Cloudflare URL
                 set({ syncStatus: 'syncing' });
 
                 try {
+                    // 0. Sync Profile first (Name/Language)
+                    await get().syncProfile();
+
                     // 1. PULL downstream changes
                     const pullRes = await fetch(`${API_URL}/sync/pull?lastSyncedAt=${lastSyncedAt}`, {
                         headers: { 'Authorization': `Bearer ${jwt}` }
                     });
 
                     if (!pullRes.ok) {
-                        const errText = await pullRes.text();
-                        console.error("Pull failed details:", errText);
-                        throw new Error(`Pull failed: ${pullRes.status} ${errText}`);
+                        throw new Error(`Pull failed: ${pullRes.status}`);
                     }
                     const pullData = await pullRes.json();
 
-                    // Merge habits (remote wins conflicts for MVP)
+                    // Merge habits
                     const newHabits = [...habits];
                     pullData.habits.forEach((remoteHabit: Habit) => {
-                        const localRemoteHabit = { ...remoteHabit, syncedAt: Date.now() };
                         const idx = newHabits.findIndex(h => h.id === remoteHabit.id);
-                        if (idx >= 0) newHabits[idx] = localRemoteHabit;
-                        else newHabits.push(localRemoteHabit);
+                        if (idx >= 0) newHabits[idx] = { ...remoteHabit, syncedAt: Date.now() };
+                        else if (!deletedHabitIds.includes(remoteHabit.id)) {
+                            newHabits.push({ ...remoteHabit, syncedAt: Date.now() });
+                        }
                     });
 
                     // Merge logs
@@ -345,7 +352,7 @@ export const useStore = create<AppState>()(
                     const unsyncedHabits = newHabits.filter(h => !(h.syncedAt) || (h.updatedAt || h.createdAt || 0) > h.syncedAt);
                     const unsyncedLogs = newLogs.filter(l => !(l.syncedAt));
 
-                    if (unsyncedHabits.length > 0 || unsyncedLogs.length > 0) {
+                    if (unsyncedHabits.length > 0 || unsyncedLogs.length > 0 || deletedHabitIds.length > 0) {
                         const pushRes = await fetch(`${API_URL}/sync/push`, {
                             method: 'POST',
                             headers: {
@@ -355,31 +362,36 @@ export const useStore = create<AppState>()(
                             body: JSON.stringify({
                                 lastSyncedAt: Date.now(),
                                 habits: unsyncedHabits,
-                                logs: unsyncedLogs
+                                logs: unsyncedLogs,
+                                deletedHabitIds
                             })
                         });
 
                         if (!pushRes.ok) {
-                            const errText = await pushRes.text();
-                            console.error("Push failed details:", errText);
-                            throw new Error(`Push failed: ${pushRes.status} ${errText}`);
+                            throw new Error(`Push failed: ${pushRes.status}`);
                         }
 
-                        // Mark newly pushed habits and logs as synced
-                        const updatedHabits = get().habits.map(h =>
+                        // Mark synced
+                        const finalHabits = get().habits.map(h =>
                             unsyncedHabits.some(uh => uh.id === h.id) ? { ...h, syncedAt: Date.now() } : h
                         );
-                        const updatedLogs = get().logs.map(l =>
+                        const finalLogs = get().logs.map(l =>
                             unsyncedLogs.some(ul => ul.id === l.id) ? { ...l, syncedAt: Date.now() } : l
                         );
-                        set({ habits: updatedHabits, logs: updatedLogs });
+
+                        set({
+                            habits: finalHabits,
+                            logs: finalLogs,
+                            deletedHabitIds: [], // Clear on success
+                            lastSyncedAt: Date.now(),
+                            syncStatus: 'idle'
+                        });
+                    } else {
+                        set({ lastSyncedAt: Date.now(), syncStatus: 'idle' });
                     }
 
-                    // Update cursor
-                    set({ lastSyncedAt: Date.now(), syncStatus: 'idle' });
-
                 } catch (error: any) {
-                    console.error('Sync error details:', error?.message || error);
+                    console.error('Sync error:', error);
                     set({ syncStatus: 'error' });
                 }
             },

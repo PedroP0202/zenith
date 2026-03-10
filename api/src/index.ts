@@ -366,19 +366,24 @@ app.patch('/auth/profile', async (c) => {
     const body = await c.req.json().catch(() => ({}));
     const { name, language } = body;
 
+    console.log(`[AUTH_PROFILE] User=${userId}, PayloadName=${name}, PayloadLang=${language}`);
+
     const db = c.env.DB;
 
     try {
+        let result;
         if (name && language) {
-            await db.prepare('UPDATE users SET name = ?, language = ? WHERE id = ?').bind(name, language, userId).run();
+            result = await db.prepare('UPDATE users SET name = ?, language = ? WHERE id = ?').bind(name, language, userId).run();
         } else if (name) {
-            await db.prepare('UPDATE users SET name = ? WHERE id = ?').bind(name, userId).run();
+            result = await db.prepare('UPDATE users SET name = ? WHERE id = ?').bind(name, userId).run();
         } else if (language) {
-            await db.prepare('UPDATE users SET language = ? WHERE id = ?').bind(language, userId).run();
+            result = await db.prepare('UPDATE users SET language = ? WHERE id = ?').bind(language, userId).run();
         }
 
-        return c.json({ success: true });
+        console.log(`[AUTH_PROFILE] DB Result:`, JSON.stringify(result));
+        return c.json({ success: true, result });
     } catch (e: any) {
+        console.error(`[AUTH_PROFILE] Error:`, e.message);
         return c.json({ error: 'Erro ao atualizar perfil: ' + e.message }, 500);
     }
 });

@@ -129,7 +129,7 @@ export default function RegisterPage() {
         setError("");
         try {
             const result = await SignInWithApple.authorize({
-                clientId: 'com.pedropiedade.zenithapp',
+                clientId: 'com.pedro.zenith',
                 redirectURI: 'https://zenith-api.zenith-pedro.workers.dev/auth/apple/callback',
                 scopes: 'email name'
             });

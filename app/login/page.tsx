@@ -178,7 +178,7 @@ export default function LoginPage() {
         const platform = Capacitor.getPlatform();
 
         if (platform === 'web') {
-            const clientId = 'com.pedropiedade.zenithapp'; // Should be Service ID for Web
+            const clientId = 'com.pedro.zenith'; // Should be Service ID for Web
             const redirectUri = 'https://zenith-api.zenith-pedro.workers.dev/auth/apple/callback';
             const state = window.location.origin; // Pass origin to know where to redirect back
 
@@ -194,7 +194,7 @@ export default function LoginPage() {
         setError("");
         try {
             const result = await SignInWithApple.authorize({
-                clientId: 'com.pedropiedade.zenithapp',
+                clientId: 'com.pedro.zenith',
                 redirectURI: 'https://zenith-api.zenith-pedro.workers.dev/auth/apple/callback',
                 scopes: 'email name'
             });

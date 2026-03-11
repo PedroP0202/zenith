@@ -455,7 +455,7 @@
 				);
 				MARKETING_VERSION = 3.0;
 				OTHER_SWIFT_FLAGS = "$(inherited) \"-D\" \"COCOAPODS\" \"-DDEBUG\"";
-				PRODUCT_BUNDLE_IDENTIFIER = com.pedropiedade.zenithapp;
+				PRODUCT_BUNDLE_IDENTIFIER = com.pedro.zenith;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -488,7 +488,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 3.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.pedropiedade.zenithapp;
+				PRODUCT_BUNDLE_IDENTIFIER = com.pedro.zenith;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -530,7 +530,7 @@
 				MARKETING_VERSION = 2.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = com.pedropiedade.zenithapp.ZenithWidget;
+				PRODUCT_BUNDLE_IDENTIFIER = com.pedro.zenith.ZenithWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SKIP_INSTALL = YES;
@@ -573,7 +573,7 @@
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MARKETING_VERSION = 2.0;
 				MTL_FAST_MATH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = com.pedropiedade.zenithapp.ZenithWidget;
+				PRODUCT_BUNDLE_IDENTIFIER = com.pedro.zenith.ZenithWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SKIP_INSTALL = YES;

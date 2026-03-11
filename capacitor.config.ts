@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.pedropiedade.zenithapp',
+  appId: 'com.pedro.zenith',
   appName: 'Zenith',
   webDir: 'out',
   plugins: {

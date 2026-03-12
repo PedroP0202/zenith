@@ -30,9 +30,9 @@ export default function StatsPage() {
     const monthName = mounted ? format(now, 'MMMM', { locale: localeObj }) : '...';
     const year = now.getFullYear();
 
-    const yearlyStats = getYearlyStats(activeLogs, now);
-    const activityMap = getDailyActivityMap(activeLogs, 63, now); // 9 weeks
-    const weekdayDist = getWeekdayDistribution(activeLogs);
+    const yearlyStats = getYearlyStats(logs, now);
+    const activityMap = getDailyActivityMap(logs, 63, now); // 9 weeks
+    const weekdayDist = getWeekdayDistribution(logs);
 
     return (
         <main className="min-h-[100dvh] bg-black text-white p-6 pb-32 font-sans flex flex-col items-center">

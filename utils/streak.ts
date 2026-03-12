@@ -247,10 +247,16 @@ export function getDailyActivityMap(logs: LogEntry[], daysCount: number, todayDa
  */
 export function getWeekdayDistribution(logs: LogEntry[]): number[] {
     const distribution = [0, 0, 0, 0, 0, 0, 0];
+    if (!logs) return distribution;
+
     const seenCombos = new Set<string>(); // To count 1 habit max 1 time per day
 
     for (const log of logs) {
+        if (!log.completedAt) continue;
+
         const logDate = new Date(log.completedAt);
+        if (isNaN(logDate.getTime())) continue; // Skip invalid dates
+
         const dayStr = startOfDay(logDate).toISOString();
         const comboKey = `${log.habitId}-${dayStr}`;
 

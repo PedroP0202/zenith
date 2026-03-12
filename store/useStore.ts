@@ -27,6 +27,8 @@ interface AppState {
     hasPromptedForNotifications: boolean;
     /** JWT Token for Cloudflare API Authentication */
     jwt: string | null;
+    /** Is the auth state currently hydrating from secure storage? */
+    isInitializingAuth: boolean;
     /** Timestamp of the last successful cloud sync */
     lastSyncedAt: number;
     /** Current sync status indicator */
@@ -152,6 +154,7 @@ export const useStore = create<AppState>()(
             morningReminderTime: '09:00',
             hasPromptedForNotifications: false,
             jwt: null,
+            isInitializingAuth: true,
             lastSyncedAt: 0,
             syncStatus: 'idle',
             deletedHabitIds: [],
@@ -429,8 +432,8 @@ export const useStore = create<AppState>()(
         {
             name: 'zenith-storage',
             partialize: (state) => {
-                // Omit jwt from being stored in the encrypted payload, as it's stored directly in Keychain
-                const { jwt, ...restToEncrypt } = state;
+                // Omit jwt and isInitializingAuth from being stored in the encrypted payload
+                const { jwt, isInitializingAuth, ...restToEncrypt } = state;
                 return restToEncrypt;
             },
             storage: createJSONStorage(() => ({
@@ -462,7 +465,11 @@ export const useStore = create<AppState>()(
                     // Try to load JWT from secure storage on app launch
                     getSecureJwt().then(token => {
                         if (token) state.setJwt(token);
-                    }).catch(console.error);
+                        useStore.setState({ isInitializingAuth: false });
+                    }).catch(e => {
+                        console.error(e);
+                        useStore.setState({ isInitializingAuth: false });
+                    });
                 }
             }
         }

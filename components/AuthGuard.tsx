@@ -4,7 +4,7 @@ import { useStore } from '@/store/useStore';
 import { useRouter, usePathname } from 'next/navigation';
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
-    const { jwt } = useStore();
+    const { jwt, isInitializingAuth } = useStore();
     const router = useRouter();
     const pathname = usePathname();
     const [mounted, setMounted] = useState(false);
@@ -14,7 +14,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     }, []);
 
     useEffect(() => {
-        if (!mounted) return;
+        if (!mounted || isInitializingAuth) return;
 
         const isAuthRoute = pathname === '/login' || pathname === '/register';
 
@@ -23,9 +23,9 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         } else if (jwt && isAuthRoute) {
             router.replace('/');
         }
-    }, [jwt, pathname, mounted, router]);
+    }, [jwt, pathname, mounted, router, isInitializingAuth]);
 
-    if (!mounted) return <div className="min-h-[100dvh] bg-black text-white" />;
+    if (!mounted || isInitializingAuth) return <div className="min-h-[100dvh] bg-black text-white" />;
 
     const isAuthRoute = pathname === '/login' || pathname === '/register';
     if (!jwt && !isAuthRoute) return <div className="min-h-[100dvh] bg-black text-white" />;

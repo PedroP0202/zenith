@@ -504,10 +504,10 @@ app.use('/sync/*', (c, next) => {
 // Zod schemas for the sync payloads to heavily validate incoming edge data
 const habitSchema = z.object({
     id: z.string().uuid(),
-    title: z.string(),
-    frequency: z.array(z.number()),
+    title: z.string().min(1).max(200),
+    frequency: z.array(z.number().min(0).max(6)).max(7),
     isHardMode: z.boolean().optional(),
-    reminderTime: z.string().nullable().optional(),
+    reminderTime: z.string().regex(/^([01]\d|2[0-3]):?([0-5]\d)$/).nullable().optional(),
     isActive: z.boolean(),
     createdAt: z.number(),
     updatedAt: z.number().optional(),
@@ -563,20 +563,27 @@ app.post('/sync/push', zValidator('json', pushSchema), async (c) => {
     }
 
     // Upsert Logs (Logs are immutable in Zenith, so simple INSERT OR IGNORE is fine)
+    // SECURITY: We must ensure the habitId belongs to the authenticated user!
     for (const log of payload.logs) {
         stmts.push(
             db.prepare(`
         INSERT OR IGNORE INTO logs (id, habit_id, completed_at, synced_at)
-        VALUES (?, ?, ?, ?)
-      `).bind(log.id, log.habitId, log.completedAt, now)
+        SELECT ?, ?, ?, ?
+        WHERE EXISTS (SELECT 1 FROM habits WHERE id = ? AND user_id = ?)
+      `).bind(log.id, log.habitId, log.completedAt, now, log.habitId, user.id)
         );
     }
 
     // Handle Deletions (Tombstones)
     if (payload.deletedHabitIds && payload.deletedHabitIds.length > 0) {
         for (const habitId of payload.deletedHabitIds) {
-            // Delete logs first, then the habit itself
-            stmts.push(db.prepare('DELETE FROM logs WHERE habit_id = ?').bind(habitId));
+            // SECURITY: Only delete logs and habit if owned by the user
+            stmts.push(db.prepare(`
+                DELETE FROM logs 
+                WHERE habit_id = ? 
+                AND habit_id IN (SELECT id FROM habits WHERE user_id = ?)
+            `).bind(habitId, user.id));
+
             stmts.push(db.prepare('DELETE FROM habits WHERE id = ? AND user_id = ?').bind(habitId, user.id));
         }
     }
@@ -637,9 +644,9 @@ app.get('/sync/pull', async (c) => {
 // --- BETA FEEDBACK ROUTES ---
 
 const feedbackSchema = z.object({
-    feedback: z.string().min(1),
-    user: z.string().optional(),
-    platform: z.string().optional(),
+    feedback: z.string().min(1).max(2000),
+    user: z.string().max(100).optional(),
+    platform: z.string().max(100).optional(),
 });
 
 app.post('/beta/feedback', zValidator('json', feedbackSchema), async (c) => {

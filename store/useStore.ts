@@ -25,8 +25,6 @@ interface AppState {
     morningReminderTime: string;
     /** Whether the user has been asked to enable notifications */
     hasPromptedForNotifications: boolean;
-    /** Whether Biometric App Lock is enabled */
-    isAppLockEnabled: boolean;
     /** JWT Token for Cloudflare API Authentication */
     jwt: string | null;
     /** Timestamp of the last successful cloud sync */
@@ -116,12 +114,6 @@ interface AppState {
     setHasPromptedForNotifications: (prompted: boolean) => void;
 
     /**
-     * Toggles the Biometric App Lock feature.
-     * @param isEnabled True if the app should lock on background/launch.
-     */
-    setAppLockEnabled: (isEnabled: boolean) => void;
-
-    /**
      * Sets the user's JWT authentication token.
 
      * @param token The token or null to log out.
@@ -159,7 +151,6 @@ export const useStore = create<AppState>()(
             isMorningReminderActive: false,
             morningReminderTime: '09:00',
             hasPromptedForNotifications: false,
-            isAppLockEnabled: false,
             jwt: null,
             lastSyncedAt: 0,
             syncStatus: 'idle',
@@ -325,10 +316,6 @@ export const useStore = create<AppState>()(
 
             setHasPromptedForNotifications: (prompted: boolean) => {
                 set({ hasPromptedForNotifications: prompted });
-            },
-
-            setAppLockEnabled: (isEnabled: boolean) => {
-                set({ isAppLockEnabled: isEnabled });
             },
 
             syncWithCloud: async () => {

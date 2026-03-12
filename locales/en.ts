@@ -51,11 +51,6 @@ export const en = {
             morningReminderDesc: "Ensure you never forget your morning goals.",
             test: "Test"
         },
-        security: {
-            title: "Security",
-            appLock: "App Lock",
-            appLockDesc: "Require Face ID / Touch ID to open the forge."
-        },
         dangerZone: {
             title: "Danger Zone",
             deleteAccount: "Delete Account",

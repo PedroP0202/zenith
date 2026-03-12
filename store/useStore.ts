@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { encryptData, decryptData, saveSecureJwt, getSecureJwt, removeSecureJwt } from '../utils/secureStorage';
 import { Habit, LogEntry } from '../types';
 import { syncWidgetData } from '../utils/widgetSync';
 import { scheduleAllNotifications, cancelAllNotifications } from '../utils/notifications';
@@ -24,6 +25,8 @@ interface AppState {
     morningReminderTime: string;
     /** Whether the user has been asked to enable notifications */
     hasPromptedForNotifications: boolean;
+    /** Whether Biometric App Lock is enabled */
+    isAppLockEnabled: boolean;
     /** JWT Token for Cloudflare API Authentication */
     jwt: string | null;
     /** Timestamp of the last successful cloud sync */
@@ -113,7 +116,14 @@ interface AppState {
     setHasPromptedForNotifications: (prompted: boolean) => void;
 
     /**
+     * Toggles the Biometric App Lock feature.
+     * @param isEnabled True if the app should lock on background/launch.
+     */
+    setAppLockEnabled: (isEnabled: boolean) => void;
+
+    /**
      * Sets the user's JWT authentication token.
+
      * @param token The token or null to log out.
      */
     setJwt: (token: string | null) => void;
@@ -149,6 +159,7 @@ export const useStore = create<AppState>()(
             isMorningReminderActive: false,
             morningReminderTime: '09:00',
             hasPromptedForNotifications: false,
+            isAppLockEnabled: false,
             jwt: null,
             lastSyncedAt: 0,
             syncStatus: 'idle',
@@ -162,7 +173,14 @@ export const useStore = create<AppState>()(
                 set({ language });
                 get().syncProfile().catch(console.error);
             },
-            setJwt: (jwt) => set({ jwt }),
+            setJwt: (jwt) => {
+                set({ jwt });
+                if (jwt) {
+                    saveSecureJwt(jwt).catch(console.error);
+                } else {
+                    removeSecureJwt().catch(console.error);
+                }
+            },
 
             clearUserData: () => {
                 set({
@@ -186,6 +204,7 @@ export const useStore = create<AppState>()(
                     userName: 'Pedro',
                     language: currentLanguage
                 });
+                removeSecureJwt().catch(console.error);
                 // Ensure no ghost notifications remain after logout
                 cancelAllNotifications().catch(console.error);
             },
@@ -308,6 +327,10 @@ export const useStore = create<AppState>()(
                 set({ hasPromptedForNotifications: prompted });
             },
 
+            setAppLockEnabled: (isEnabled: boolean) => {
+                set({ isAppLockEnabled: isEnabled });
+            },
+
             syncWithCloud: async () => {
                 const { jwt, lastSyncedAt, habits, logs, deletedHabitIds } = get();
                 if (!jwt) return;
@@ -418,6 +441,43 @@ export const useStore = create<AppState>()(
         }),
         {
             name: 'zenith-storage',
+            partialize: (state) => {
+                // Omit jwt from being stored in the encrypted payload, as it's stored directly in Keychain
+                const { jwt, ...restToEncrypt } = state;
+                return restToEncrypt;
+            },
+            storage: createJSONStorage(() => ({
+                getItem: async (name) => {
+                    const str = localStorage.getItem(name);
+                    if (!str) return null;
+                    try {
+                        const decryptedStr = await decryptData(str);
+                        return decryptedStr;
+                    } catch (e) {
+                        console.error("Failed to decrypt state", e);
+                        return null;
+                    }
+                },
+                setItem: async (name, value) => {
+                    try {
+                        const encryptedStr = await encryptData(value);
+                        localStorage.setItem(name, encryptedStr);
+                    } catch (e) {
+                        console.error("Failed to encrypt state", e);
+                    }
+                },
+                removeItem: async (name) => {
+                    localStorage.removeItem(name);
+                },
+            })),
+            onRehydrateStorage: () => (state) => {
+                if (state) {
+                    // Try to load JWT from secure storage on app launch
+                    getSecureJwt().then(token => {
+                        if (token) state.setJwt(token);
+                    }).catch(console.error);
+                }
+            }
         }
     )
 );

@@ -9,6 +9,7 @@ import AuthGuard from '../components/AuthGuard';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { GOOGLE_CLIENT_ID } from '@/utils/constants';
 import LangHandler from '../components/LangHandler';
+import AppLockGuard from '../components/AppLockGuard';
 
 export const metadata: Metadata = {
   title: 'Zenith',
@@ -46,10 +47,12 @@ export default function RootLayout({
       <body className={`${inter.className} bg-black text-white overscroll-none min-h-screen`}>
         <LangHandler />
         <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-          <AuthGuard>
-            {children}
-            <BottomNav />
-          </AuthGuard>
+          <AppLockGuard>
+            <AuthGuard>
+              {children}
+              <BottomNav />
+            </AuthGuard>
+          </AppLockGuard>
         </GoogleOAuthProvider>
       </body>
     </html>

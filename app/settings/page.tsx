@@ -3,7 +3,7 @@
 import { useStore } from "@/store/useStore";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Settings as SettingsIcon, Bell, ChevronLeft, UserIcon, Cloud, Globe } from "lucide-react";
+import { Settings as SettingsIcon, Bell, ChevronLeft, UserIcon, Cloud, Globe, Shield } from "lucide-react";
 import { scheduleAllNotifications, cancelAllNotifications, requestNotificationPermissions, sendTestNotification } from "@/utils/notifications";
 import { motion } from "framer-motion";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -28,7 +28,9 @@ export default function SettingsPage() {
         logout,
         syncStatus,
         lastSyncedAt,
-        syncWithCloud
+        syncWithCloud,
+        isAppLockEnabled,
+        setAppLockEnabled
     } = useStore();
     const [mounted, setMounted] = useState(false);
 
@@ -303,6 +305,43 @@ export default function SettingsPage() {
                         >
                             {t.settings.notifications.test}
                         </button>
+                    </div>
+                </section>
+
+                {/* Security Section */}
+                <section>
+                    <h2 className="text-sm uppercase tracking-widest text-white/40 mb-3 ml-2 font-medium">{t.settings.security.title}</h2>
+                    <div className="bg-white/[0.03] rounded-3xl p-5 border border-white/5 flex items-center justify-between group transition-colors hover:bg-white/[0.05]">
+                        <div className="flex items-start gap-4">
+                            <div className={`mt-1 flex-shrink-0 transition-colors ${isAppLockEnabled ? 'text-[var(--zenith-active)]' : 'text-white/40'}`}>
+                                <Shield className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <h3 className="text-base font-medium">{t.settings.security.appLock}</h3>
+                                <p className="text-xs text-white/50 mt-1 leading-relaxed max-w-[200px]">
+                                    {t.settings.security.appLockDesc}
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Toggle Switch */}
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={() => setAppLockEnabled(!isAppLockEnabled)}
+                                className={`relative w-12 h-6 rounded-full transition-colors duration-300 focus:outline-none flex-shrink-0 ${isAppLockEnabled ? 'bg-[var(--zenith-active)]' : 'bg-white/20'
+                                    }`}
+                                aria-label="Toggle App Lock"
+                            >
+                                <motion.div
+                                    className="absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow-sm"
+                                    initial={false}
+                                    animate={{
+                                        x: isAppLockEnabled ? 24 : 0
+                                    }}
+                                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                />
+                            </button>
+                        </div>
                     </div>
                 </section>
 

@@ -51,6 +51,11 @@ export const pt = {
             morningReminderDesc: "Assegura que nunca esqueces os teus objetivos matinais.",
             test: "Testar"
         },
+        security: {
+            title: "Segurança",
+            appLock: "App Lock",
+            appLockDesc: "Exigir Face ID / Touch ID para abrir a forja."
+        },
         dangerZone: {
             title: "Zona de Risco",
             deleteAccount: "Apagar Conta",

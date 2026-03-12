@@ -17,8 +17,8 @@ struct WidgetData: Decodable {
 struct Provider: TimelineProvider {
     func placeholder(in context: Context) -> ZenithEntry {
         ZenithEntry(date: Date(), data: WidgetData(habits: [
-            WidgetHabit(id: "1", title: "Read 10 Pages", completed: true, streak: 12),
-            WidgetHabit(id: "2", title: "Code 1 Hour", completed: false, streak: 5),
+            WidgetHabit(id: "1", title: "Morning Run", completed: true, streak: 12),
+            WidgetHabit(id: "2", title: "Learn Swift", completed: false, streak: 5),
             WidgetHabit(id: "3", title: "Gym Session", completed: false, streak: 0)
         ], totalHabits: 3, completedHabits: 1))
     }
@@ -54,43 +54,55 @@ struct ZenithEntry: TimelineEntry {
     let data: WidgetData
 }
 
+// MARK: - Premium UI Components
+
+struct ProgressRing: View {
+    var progress: Double
+    var color: Color = Color(red: 0.2, green: 0.9, blue: 0.5) // Zenith Active Green
+    
+    var body: some View {
+        ZStack {
+            Circle()
+                .stroke(lineWidth: 10)
+                .opacity(0.1)
+                .foregroundColor(.white)
+            
+            Circle()
+                .trim(from: 0.0, to: CGFloat(min(progress, 1.0)))
+                .stroke(style: StrokeStyle(lineWidth: 10, lineCap: .round, lineJoin: .round))
+                .foregroundColor(color)
+                .rotationEffect(Angle(degrees: 270.0))
+                .animation(.linear, value: progress)
+        }
+    }
+}
+
 struct SmallSummaryView: View {
     var entry: Provider.Entry
     
     var body: some View {
         let total = entry.data.totalHabits ?? 0
         let completed = entry.data.completedHabits ?? 0
-        let isDone = total > 0 && completed == total
+        let progress = total > 0 ? Double(completed) / Double(total) : 0.0
         
-        ZStack {
-            Color.black.edgesIgnoringSafeArea(.all)
-            
-            VStack(spacing: 6) {
-                if total == 0 {
-                    Text("---")
-                        .font(.system(size: 42, weight: .heavy, design: .rounded))
-                        .foregroundColor(.gray)
-                    
-                    Text("NO HABITS")
-                        .font(.system(size: 10, weight: .bold, design: .rounded))
-                        .foregroundColor(.gray)
-                        .textCase(.uppercase)
-                        .tracking(1.5)
-                } else {
+        VStack(spacing: 8) {
+            ZStack {
+                ProgressRing(progress: progress)
+                    .frame(width: 80, height: 80)
+                
+                VStack(spacing: -2) {
+                    Text("\(Int(progress * 100))%")
+                        .font(.system(size: 18, weight: .black, design: .rounded))
                     Text("\(completed)/\(total)")
-                        .font(.system(size: 42, weight: .heavy, design: .rounded))
-                        .foregroundColor(isDone ? .green : .white)
-                        .minimumScaleFactor(0.5)
-                        .lineLimit(1)
-                    
-                    Text(isDone ? "ALL DONE" : "COMPLETED")
                         .font(.system(size: 10, weight: .bold, design: .rounded))
-                        .foregroundColor(.gray)
-                        .textCase(.uppercase)
-                        .tracking(1.5)
+                        .opacity(0.6)
                 }
             }
-            .padding()
+            
+            Text(progress >= 1.0 ? "FORGED" : "TODAY")
+                .font(.system(size: 11, weight: .heavy, design: .rounded))
+                .tracking(2)
+                .foregroundColor(progress >= 1.0 ? Color(red: 0.2, green: 0.9, blue: 0.5) : .white)
         }
     }
 }
@@ -99,65 +111,90 @@ struct MediumChecklistView: View {
     var entry: Provider.Entry
 
     var body: some View {
-        ZStack(alignment: .topLeading) {
-            Color.black.edgesIgnoringSafeArea(.all)
+        HStack(spacing: 20) {
+            // Left: Status Circle
+            VStack(alignment: .leading, spacing: 4) {
+                let total = entry.data.totalHabits ?? 0
+                let completed = entry.data.completedHabits ?? 0
+                let progress = total > 0 ? Double(completed) / Double(total) : 0.0
+                
+                ProgressRing(progress: progress)
+                    .frame(width: 50, height: 50)
+                
+                Spacer()
+                
+                Text("ZENITH")
+                    .font(.system(size: 10, weight: .black, design: .rounded))
+                    .tracking(2)
+                    .opacity(0.4)
+            }
+            .padding(.vertical, 8)
             
-            VStack(alignment: .leading, spacing: 12) {
-                // Header
-                HStack {
-                    Text("Today")
-                        .font(.system(size: 14, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
-                        .textCase(.uppercase)
-                    Spacer()
-                    Image(systemName: "circle.circle.fill")
-                        .foregroundColor(.gray)
-                        .font(.system(size: 14))
-                }
-                .padding(.bottom, 4)
-
-                // List of Habits (Up to 4 to fit)
+            // Right: Interactive List
+            VStack(alignment: .leading, spacing: 8) {
                 if entry.data.habits.isEmpty {
-                    VStack(alignment: .center) {
-                        Spacer()
-                        Text("No active habits")
-                            .font(.system(size: 13, weight: .medium, design: .rounded))
-                            .foregroundColor(.gray)
-                        Spacer()
-                    }
-                    .frame(maxWidth: .infinity)
+                    Text("No habits for today.")
+                        .font(.system(size: 13, weight: .medium, design: .rounded))
+                        .foregroundColor(.gray)
                 } else {
-                    ForEach(entry.data.habits.prefix(4)) { habit in
-                        HStack(alignment: .center, spacing: 10) {
-                            Image(systemName: habit.completed ? "checkmark.circle.fill" : "circle")
-                                .foregroundColor(habit.completed ? .green : .gray)
-                                .font(.system(size: 14))
-                            
-                            Text(habit.title)
-                                .font(.system(size: 14, weight: .medium, design: .rounded))
-                                .foregroundColor(habit.completed ? .gray : .white)
-                                .strikethrough(habit.completed)
-                                .lineLimit(1)
-                            
-                            Spacer()
-                            
-                            if let streak = habit.streak, streak > 0 {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "flame.fill")
-                                        .foregroundColor(habit.completed ? .gray : .orange)
-                                        .font(.system(size: 12))
-                                    Text("\(streak)")
-                                        .foregroundColor(habit.completed ? .gray : .white)
-                                        .font(.system(size: 12, weight: .bold, design: .rounded))
-                                }
+                    ForEach(entry.data.habits.prefix(3)) { habit in
+                        if #available(iOS 17.0, *) {
+                            Button(intent: ToggleHabitIntent(habitId: habit.id)) {
+                                HabitRow(habit: habit)
                             }
+                            .buttonStyle(.plain)
+                        } else {
+                            HabitRow(habit: habit)
                         }
                     }
-                    Spacer(minLength: 0)
+                }
+                Spacer(minLength: 0)
+            }
+        }
+        .padding(16)
+    }
+}
+
+struct HabitRow: View {
+    let habit: WidgetHabit
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .stroke(habit.completed ? Color(red: 0.2, green: 0.9, blue: 0.5) : Color.white.opacity(0.2), lineWidth: 2)
+                    .frame(width: 24, height: 24)
+                
+                if habit.completed {
+                    Circle()
+                        .fill(Color(red: 0.2, green: 0.9, blue: 0.5))
+                        .frame(width: 14, height: 14)
                 }
             }
-            .padding(16)
+            
+            VStack(alignment: .leading, spacing: 0) {
+                Text(habit.title)
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                    .foregroundColor(habit.completed ? .gray : .white)
+                    .strikethrough(habit.completed)
+                
+                if let streak = habit.streak, streak > 0 {
+                    HStack(spacing: 2) {
+                        Image(systemName: "flame.fill")
+                            .font(.system(size: 8))
+                            .foregroundColor(.orange)
+                        Text("\(streak) DAY STREAK")
+                            .font(.system(size: 8, weight: .black, design: .rounded))
+                            .foregroundColor(.orange)
+                    }
+                }
+            }
+            
+            Spacer()
         }
+        .padding(8)
+        .background(Color.white.opacity(0.05))
+        .cornerRadius(12)
     }
 }
 
@@ -184,18 +221,22 @@ struct ZenithWidget: Widget {
         StaticConfiguration(kind: kind, provider: Provider()) { entry in
             if #available(iOS 17.0, *) {
                 ZenithWidgetEntryView(entry: entry)
-                    .containerBackground(Color.black, for: .widget)
+                    .containerBackground(for: .widget) {
+                        Color.black
+                    }
             } else {
                 ZenithWidgetEntryView(entry: entry)
                     .padding()
                     .background(Color.black)
             }
         }
-        .configurationDisplayName("Zenith Checklist")
-        .description("Your daily minimalist habits stats and list.")
+        .configurationDisplayName("Zenith Forge")
+        .description("Track and toggle your daily habits.")
         .supportedFamilies([.systemSmall, .systemMedium])
     }
 }
+
+// MARK: - Previews
 
 #Preview(as: .systemSmall) {
     ZenithWidget()
@@ -209,8 +250,8 @@ struct ZenithWidget: Widget {
     ZenithWidget()
 } timeline: {
     ZenithEntry(date: .now, data: WidgetData(habits: [
-        WidgetHabit(id: "1", title: "Read", completed: true, streak: 12),
-        WidgetHabit(id: "2", title: "Workout", completed: false, streak: 5),
+        WidgetHabit(id: "1", title: "Morning Run", completed: true, streak: 12),
+        WidgetHabit(id: "2", title: "Code", completed: false, streak: 5),
         WidgetHabit(id: "3", title: "Meditate", completed: false, streak: 0)
     ], totalHabits: 3, completedHabits: 1))
 }

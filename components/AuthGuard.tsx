@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useStore } from '@/store/useStore';
 import { useRouter, usePathname } from 'next/navigation';
+import { App } from '@capacitor/app';
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
     const { jwt, isInitializingAuth } = useStore();
@@ -11,6 +12,19 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         setMounted(true);
+
+        const handleAppStateChange = async (state: { isActive: boolean }) => {
+            if (state.isActive) {
+                console.log("[AuthGuard] App became active, checking for widget toggles...");
+                useStore.getState().checkWidgetToggles().catch(console.error);
+            }
+        };
+
+        const listener = App.addListener('appStateChange', handleAppStateChange);
+
+        return () => {
+            listener.then(l => l.remove());
+        };
     }, []);
 
     useEffect(() => {

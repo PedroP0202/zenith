@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { encryptData, decryptData, saveSecureJwt, getSecureJwt, removeSecureJwt } from '../utils/secureStorage';
-import { Habit, LogEntry } from '../types';
+import { Habit, LogEntry } from '@/types';
+import { encryptData, decryptData, saveSecureJwt, getSecureJwt, removeSecureJwt } from '@/utils/secureStorage';
+import { Capacitor } from '@capacitor/core';
 import { syncWidgetData } from '../utils/widgetSync';
 import { scheduleAllNotifications, cancelAllNotifications } from '../utils/notifications';
 import { Language, translations } from '../locales';
@@ -141,6 +142,11 @@ interface AppState {
      * Logs the user out, clearing all sensitive data and credentials.
      */
     logout: () => void;
+
+    /**
+     * Checks if the user toggled any habits via the iOS Widget while the app was in the background.
+     */
+    checkWidgetToggles: () => Promise<void>;
 }
 
 export const useStore = create<AppState>()(
@@ -427,6 +433,49 @@ export const useStore = create<AppState>()(
                 } catch (e) {
                     console.error("[STORE] Failed to sync profile:", e);
                 }
+            },
+
+            checkWidgetToggles: async () => {
+                if (typeof window !== 'undefined' && Capacitor.getPlatform() === 'ios') {
+                    try {
+                        const widgetModule = await import('../utils/widgetSync');
+                        const { APP_GROUP_ID, WidgetSync } = widgetModule as any;
+                        const res = await WidgetSync.getItem({
+                            key: 'zenith_pending_widget_toggles',
+                            group: APP_GROUP_ID
+                        });
+
+                        const pendingToggles = res.value as Record<string, boolean> | null;
+                        if (pendingToggles && Object.keys(pendingToggles).length > 0) {
+                            console.log("[STORE] Found pending widget toggles:", pendingToggles);
+
+                            // Apply each toggle to the local state
+                            // Note: We use toggleHabitLog which handles the logic, 
+                            // but here we might want to ensure we match the specific status from widget.
+                            // For simplicity, we just toggle if the current state doesn't match the widget state.
+                            const { logs } = get();
+                            const todayStr = new Date().toDateString();
+
+                            for (const [habitId, shouldBeCompleted] of Object.entries(pendingToggles)) {
+                                const isCurrentlyCompleted = logs.some(
+                                    l => l.habitId === habitId && new Date(l.completedAt).toDateString() === todayStr
+                                );
+
+                                if (isCurrentlyCompleted !== shouldBeCompleted) {
+                                    get().toggleHabitLog(habitId);
+                                }
+                            }
+
+                            // Clear the pending toggles
+                            await WidgetSync.removeItem({
+                                key: 'zenith_pending_widget_toggles',
+                                group: APP_GROUP_ID
+                            });
+                        }
+                    } catch (e) {
+                        console.error("[STORE] Failed to check widget toggles:", e);
+                    }
+                }
             }
         }),
         {
@@ -460,17 +509,40 @@ export const useStore = create<AppState>()(
                     localStorage.removeItem(name);
                 },
             })),
-            onRehydrateStorage: () => (state) => {
-                if (state) {
-                    // Try to load JWT from secure storage on app launch
-                    getSecureJwt().then(token => {
-                        if (token) state.setJwt(token);
+            onRehydrateStorage: () => {
+                // Return a function to run after hydration is complete
+                return (state, error) => {
+                    if (error) {
+                        console.error("Zustand Hydration Error:", error);
                         useStore.setState({ isInitializingAuth: false });
-                    }).catch(e => {
-                        console.error(e);
+                        return;
+                    }
+
+                    if (state) {
+                        // We must load JWT asynchronously, but Zustand hydration is already "done" synchronously here.
+                        // The AuthGuard will wait for `isInitializingAuth` to become false before routing.
+                        getSecureJwt()
+                            .then(token => {
+                                console.log("[Zustand] Rehydrated JWT:", token ? "Found" : "Not Found");
+                                if (token) {
+                                    // VERY IMPORTANT: Use useStore.setState instead of state.setJwt 
+                                    // if state.setJwt triggers other side-effects that might depend on fully rehydrated state.
+                                    useStore.setState({ jwt: token, isInitializingAuth: false });
+                                } else {
+                                    useStore.setState({ isInitializingAuth: false });
+                                }
+
+                                // Check for widget toggles once hydration and auth are ready
+                                useStore.getState().checkWidgetToggles().catch(console.error);
+                            })
+                            .catch(e => {
+                                console.error("[Zustand] Secure Storage Error:", e);
+                                useStore.setState({ isInitializingAuth: false });
+                            });
+                    } else {
                         useStore.setState({ isInitializingAuth: false });
-                    });
-                }
+                    }
+                };
             }
         }
     )

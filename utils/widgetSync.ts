@@ -3,7 +3,14 @@ import { Habit, LogEntry } from '@/types';
 import { startOfDay, isSameDay } from 'date-fns';
 import { calculateStreak } from './streak';
 
-const WidgetSync = registerPlugin<any>('WidgetSyncPlugin');
+interface WidgetSyncPlugin {
+    setItem: (options: { key: string; value: string; group: string }) => Promise<void>;
+    getItem: (options: { key: string; group: string }) => Promise<{ value: any }>;
+    removeItem: (options: { key: string; group: string }) => Promise<void>;
+    reloadAllTimelines: () => Promise<void>;
+}
+
+const WidgetSync = registerPlugin<WidgetSyncPlugin>('WidgetSyncPlugin');
 
 export const APP_GROUP_ID = 'group.pedro.zenith.app';
 

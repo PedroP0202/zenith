@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ChevronLeft } from 'lucide-react';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { motion, AnimatePresence } from 'framer-motion';
+import { deviceHaptics } from '../../../utils/haptics';
 
 export default function NewHabit() {
     const { t } = useTranslation();
@@ -37,11 +38,15 @@ export default function NewHabit() {
         if (title.trim() && selectedDays.length > 0) {
             const finalReminderTime = isReminderEnabled ? reminderTime : undefined;
             addHabit(title.trim(), selectedDays, isHardMode, finalReminderTime);
+            deviceHaptics.success();
             router.push('/');
+        } else {
+            deviceHaptics.error();
         }
     };
 
     const toggleDay = (dayIndex: number) => {
+        deviceHaptics.lightImpact();
         if (selectedDays.includes(dayIndex)) {
             setSelectedDays(prev => prev.filter(d => d !== dayIndex));
         } else {
@@ -55,7 +60,10 @@ export default function NewHabit() {
         <main className="min-h-[100dvh] bg-black text-white p-6 font-sans flex flex-col items-center">
             <div className="w-full max-w-md pt-8">
                 <button
-                    onClick={() => router.back()}
+                    onClick={() => {
+                        deviceHaptics.lightImpact();
+                        router.back();
+                    }}
                     className="mb-12 h-12 w-12 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 transition-colors -ml-3"
                 >
                     <ChevronLeft size={24} />
@@ -127,7 +135,10 @@ export default function NewHabit() {
                         </div>
                         <button
                             type="button"
-                            onClick={() => setIsHardMode(!isHardMode)}
+                            onClick={() => {
+                                deviceHaptics.lightImpact();
+                                setIsHardMode(!isHardMode);
+                            }}
                             className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${isHardMode ? 'bg-red-500' : 'bg-white/20'}`}
                             role="switch"
                             aria-checked={isHardMode}
@@ -148,7 +159,10 @@ export default function NewHabit() {
                             </div>
                             <button
                                 type="button"
-                                onClick={() => setIsReminderEnabled(!isReminderEnabled)}
+                                onClick={() => {
+                                    deviceHaptics.lightImpact();
+                                    setIsReminderEnabled(!isReminderEnabled);
+                                }}
                                 className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${isReminderEnabled ? 'bg-white' : 'bg-white/20'}`}
                                 role="switch"
                                 aria-checked={isReminderEnabled}

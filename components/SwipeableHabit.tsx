@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { Habit } from '../types';
 import ConfirmationModal from './ConfirmationModal';
 import { useTranslation } from '../hooks/useTranslation';
+import { deviceHaptics } from '../utils/haptics';
 
 interface SwipeableHabitProps {
     habit: Habit;
@@ -33,6 +34,9 @@ export default function SwipeableHabit({ habit, streak, doneToday, onToggle, onD
 
         // Check if dragged far enough to left
         if (offset.x < swipeThreshold || velocity.x < -400) {
+            // Trigger heavy haptic for destructive intent
+            deviceHaptics.heavyImpact();
+
             // Show confirmation modal instead of immediate delete
             setShowDeleteModal(true);
 
@@ -133,6 +137,14 @@ export default function SwipeableHabit({ habit, streak, doneToday, onToggle, onD
                     onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
+                        // Provide tactile feedback on toggle
+                        deviceHaptics.mediumImpact();
+
+                        // Play sound ONLY when marking as DONE
+                        if (!doneToday) {
+                            deviceHaptics.playSuccessSound();
+                        }
+
                         onToggle();
                     }}
                     className={`h-12 w-12 rounded-[18px] flex items-center justify-center shrink-0 transition-all duration-500 z-20 ${doneToday ? `bg-white text-black scale-100 ${glowShadow}` : 'bg-transparent border border-white/10 text-transparent hover:border-white/30'}`}

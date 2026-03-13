@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { Plus, Settings } from 'lucide-react';
 import { format } from 'date-fns';
 import { enUS } from 'date-fns/locale';
-import { AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import SwipeableHabit from '../components/SwipeableHabit';
 import NotificationOnboarding from '../components/NotificationOnboarding';
 import BetaFeedback from '../components/BetaFeedback';
@@ -36,6 +36,18 @@ export default function Home() {
     else if (hour >= 12 && hour < 18) greeting = t.home.goodAfternoon;
 
     const dateStr = mounted ? format(now, "MMM do, yyyy", { locale: enUS }) : t.common.loading;
+
+    // Framer Motion Variants for Stagger Effect
+    const containerVariants = {
+        hidden: { opacity: 0 },
+        visible: {
+            opacity: 1,
+            transition: {
+                staggerChildren: 0.1,
+                delayChildren: 0.2
+            }
+        }
+    };
 
     return (
         <main className="min-h-[100dvh] bg-black text-white p-6 pb-24 font-sans flex flex-col items-center">
@@ -81,49 +93,65 @@ export default function Home() {
                         {habitsForToday.length > 0 && (
                             <div className="space-y-4">
                                 <h3 className="text-[12px] font-bold text-white/50 tracking-wider uppercase mb-4">{t.home.forToday}</h3>
-                                <AnimatePresence>
-                                    {habitsForToday.map((habit) => {
-                                        const habitLogs = logs.filter(l => l.habitId === habit.id);
-                                        const streak = calculateStreak(habitLogs, habit.frequency);
-                                        const doneToday = isCompletedToday(habitLogs);
+                                <motion.div
+                                    variants={containerVariants}
+                                    initial="hidden"
+                                    animate="visible"
+                                >
+                                    <AnimatePresence mode="popLayout">
+                                        {habitsForToday.map((habit) => {
+                                            const habitLogs = logs.filter(l => l.habitId === habit.id);
+                                            const streak = calculateStreak(habitLogs, habit.frequency);
+                                            const doneToday = isCompletedToday(habitLogs);
 
-                                        return (
-                                            <SwipeableHabit
-                                                key={habit.id}
-                                                habit={habit}
-                                                streak={streak}
-                                                doneToday={doneToday}
-                                                onToggle={() => toggleHabitLog(habit.id)}
-                                                onDelete={() => removeHabit(habit.id)}
-                                            />
-                                        );
-                                    })}
-                                </AnimatePresence>
-                            </div>
-                        )}
-
-                        {otherHabits.length > 0 && (
-                            <div className="space-y-4">
-                                <h3 className="text-[12px] font-bold text-white/30 tracking-wider uppercase mb-4">{t.home.otherDays}</h3>
-                                <AnimatePresence>
-                                    {otherHabits.map((habit) => {
-                                        const habitLogs = logs.filter(l => l.habitId === habit.id);
-                                        const streak = calculateStreak(habitLogs, habit.frequency);
-                                        const doneToday = isCompletedToday(habitLogs);
-
-                                        return (
-                                            <div key={habit.id} className="opacity-50 grayscale transition-opacity hover:opacity-100 hover:grayscale-0">
+                                            return (
                                                 <SwipeableHabit
+                                                    key={habit.id}
                                                     habit={habit}
                                                     streak={streak}
                                                     doneToday={doneToday}
                                                     onToggle={() => toggleHabitLog(habit.id)}
                                                     onDelete={() => removeHabit(habit.id)}
                                                 />
-                                            </div>
-                                        );
-                                    })}
-                                </AnimatePresence>
+                                            );
+                                        })}
+                                    </AnimatePresence>
+                                </motion.div>
+                            </div>
+                        )}
+
+                        {otherHabits.length > 0 && (
+                            <div className="space-y-4">
+                                <h3 className="text-[12px] font-bold text-white/30 tracking-wider uppercase mb-4">{t.home.otherDays}</h3>
+                                <motion.div
+                                    variants={containerVariants}
+                                    initial="hidden"
+                                    animate="visible"
+                                >
+                                    <AnimatePresence mode="popLayout">
+                                        {otherHabits.map((habit) => {
+                                            const habitLogs = logs.filter(l => l.habitId === habit.id);
+                                            const streak = calculateStreak(habitLogs, habit.frequency);
+                                            const doneToday = isCompletedToday(habitLogs);
+
+                                            return (
+                                                <motion.div
+                                                    key={habit.id}
+                                                    className="opacity-50 grayscale transition-opacity hover:opacity-100 hover:grayscale-0"
+                                                    layout
+                                                >
+                                                    <SwipeableHabit
+                                                        habit={habit}
+                                                        streak={streak}
+                                                        doneToday={doneToday}
+                                                        onToggle={() => toggleHabitLog(habit.id)}
+                                                        onDelete={() => removeHabit(habit.id)}
+                                                    />
+                                                </motion.div>
+                                            );
+                                        })}
+                                    </AnimatePresence>
+                                </motion.div>
                             </div>
                         )}
                     </div>

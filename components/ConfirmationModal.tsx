@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle, X } from "lucide-react";
+import { deviceHaptics } from "../utils/haptics";
 
 interface ConfirmationModalProps {
     isOpen: boolean;
@@ -63,6 +64,11 @@ export default function ConfirmationModal({
                             <div className="flex flex-col gap-3 mt-8">
                                 <button
                                     onClick={() => {
+                                        if (isDanger) {
+                                            deviceHaptics.heavyImpact();
+                                        } else {
+                                            deviceHaptics.mediumImpact();
+                                        }
                                         onConfirm();
                                         onClose();
                                     }}
@@ -72,7 +78,10 @@ export default function ConfirmationModal({
                                 </button>
 
                                 <button
-                                    onClick={onClose}
+                                    onClick={() => {
+                                        deviceHaptics.lightImpact();
+                                        onClose();
+                                    }}
                                     className="w-full h-14 bg-white/5 text-white/70 font-bold rounded-2xl transition-all hover:bg-white/10 active:scale-95"
                                 >
                                     {cancelLabel}

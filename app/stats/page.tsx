@@ -8,6 +8,7 @@ import WeekdayChart from '../../components/WeekdayChart';
 import { format } from 'date-fns';
 import { enUS, pt } from 'date-fns/locale';
 import { useTranslation } from '../../hooks/useTranslation';
+import { motion } from 'framer-motion';
 
 export default function StatsPage() {
     const { t, language } = useTranslation();
@@ -55,14 +56,24 @@ export default function StatsPage() {
                         {t.stats.yourYear} ({year})
                     </h2>
                     <div className="flex gap-4">
-                        <div className="flex-1 bg-[#111111] rounded-3xl p-5 flex flex-col justify-between">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ duration: 0.5, delay: 0.2 }}
+                            className="flex-1 bg-[#111111] rounded-3xl p-5 flex flex-col justify-between"
+                        >
                             <span className="text-white/40 text-xs font-semibold uppercase tracking-widest mb-4">{t.stats.consistency}</span>
                             <span className="text-3xl font-bold text-white">{yearlyStats.productivityPercentage}%</span>
-                        </div>
-                        <div className="flex-1 bg-[#111111] rounded-3xl p-5 flex flex-col justify-between">
+                        </motion.div>
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ duration: 0.5, delay: 0.3 }}
+                            className="flex-1 bg-[#111111] rounded-3xl p-5 flex flex-col justify-between"
+                        >
                             <span className="text-white/40 text-xs font-semibold uppercase tracking-widest mb-4">{t.stats.focusDays}</span>
                             <span className="text-3xl font-bold text-white">{yearlyStats.activeDays}</span>
-                        </div>
+                        </motion.div>
                     </div>
                 </div>
 

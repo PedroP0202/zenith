@@ -1,19 +1,6 @@
 import WidgetKit
 import SwiftUI
 
-struct WidgetHabit: Decodable, Identifiable {
-    let id: String
-    let title: String
-    let completed: Bool
-    let streak: Int?
-}
-
-struct WidgetData: Decodable {
-    let habits: [WidgetHabit]
-    let totalHabits: Int?
-    let completedHabits: Int?
-}
-
 struct Provider: TimelineProvider {
     func placeholder(in context: Context) -> ZenithEntry {
         ZenithEntry(date: Date(), data: WidgetData(habits: [
@@ -241,7 +228,7 @@ struct ZenithWidget: Widget {
 #Preview(as: .systemSmall) {
     ZenithWidget()
 } timeline: {
-    ZenithEntry(date: .now, data: WidgetData(habits: [
+    ZenithEntry(date: Date(), data: WidgetData(habits: [
         WidgetHabit(id: "1", title: "Read", completed: true, streak: 5)
     ], totalHabits: 3, completedHabits: 1))
 }
@@ -249,7 +236,7 @@ struct ZenithWidget: Widget {
 #Preview(as: .systemMedium) {
     ZenithWidget()
 } timeline: {
-    ZenithEntry(date: .now, data: WidgetData(habits: [
+    ZenithEntry(date: Date(), data: WidgetData(habits: [
         WidgetHabit(id: "1", title: "Morning Run", completed: true, streak: 12),
         WidgetHabit(id: "2", title: "Code", completed: false, streak: 5),
         WidgetHabit(id: "3", title: "Meditate", completed: false, streak: 0)

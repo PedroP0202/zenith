@@ -9,6 +9,7 @@ import { Habit, LogEntry } from '../../../types';
 import InfiniteCalendar from '../../../components/InfiniteCalendar';
 import { useTranslation } from '../../../hooks/useTranslation';
 import ConfirmationModal from '../../../components/ConfirmationModal';
+import { deviceHaptics } from '../../../utils/haptics';
 
 function HabitDetailContent() {
     const { t } = useTranslation();
@@ -50,6 +51,7 @@ function HabitDetailContent() {
     }
 
     const handleDelete = () => {
+        deviceHaptics.heavyImpact();
         setShowDeleteModal(true);
     };
 
@@ -63,7 +65,10 @@ function HabitDetailContent() {
             <div className="w-full max-w-md pt-8 flex flex-col h-full min-h-[85vh]">
                 <header className="flex justify-between items-center mb-16">
                     <button
-                        onClick={() => router.back()}
+                        onClick={() => {
+                            deviceHaptics.lightImpact();
+                            router.back();
+                        }}
                         className="h-12 w-12 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 transition-colors -ml-3"
                     >
                         <ChevronLeft size={24} />
@@ -129,6 +134,7 @@ function HabitDetailContent() {
                                 }
 
                                 // Trigger Zustand store
+                                deviceHaptics.lightImpact();
                                 toggleHabitLog(habit.id, date.getTime());
                             }}
                         />
@@ -163,6 +169,7 @@ function HabitDetailContent() {
                             <button
                                 type="button"
                                 onClick={() => {
+                                    deviceHaptics.lightImpact();
                                     const newState = !isReminderEnabled;
                                     setIsReminderEnabled(newState);
                                     if (newState) {

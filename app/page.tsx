@@ -11,6 +11,7 @@ import SwipeableHabit from '../components/SwipeableHabit';
 import NotificationOnboarding from '../components/NotificationOnboarding';
 import BetaFeedback from '../components/BetaFeedback';
 import BetaWelcomeModal from '../components/BetaWelcomeModal';
+import DailyProgressBar from '../components/DailyProgressBar';
 import { useTranslation } from '../hooks/useTranslation';
 
 export default function Home() {
@@ -29,8 +30,14 @@ export default function Home() {
     const habitsForToday = allActiveHabits.filter(h => h.frequency ? h.frequency.includes(todayDayOfWeek) : true);
     const otherHabits = allActiveHabits.filter(h => h.frequency && !h.frequency.includes(todayDayOfWeek));
 
-    const hour = now.getHours();
+    const completedTodayCount = habitsForToday.filter(h => {
+        const habitLogs = logs.filter(l => l.habitId === h.id);
+        return isCompletedToday(habitLogs);
+    }).length;
 
+    const hour = now.getHours();
+    // ... rest of logic
+    
     let greeting = t.home.goodNight;
     if (hour >= 5 && hour < 12) greeting = t.home.goodMorning;
     else if (hour >= 12 && hour < 18) greeting = t.home.goodAfternoon;
@@ -55,7 +62,7 @@ export default function Home() {
                 <header className="mb-14 flex justify-between items-start">
                     <div className={`flex flex-col transition-opacity duration-500 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
                         <span className="text-[12px] font-bold text-white/50 tracking-wider mb-2">
-                            {t.home.dailyBrief} • {dateStr}
+                            {format(now, "EEEE", { locale: enUS })} • {dateStr}
                         </span>
                         <h1 className="text-[2.2rem] leading-tight font-medium tracking-tight text-white whitespace-nowrap">
                             {greeting}
@@ -76,6 +83,8 @@ export default function Home() {
                         )}
                     </div>
                 </header>
+
+                <DailyProgressBar total={habitsForToday.length} completed={completedTodayCount} />
 
                 {allActiveHabits.length === 0 ? (
                     <div className="flex flex-col items-center justify-center mt-32 text-center opacity-70">

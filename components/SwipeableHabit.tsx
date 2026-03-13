@@ -133,16 +133,18 @@ export default function SwipeableHabit({ habit, streak, doneToday, onToggle, onD
                 </Link>
 
                 {/* The checkmark button */}
-                <button
+                <motion.button
+                    whileTap={{ scale: 0.8 }}
                     onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        // Provide tactile feedback on toggle
-                        deviceHaptics.mediumImpact();
-
-                        // Play sound ONLY when marking as DONE
+                        
+                        // Play sound and success haptics ONLY when marking as DONE
                         if (!doneToday) {
+                            deviceHaptics.success();
                             deviceHaptics.playSuccessSound();
+                        } else {
+                            deviceHaptics.lightImpact();
                         }
 
                         onToggle();
@@ -150,8 +152,17 @@ export default function SwipeableHabit({ habit, streak, doneToday, onToggle, onD
                     className={`h-12 w-12 rounded-[18px] flex items-center justify-center shrink-0 transition-all duration-500 z-20 ${doneToday ? `bg-white text-black scale-100 ${glowShadow}` : 'bg-transparent border border-white/10 text-transparent hover:border-white/30'}`}
                     aria-label="Marcar como feito"
                 >
-                    <Check size={22} className={`transition-all duration-400 ${doneToday ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}`} strokeWidth={3} />
-                </button>
+                    <motion.div
+                        initial={false}
+                        animate={{ 
+                            scale: doneToday ? [1, 1.4, 1] : 1,
+                            rotate: doneToday ? [0, 15, -15, 0] : 0
+                        }}
+                        transition={{ duration: 0.5, type: 'spring' }}
+                    >
+                        <Check size={22} className={`transition-all duration-400 ${doneToday ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}`} strokeWidth={3} />
+                    </motion.div>
+                </motion.button>
 
             </motion.div>
 

@@ -3,24 +3,37 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, BarChart2 } from 'lucide-react';
-import { motion, useAnimation } from 'framer-motion';
+import { motion, useAnimation, AnimatePresence } from 'framer-motion';
 import { useStore } from '../store/useStore';
 
 export default function BottomNav() {
     const pathname = usePathname();
     const { logs } = useStore();
     const [lastLogCount, setLastLogCount] = useState(logs.length);
+    const [showHighlight, setShowHighlight] = useState(false);
     const statsControls = useAnimation();
 
     useEffect(() => {
-        // Only trigger highlight if a new log was ADDED (not removed/toggled off)
-        if (logs.length > lastLogCount) {
-            statsControls.start({
-                scale: [1, 1.3, 1],
-                color: ['#ffffff4d', '#ffffff', '#ffffff4d'],
-                transition: { duration: 0.6, times: [0, 0.5, 1], ease: 'easeInOut' }
-            });
+        // Initial load set count
+        if (lastLogCount === undefined) {
+             setLastLogCount(logs.length);
+             return;
         }
+
+        // Only trigger highlight if a new log was ADDED
+        if (logs.length > lastLogCount) {
+            setShowHighlight(true);
+            statsControls.start({
+                scale: [1, 1.4, 1],
+                color: ['#ffffff4d', '#ffffff', '#ffffff4d'],
+                transition: { duration: 0.6, times: [0, 0.5, 1], ease: 'backOut' }
+            });
+            
+            // Turn off highlight after animation
+            const timer = setTimeout(() => setShowHighlight(false), 2000);
+            return () => clearTimeout(timer);
+        }
+        
         setLastLogCount(logs.length);
     }, [logs.length, lastLogCount, statsControls]);
 
@@ -45,13 +58,18 @@ export default function BottomNav() {
                 <motion.div animate={statsControls}>
                     <BarChart2 size={24} strokeWidth={pathname === '/stats' ? 2.5 : 2} />
                 </motion.div>
-                {logs.length > lastLogCount && (
-                    <motion.div 
-                        initial={{ opacity: 0, scale: 0.5 }}
-                        animate={{ opacity: [0, 1, 0], scale: [0.5, 2, 2.5] }}
-                        className="absolute inset-0 bg-white/20 rounded-full -z-10"
-                    />
-                )}
+                
+                <AnimatePresence>
+                    {showHighlight && (
+                        <motion.div 
+                            initial={{ opacity: 0, scale: 0.5 }}
+                            animate={{ opacity: [0, 1, 0], scale: [0.5, 2, 3] }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 1, ease: "easeOut" }}
+                            className="absolute inset-0 bg-white/30 rounded-full -z-10 blur-sm"
+                        />
+                    )}
+                </AnimatePresence>
             </Link>
         </nav>
     );

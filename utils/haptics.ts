@@ -50,7 +50,9 @@ class HapticsController {
         if (!this.isNative) return;
         try {
             await Haptics.impact({ style: ImpactStyle.Light });
-        } catch (e) { }
+        } catch (e) {
+            console.warn("Haptics Light Impact failed:", e);
+        }
     }
 
     /**
@@ -60,38 +62,43 @@ class HapticsController {
         if (!this.isNative) return;
         try {
             await Haptics.impact({ style: ImpactStyle.Medium });
-        } catch (e) { }
+        } catch (e) {
+            console.warn("Haptics Medium Impact failed:", e);
+        }
     }
 
     /**
-     * Heavy impact.
+     * Heavy impact - very strong, for destructive actions.
      */
     async heavyImpact() {
         if (!this.isNative) return;
         try {
             await Haptics.impact({ style: ImpactStyle.Heavy });
-        } catch (e) { }
+        } catch (e) {
+            console.warn("Haptics Heavy Impact failed:", e);
+        }
     }
 
     /**
-     * Success notification pattern.
+     * Success notification - strong and clear.
      */
     async success() {
         if (!this.isNative) return;
         try {
             await Haptics.notification({ type: NotificationType.Success });
-        } catch (e) { }
+        } catch (e) {
+            console.warn("Haptics Success failed:", e);
+        }
     }
 
     /**
      * Error notification pattern, used when API calls fail or invalid forms.
      */
     async error() {
-        if (!this.isNative) return;
         try {
             await Haptics.notification({ type: NotificationType.Error });
         } catch (e) {
-            console.error("Haptics Error:", e);
+            console.error("Haptics Error failed:", e);
         }
     }
 
@@ -99,11 +106,29 @@ class HapticsController {
      * Warning notification pattern.
      */
     async warning() {
-        if (!this.isNative) return;
         try {
             await Haptics.notification({ type: NotificationType.Warning });
         } catch (e) {
-            console.error("Haptics Error:", e);
+            console.error("Haptics Warning failed:", e);
+        }
+    }
+
+    /**
+     * Standard long vibration - used as a fallback or for more emphasis.
+     */
+    async vibrate() {
+        try {
+            // First try standard Haptics
+            await Haptics.vibrate();
+        } catch (e) {
+            // Fallback to our custom native bridge if Haptics plugin fails
+            try {
+                if ((window as any).Capacitor?.Plugins?.WidgetSyncPlugin) {
+                    await (window as any).Capacitor.Plugins.WidgetSyncPlugin.nativeVibrate();
+                }
+            } catch (innerE) {
+                console.error("Haptics Vibrate and Native Fallback failed:", innerE);
+            }
         }
     }
 }

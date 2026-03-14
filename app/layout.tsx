@@ -2,13 +2,12 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import BottomNav from '../components/BottomNav';
-
-const inter = Inter({ subsets: ['latin'] });
-
 import AuthGuard from '../components/AuthGuard';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { GOOGLE_CLIENT_ID } from '@/utils/constants';
 import LangHandler from '../components/LangHandler';
+
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'Zenith',

@@ -91,7 +91,7 @@ export default function Home() {
                 ) : (
                     <div className="space-y-10">
                         {habitsForToday.length > 0 && (
-                            <div className="space-y-4">
+                            <div className="space-y-6">
                                 <h3 className="text-[12px] font-bold text-white/50 tracking-wider uppercase mb-4">{t.home.forToday}</h3>
                                 <motion.div
                                     variants={containerVariants}
@@ -120,8 +120,9 @@ export default function Home() {
                             </div>
                         )}
 
+
                         {otherHabits.length > 0 && (
-                            <div className="space-y-4">
+                            <div className="space-y-6">
                                 <h3 className="text-[12px] font-bold text-white/30 tracking-wider uppercase mb-4">{t.home.otherDays}</h3>
                                 <motion.div
                                     variants={containerVariants}

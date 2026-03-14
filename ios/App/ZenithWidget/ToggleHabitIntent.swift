@@ -1,4 +1,5 @@
 import AppIntents
+import UIKit
 import WidgetKit
 import Foundation
 
@@ -60,6 +61,17 @@ struct ToggleHabitIntent: AppIntent {
                 pendingToggles[habitId] = newStatus
                 sharedDefaults?.set(pendingToggles, forKey: "zenith_pending_widget_toggles")
             }
+        }
+        
+        // 5. Trigger maximum haptic feedback for the widget interaction
+        DispatchQueue.main.async {
+            let generator = UINotificationFeedbackGenerator()
+            generator.prepare()
+            generator.notificationOccurred(.error)
+            
+            let impact = UIImpactFeedbackGenerator(style: .heavy)
+            impact.prepare()
+            impact.impactOccurred()
         }
         
         // This forces any widgets using this intent to reload their timeline

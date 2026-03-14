@@ -1,10 +1,15 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, BarChart2 } from 'lucide-react';
 import { motion, useAnimation, AnimatePresence } from 'framer-motion';
 import { useStore } from '../store/useStore';
+
+const tabs = [
+    { href: '/', icon: Home, label: 'Hoje' },
+    { href: '/stats', icon: BarChart2, label: 'Estatísticas' },
+];
 
 export default function BottomNav() {
     const pathname = usePathname();
@@ -14,63 +19,87 @@ export default function BottomNav() {
     const statsControls = useAnimation();
 
     useEffect(() => {
-        // Initial load set count
         if (lastLogCount === undefined) {
-             setLastLogCount(logs.length);
-             return;
+            setLastLogCount(logs.length);
+            return;
         }
-
-        // Only trigger highlight if a new log was ADDED
         if (logs.length > lastLogCount) {
             setShowHighlight(true);
             statsControls.start({
-                scale: [1, 1.4, 1],
-                color: ['#ffffff4d', '#ffffff', '#ffffff4d'],
-                transition: { duration: 0.6, times: [0, 0.5, 1], ease: 'backOut' }
+                scale: [1, 1.3, 1],
+                transition: { duration: 0.5, times: [0, 0.4, 1], ease: 'backOut' }
             });
-            
-            // Turn off highlight after animation
             const timer = setTimeout(() => setShowHighlight(false), 2000);
             return () => clearTimeout(timer);
         }
-        
         setLastLogCount(logs.length);
     }, [logs.length, lastLogCount, statsControls]);
 
-    // Hide on detail or creation pages to keep them focused
     if (pathname.includes('/habit/')) return null;
+
+    const activeIndex = tabs.findIndex(t => t.href === pathname);
 
     return (
         <nav className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-[#111111]/90 backdrop-blur-md border border-white/10 rounded-full px-6 py-4 flex items-center gap-8 z-50">
-            <Link
-                href="/"
-                className={`transition-colors duration-300 ${pathname === '/' ? 'text-white' : 'text-white/30 hover:text-white/60'}`}
-                aria-label="Hoje"
-            >
-                <Home size={24} strokeWidth={pathname === '/' ? 2.5 : 2} />
-            </Link>
+            {/* Sliding active pill indicator */}
+            <AnimatePresence>
+                {activeIndex !== -1 && (
+                    <motion.div
+                        key={activeIndex}
+                        layoutId="nav-pill"
+                        className="absolute bg-white/10 rounded-full"
+                        style={{
+                            width: 44,
+                            height: 44,
+                            left: activeIndex === 0 ? 14 : undefined,
+                            right: activeIndex === 1 ? 14 : undefined,
+                        }}
+                        transition={{ type: 'spring', stiffness: 400, damping: 35 }}
+                    />
+                )}
+            </AnimatePresence>
 
-            <Link
-                href="/stats"
-                className={`relative transition-colors duration-300 ${pathname === '/stats' ? 'text-white' : 'text-white/30 hover:text-white/60'}`}
-                aria-label="Estatísticas"
-            >
-                <motion.div animate={statsControls}>
-                    <BarChart2 size={24} strokeWidth={pathname === '/stats' ? 2.5 : 2} />
-                </motion.div>
-                
-                <AnimatePresence>
-                    {showHighlight && (
-                        <motion.div 
-                            initial={{ opacity: 0, scale: 0.5 }}
-                            animate={{ opacity: [0, 1, 0], scale: [0.5, 2, 3] }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 1, ease: "easeOut" }}
-                            className="absolute inset-0 bg-white/30 rounded-full -z-10 blur-sm"
-                        />
-                    )}
-                </AnimatePresence>
-            </Link>
+            {tabs.map((tab, i) => {
+                const isActive = pathname === tab.href;
+                const Icon = tab.icon;
+                const isStats = tab.href === '/stats';
+
+                return (
+                    <Link
+                        key={tab.href}
+                        href={tab.href}
+                        className="relative z-10 transition-colors duration-300"
+                        aria-label={tab.label}
+                    >
+                        <motion.div
+                            animate={{
+                                y: isActive ? -2 : 0,
+                                color: isActive ? '#ffffff' : 'rgba(255,255,255,0.3)',
+                            }}
+                            transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                        >
+                            {isStats ? (
+                                <motion.div animate={statsControls} className="relative">
+                                    <Icon size={24} strokeWidth={isActive ? 2.5 : 2} />
+                                    <AnimatePresence>
+                                        {showHighlight && (
+                                            <motion.div
+                                                initial={{ opacity: 0, scale: 0.5 }}
+                                                animate={{ opacity: [0, 1, 0], scale: [0.5, 2, 3] }}
+                                                exit={{ opacity: 0 }}
+                                                transition={{ duration: 1, ease: "easeOut" }}
+                                                className="absolute inset-0 bg-white/30 rounded-full -z-10 blur-sm"
+                                            />
+                                        )}
+                                    </AnimatePresence>
+                                </motion.div>
+                            ) : (
+                                <Icon size={24} strokeWidth={isActive ? 2.5 : 2} />
+                            )}
+                        </motion.div>
+                    </Link>
+                );
+            })}
         </nav>
     );
 }

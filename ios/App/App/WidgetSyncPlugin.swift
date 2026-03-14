@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 import Capacitor
 import WidgetKit
 
@@ -10,8 +11,24 @@ public class WidgetSyncPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "setItem", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getItem", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "removeItem", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "reloadAllTimelines", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "reloadAllTimelines", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "nativeVibrate", returnType: CAPPluginReturnPromise)
     ]
+
+    @objc func nativeVibrate(_ call: CAPPluginCall) {
+        DispatchQueue.main.async {
+            // High intensity sequence
+            let generator = UINotificationFeedbackGenerator()
+            generator.prepare()
+            generator.notificationOccurred(.error) // "Error" feedback is actually stronger/longer than success on iOS
+            
+            let impact = UIImpactFeedbackGenerator(style: .heavy)
+            impact.prepare()
+            impact.impactOccurred()
+            
+            call.resolve()
+        }
+    }
 
     @objc func setItem(_ call: CAPPluginCall) {
         guard let key = call.getString("key"),

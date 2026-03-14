@@ -9,17 +9,25 @@
 
 /* Modern shimmer animation for loading states */
 @keyframes shimmer {
-  0% {
-    transform: translateX(-100%);
-  }
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+.animate-shimmer { animation: shimmer 2s infinite; }
 
-  100% {
-    transform: translateX(100%);
-  }
+/* Habit check completion glow burst */
+@keyframes pulse-glow {
+  0%   { transform: scale(0.5); opacity: 0.8; }
+  60%  { transform: scale(2.5); opacity: 0.3; }
+  100% { transform: scale(3.5); opacity: 0; }
+}
+.animate-pulse-glow {
+  animation: pulse-glow 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  pointer-events: none;
 }
 
-.animate-shimmer {
-  animation: shimmer 2s infinite;
+/* Hardware acceleration hint for animated elements */
+.will-animate {
+  will-change: transform, opacity;
 }
 
 /* Smooth scrolling for the entire app */

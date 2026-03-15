@@ -4,6 +4,11 @@ const config: CapacitorConfig = {
   appId: 'com.pedro.zenith',
   appName: 'Zenith',
   webDir: 'out',
+  ios: {
+    contentInset: 'automatic',
+    allowsLinkPreview: false,
+    backgroundColor: '#000000',
+  },
   plugins: {
     GoogleAuth: {
       scopes: ['profile', 'email'],

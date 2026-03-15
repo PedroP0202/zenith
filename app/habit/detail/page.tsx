@@ -107,7 +107,7 @@ function HabitDetailContent() {
                                 inputRef.current?.blur();
                             }
                         }}
-                        className="gap-2 text-3xl font-medium text-white/50 focus:text-white/90 transition-colors mb-12 bg-transparent border-none outline-none text-center w-full caret-white"
+                        className="gap-2 text-3xl font-medium text-white/50 focus:text-white/90 transition-all duration-300 mb-12 bg-transparent border-b-2 border-white/10 focus:border-white/30 outline-none text-center w-full caret-white"
                         aria-label={t.habit.editTitle}
                     />
 

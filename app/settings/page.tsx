@@ -152,7 +152,7 @@ export default function SettingsPage() {
                     transition={{ duration: 0.45, delay: 0.05, type: 'spring', bounce: 0.15 }}
                 >
                     <h2 className="text-sm uppercase tracking-widest text-white/40 mb-3 ml-2 font-medium">{t.settings.profile}</h2>
-                    <div className="bg-white/[0.03] rounded-3xl p-4 flex flex-col gap-4 border border-white/5">
+                    <div className="bg-white/[0.03] rounded-3xl p-4 flex flex-col gap-4 border border-white/5 card-press">
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
                                 <UserIcon className="w-5 h-5 opacity-70" />
@@ -179,7 +179,7 @@ export default function SettingsPage() {
                     transition={{ duration: 0.45, delay: 0.1, type: 'spring', bounce: 0.15 }}
                 >
                     <h2 className="text-sm uppercase tracking-widest text-white/40 mb-3 ml-2 font-medium">{t.settings.language}</h2>
-                    <div className="bg-white/[0.03] rounded-3xl p-5 border border-white/5 flex items-center justify-between">
+                    <div className="bg-white/[0.03] rounded-3xl p-5 border border-white/5 flex items-center justify-between card-press">
                         <div className="flex items-center gap-4">
                             <div className="text-white/40">
                                 <Globe className="w-5 h-5" />
@@ -189,13 +189,13 @@ export default function SettingsPage() {
                         <div className="flex bg-white/10 rounded-lg p-1 gap-1">
                             <button
                                 onClick={() => setLanguage('pt')}
-                                className={`px-4 py-1.5 rounded-md text-xs font-bold transition-colors ${language === 'pt' ? 'bg-white text-black' : 'text-white/50 hover:text-white'}`}
+                                className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all active:scale-95 ${language === 'pt' ? 'bg-white text-black shadow-[0_0_8px_rgba(255,255,255,0.15)]' : 'text-white/50 hover:text-white'}`}
                             >
                                 PT
                             </button>
                             <button
                                 onClick={() => setLanguage('en')}
-                                className={`px-4 py-1.5 rounded-md text-xs font-bold transition-colors ${language === 'en' ? 'bg-white text-black' : 'text-white/50 hover:text-white'}`}
+                                className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all active:scale-95 ${language === 'en' ? 'bg-white text-black shadow-[0_0_8px_rgba(255,255,255,0.15)]' : 'text-white/50 hover:text-white'}`}
                             >
                                 EN
                             </button>
@@ -269,7 +269,7 @@ export default function SettingsPage() {
                 >
                     <h2 className="text-sm uppercase tracking-widest text-white/40 mb-3 ml-2 font-medium">{t.settings.notifications.title}</h2>
 
-                    <div className="bg-white/[0.03] rounded-3xl p-5 border border-white/5 flex items-center justify-between group transition-colors hover:bg-white/[0.05]">
+                    <div className="bg-white/[0.03] rounded-3xl p-5 border border-white/5 flex items-center justify-between group transition-colors hover:bg-white/[0.05] card-press">
                         <div className="flex items-start gap-4">
                             <div className={`mt-1 flex-shrink-0 transition-colors ${isMorningReminderActive ? 'text-[var(--zenith-active)]' : 'text-white/40'}`}>
                                 <Bell className="w-5 h-5" />

@@ -284,18 +284,20 @@ export default function StatsPage() {
                                         {/* Habit row — tap to expand */}
                                         <button
                                             onClick={() => setExpandedId(isExpanded ? null : habit.id)}
-                                            className="w-full px-5 py-4 flex items-center gap-4 text-left"
+                                            className="w-full px-5 py-4 flex items-center gap-4 text-left card-press"
                                         >
                                             {/* Streak ring — shows current streak */}
                                             <div className="relative shrink-0 w-10 h-10">
                                                 <svg className="absolute inset-0 -rotate-90" viewBox="0 0 36 36" width="40" height="40">
                                                     <circle cx="18" cy="18" r="14" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="3" />
-                                                    <circle
+                                                    <motion.circle
                                                         cx="18" cy="18" r="14" fill="none"
                                                         stroke={ringColor}
                                                         strokeWidth="3"
                                                         strokeLinecap="round"
-                                                        strokeDasharray={`${Math.min((completionRate / 100) * 87.96, 87.96)} 87.96`}
+                                                        initial={{ strokeDasharray: '0 87.96' }}
+                                                        animate={{ strokeDasharray: `${Math.min((completionRate / 100) * 87.96, 87.96)} 87.96` }}
+                                                        transition={{ duration: 0.8, delay: 0.2 + index * 0.08, ease: [0.16, 1, 0.3, 1] }}
                                                     />
                                                 </svg>
                                                 {/* Inside: streak number or flame */}

@@ -24,6 +24,7 @@ export default function SwipeableHabit({ habit, streak, doneToday, onToggle, onD
     const controls = useAnimation();
     const [isDeleting, setIsDeleting] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [showPulse, setShowPulse] = useState(false);
 
 
     const trashOpacity = useTransform(x, [0, -75], [0, 1]);
@@ -97,9 +98,9 @@ export default function SwipeableHabit({ habit, streak, doneToday, onToggle, onD
                 onDragEnd={handleDragEnd}
                 animate={controls}
                 whileTap={{ scale: 0.975 }}
-                className={`relative z-10 py-4 px-5 rounded-3xl transition-colors duration-300 flex items-center justify-between ${doneToday ? 'bg-[#141414]' : 'bg-[#0e0e0e]'}`}
+                className={`relative z-10 py-4 px-5 rounded-3xl transition-all duration-300 flex items-center justify-between border ${doneToday ? 'bg-[#141414] border-white/[0.04]' : 'bg-[#0e0e0e] border-transparent hover:border-white/[0.06]'}`}
             >
-                <Link href={`/habit/detail?id=${habit.id}`} className="flex-1 min-w-0 pr-4 block">
+                <Link href={`/habit/detail?id=${habit.id}`} className="flex-1 min-w-0 pr-4 block card-press">
                     <div className="flex flex-col">
                         <span className={`text-lg font-medium truncate mb-0.5 transition-colors duration-300 ${doneToday ? 'text-white/40' : 'text-white/90'}`}>
                             {habit.title}
@@ -130,6 +131,8 @@ export default function SwipeableHabit({ habit, streak, doneToday, onToggle, onD
                             if (!doneToday) {
                                 deviceHaptics.success();
                                 deviceHaptics.playSuccessSound();
+                                setShowPulse(true);
+                                setTimeout(() => setShowPulse(false), 600);
                             } else {
                                 deviceHaptics.lightImpact();
                             }
@@ -145,6 +148,13 @@ export default function SwipeableHabit({ habit, streak, doneToday, onToggle, onD
                             <Check size={22} strokeWidth={3} />
                         </motion.div>
                     </motion.button>
+
+                    {/* Completion pulse ring */}
+                    {showPulse && (
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <div className="w-12 h-12 rounded-[16px] animate-pulse-glow bg-white/30" />
+                        </div>
+                    )}
                 </div>
             </motion.div>
 

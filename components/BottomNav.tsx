@@ -74,6 +74,7 @@ export default function BottomNav() {
                                 y: isActive ? -2 : 0,
                                 color: isActive ? '#ffffff' : 'rgba(255,255,255,0.3)',
                             }}
+                            whileTap={{ scale: 0.85 }}
                             transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                         >
                             {isStats ? (

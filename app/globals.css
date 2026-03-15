@@ -58,6 +58,22 @@
   box-shadow: 0 0 12px rgba(255, 255, 255, 0.08), 0 0 4px rgba(255, 255, 255, 0.04);
 }
 
+/* Subtle input focus glow */
+input:focus,
+input[type="text"]:focus,
+input[type="time"]:focus,
+input[type="password"]:focus {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 0 12px rgba(255, 255, 255, 0.04);
+}
+
+/* Interactive element press feedback */
+.press {
+  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.press:active {
+  transform: scale(0.97);
+}
+
 /* Smooth scrolling for the entire app */
 html,
 body {
@@ -67,6 +83,41 @@ body {
   -webkit-touch-callout: none;
   background-color: #000000;
   color: #ffffff;
+}
+
+/* ===== TOUCH RESPONSIVENESS ===== */
+
+/* Eliminate iOS 300ms tap delay */
+*,
+*::before,
+*::after {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Universal button/link active feedback — instant press response */
+/* Note: transform is NOT used here to avoid conflicts with Framer Motion */
+button,
+a,
+[role="button"],
+[role="switch"],
+[role="link"] {
+  -webkit-tap-highlight-color: transparent;
+  transform: translateZ(0); /* GPU layer for instant response */
+}
+
+/* Opacity-only active state — works with AND without Framer Motion */
+button:active,
+a:active,
+[role="button"]:active {
+  opacity: 0.7;
+  transition: opacity 0.08s ease;
+}
+
+/* Larger interactive elements get a subtler press */
+.card-press:active {
+  transform: scale(0.985) translateZ(0);
+  opacity: 0.92;
 }
 
 /* Custom focus styles for better accessibility */

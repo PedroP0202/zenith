@@ -1,5 +1,6 @@
 'use client';
 import { getDaysInMonth, startOfMonth, getDay } from 'date-fns';
+import { useTranslation } from '../hooks/useTranslation';
 
 interface HabitCalendarProps {
     completedDays: number[];
@@ -10,6 +11,7 @@ interface HabitCalendarProps {
 }
 
 export default function HabitCalendar({ completedDays, monthDate, onDayClick, frequency, isHardMode }: HabitCalendarProps) {
+    const { t } = useTranslation();
     const daysInMonth = getDaysInMonth(monthDate);
     const startDay = getDay(startOfMonth(monthDate)); // 0 = Sunday, 1 = Monday, etc.
 
@@ -19,7 +21,7 @@ export default function HabitCalendar({ completedDays, monthDate, onDayClick, fr
     const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
     const paddedCells = Array.from({ length: padding }, (_, i) => i);
 
-    const weekDays = ['S', 'T', 'Q', 'Q', 'S', 'S', 'D']; // Seg, Ter, Qua, Qui, Sex, Sáb, Dom
+    const weekDays = t.habit.calendarDaysOfWeek;
 
     return (
         <div className="mt-8 pt-8 border-t border-white/5 w-full">

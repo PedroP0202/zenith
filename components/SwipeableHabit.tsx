@@ -106,10 +106,10 @@ export default function SwipeableHabit({ habit, streak, doneToday, onToggle, onD
                         <div className="flex items-center gap-2">
                             {streak > 0 ? (
                                 <span className={`text-xs font-bold flex items-center gap-1 transition-colors duration-300 ${doneToday ? flameDoneColor : flameColor}`}>
-                                    🔥 {streak} {streak === 1 ? 'dia' : 'dias'}
+                                    🔥 {streak} {streak === 1 ? t.habit.day : t.habit.days}
                                 </span>
                             ) : (
-                                <span className="text-xs font-medium text-white/20">0 dias</span>
+                                <span className="text-xs font-medium text-white/20">0 {t.habit.days}</span>
                             )}
                         </div>
                     </div>

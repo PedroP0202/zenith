@@ -53,8 +53,8 @@ export default function ActivityHeatmap({ data }: ActivityHeatmapProps) {
                     {t.stats.activity}
                 </span>
                 <span className="text-[12px] text-white/50">
-                    <span className="text-white font-semibold">{totalDaysActive}</span> dias &nbsp;·&nbsp;{' '}
-                    <span className="text-white font-semibold">{totalCheckins}</span> check-ins
+                    <span className="text-white font-semibold">{totalDaysActive}</span> {t.stats.daysLabel} &nbsp;·&nbsp;{' '}
+                    <span className="text-white font-semibold">{totalCheckins}</span> {t.stats.checkinsLabel}
                 </span>
             </div>
 

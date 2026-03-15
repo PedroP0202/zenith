@@ -38,14 +38,14 @@ export default function BottomNav() {
     const activeIndex = tabs.findIndex(t => t.href === pathname);
 
     return (
-        <nav className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-[#111111]/90 backdrop-blur-md border border-white/10 rounded-full px-6 py-4 flex items-center gap-8 z-50">
+        <nav className="fixed bottom-8 left-1/2 -translate-x-1/2 glass rounded-full px-6 py-4 flex items-center gap-8 z-50 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
             {/* Sliding active pill indicator */}
             <AnimatePresence>
                 {activeIndex !== -1 && (
                     <motion.div
                         key={activeIndex}
                         layoutId="nav-pill"
-                        className="absolute bg-white/10 rounded-full"
+                        className="absolute bg-white/10 rounded-full nav-pill-glow"
                         style={{
                             width: 44,
                             height: 44,

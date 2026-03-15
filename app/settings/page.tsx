@@ -123,10 +123,15 @@ export default function SettingsPage() {
     return (
         <main className="min-h-[100dvh] bg-black text-white p-6 font-sans flex flex-col items-center">
             {/* Header */}
-            <div className="w-full max-w-md flex items-center mb-10 pt-4">
+            <motion.div
+                className="w-full max-w-md flex items-center mb-10 pt-4"
+                initial={{ opacity: 0, y: -12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, type: 'spring', bounce: 0.2 }}
+            >
                 <button
                     onClick={() => router.push('/')}
-                    className="p-2 -ml-2 text-white/60 hover:text-white transition-colors"
+                    className="p-2 -ml-2 text-white/60 hover:text-white transition-colors active:scale-90"
                     aria-label="Back"
                 >
                     <ChevronLeft className="w-6 h-6" />
@@ -137,11 +142,15 @@ export default function SettingsPage() {
                         {t.settings.title}
                     </h1>
                 </div>
-            </div>
+            </motion.div>
 
             <div className="w-full max-w-md space-y-8 pb-24">
                 {/* Profile Section */}
-                <section>
+                <motion.section
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.45, delay: 0.05, type: 'spring', bounce: 0.15 }}
+                >
                     <h2 className="text-sm uppercase tracking-widest text-white/40 mb-3 ml-2 font-medium">{t.settings.profile}</h2>
                     <div className="bg-white/[0.03] rounded-3xl p-4 flex flex-col gap-4 border border-white/5">
                         <div className="flex items-center gap-3">
@@ -161,10 +170,14 @@ export default function SettingsPage() {
                             </div>
                         </div>
                     </div>
-                </section>
+                </motion.section>
 
                 {/* Language Section */}
-                <section>
+                <motion.section
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.45, delay: 0.1, type: 'spring', bounce: 0.15 }}
+                >
                     <h2 className="text-sm uppercase tracking-widest text-white/40 mb-3 ml-2 font-medium">{t.settings.language}</h2>
                     <div className="bg-white/[0.03] rounded-3xl p-5 border border-white/5 flex items-center justify-between">
                         <div className="flex items-center gap-4">
@@ -188,10 +201,14 @@ export default function SettingsPage() {
                             </button>
                         </div>
                     </div>
-                </section>
+                </motion.section>
 
                 {/* Cloud Section */}
-                <section>
+                <motion.section
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.45, delay: 0.15, type: 'spring', bounce: 0.15 }}
+                >
                     <h2 className="text-sm uppercase tracking-widest text-white/40 mb-3 ml-2 font-medium">Zenith Cloud</h2>
                     <div className="bg-white/[0.03] rounded-3xl p-5 border border-white/5 flex flex-col gap-6">
                         <div className="flex items-center justify-between">
@@ -242,10 +259,14 @@ export default function SettingsPage() {
                             </div>
                         )}
                     </div>
-                </section>
+                </motion.section>
 
                 {/* Notifications Section */}
-                <section>
+                <motion.section
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.45, delay: 0.2, type: 'spring', bounce: 0.15 }}
+                >
                     <h2 className="text-sm uppercase tracking-widest text-white/40 mb-3 ml-2 font-medium">{t.settings.notifications.title}</h2>
 
                     <div className="bg-white/[0.03] rounded-3xl p-5 border border-white/5 flex items-center justify-between group transition-colors hover:bg-white/[0.05]">
@@ -303,10 +324,14 @@ export default function SettingsPage() {
                             {t.settings.notifications.test}
                         </button>
                     </div>
-                </section>
+                </motion.section>
 
                 {/* Danger Zone Section */}
-                <section>
+                <motion.section
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.45, delay: 0.25, type: 'spring', bounce: 0.15 }}
+                >
                     <h2 className="text-sm uppercase tracking-widest text-white/40 mb-3 ml-2 font-medium">{t.settings.dangerZone.title}</h2>
                     <div className="bg-white/[0.03] rounded-3xl p-5 border border-red-500/20 flex flex-col gap-6">
 
@@ -332,7 +357,7 @@ export default function SettingsPage() {
                             </button>
                         </div>
                     </div>
-                </section>
+                </motion.section>
             </div>
 
             <ConfirmationModal

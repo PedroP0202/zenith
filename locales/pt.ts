@@ -93,6 +93,9 @@ export const pt = {
         reminderDesc: "Notifica-te de forma inteligente para executares este hábito.",
         reminderTime: "Hora do lembrete",
         daysOfWeek: ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'],
+        calendarDaysOfWeek: ['S', 'T', 'Q', 'Q', 'S', 'S', 'D'],
+        day: "dia",
+        days: "dias",
         notFound: "Hábito não encontrado.",
         deleteConfirm: "Tens a certeza? Isto não pode ser desfeito.",
         streakDay: "Dia Seguido",
@@ -130,6 +133,8 @@ export const pt = {
         noEntries: "Sem dados",
         thisMonth: "este mês",
         totalMonth: "Total mês",
+        totalCompleted: "Total Concluídos",
+        bestSequence: "Melhor Sequência",
         lessActivity: "Menos",
         moreActivity: "Mais"
     }

@@ -52,8 +52,13 @@ export default function Home() {
     return (
         <main className="min-h-[100dvh] bg-black text-white p-6 pb-24 font-sans flex flex-col items-center">
             <div className="w-full max-w-md pt-8">
-                <header className="mb-14 flex justify-between items-start">
-                    <div className={`flex flex-col transition-opacity duration-500 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
+                <motion.header
+                    className="mb-14 flex justify-between items-start"
+                    initial={{ opacity: 0, y: -16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, type: 'spring', bounce: 0.2 }}
+                >
+                    <div className="flex flex-col">
                         <span className="text-[12px] font-bold text-white/50 tracking-wider mb-2">
                             {t.home.dailyBrief} • {dateStr}
                         </span>
@@ -65,34 +70,51 @@ export default function Home() {
                         </h2>
                     </div>
 
-                    <div className="flex gap-4 mt-6">
-                        <Link href="/settings" className="text-white/60 hover:text-white transition-colors p-3 bg-white/5 rounded-full hover:bg-white/10 flex items-center justify-center">
+                    <motion.div
+                        className="flex gap-4 mt-6"
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.4, delay: 0.2, type: 'spring' }}
+                    >
+                        <Link href="/settings" className="text-white/60 hover:text-white transition-colors p-3 bg-white/5 rounded-full hover:bg-white/10 flex items-center justify-center active:scale-90">
                             <Settings size={20} />
                         </Link>
                         {allActiveHabits.length > 0 && (
-                            <Link href="/habit/new" className="text-white/60 hover:text-white transition-colors p-3 bg-white/5 rounded-full hover:bg-white/10 flex items-center justify-center">
+                            <Link href="/habit/new" className="text-white/60 hover:text-white transition-colors p-3 bg-white/5 rounded-full hover:bg-white/10 flex items-center justify-center active:scale-90">
                                 <Plus size={20} />
                             </Link>
                         )}
-                    </div>
-                </header>
+                    </motion.div>
+                </motion.header>
 
                 {allActiveHabits.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center mt-32 text-center opacity-70">
+                    <motion.div
+                        className="flex flex-col items-center justify-center mt-32 text-center"
+                        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                        animate={{ opacity: 0.7, scale: 1, y: 0 }}
+                        transition={{ duration: 0.6, delay: 0.3, type: 'spring', bounce: 0.2 }}
+                    >
                         <p className="text-lg mb-6">{t.home.emptyState}</p>
                         <Link
                             href="/habit/new"
-                            className="bg-white text-black font-bold px-8 py-4 rounded-full flex items-center gap-2 hover:scale-105 active:scale-95 transition-transform"
+                            className="bg-white text-black font-bold px-8 py-4 rounded-full flex items-center gap-2 hover:scale-105 active:scale-95 transition-transform shadow-[0_0_20px_rgba(255,255,255,0.15)]"
                         >
                             <Plus size={20} />
                             {t.home.startHabit}
                         </Link>
-                    </div>
+                    </motion.div>
                 ) : (
-                    <div className="space-y-10">
+                    <motion.div className="space-y-10" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
                         {habitsForToday.length > 0 && (
                             <div className="space-y-6">
-                                <h3 className="text-[12px] font-bold text-white/50 tracking-wider uppercase mb-4">{t.home.forToday}</h3>
+                                <motion.h3
+                                    className="text-[12px] font-bold text-white/50 tracking-wider uppercase mb-4"
+                                    initial={{ opacity: 0, x: -10 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ duration: 0.4, delay: 0.1 }}
+                                >
+                                    {t.home.forToday}
+                                </motion.h3>
                                 <motion.div
                                     variants={containerVariants}
                                     initial="hidden"
@@ -123,7 +145,14 @@ export default function Home() {
 
                         {otherHabits.length > 0 && (
                             <div className="space-y-6">
-                                <h3 className="text-[12px] font-bold text-white/30 tracking-wider uppercase mb-4">{t.home.otherDays}</h3>
+                                <motion.h3
+                                    className="text-[12px] font-bold text-white/30 tracking-wider uppercase mb-4"
+                                    initial={{ opacity: 0, x: -10 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ duration: 0.4, delay: 0.3 }}
+                                >
+                                    {t.home.otherDays}
+                                </motion.h3>
                                 <motion.div
                                     variants={containerVariants}
                                     initial="hidden"
@@ -155,7 +184,7 @@ export default function Home() {
                                 </motion.div>
                             </div>
                         )}
-                    </div>
+                    </motion.div>
                 )}
 
                 {habits.some(h => !h.isActive) && (

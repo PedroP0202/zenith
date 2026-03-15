@@ -214,12 +214,12 @@ export default function StatsPage() {
                         },
                         {
                             icon: Target,
-                            label: 'Total concluídos',
+                            label: t.stats.totalCompleted,
                             value: totalCompletionsAllTime,
                         },
                         {
                             icon: Award,
-                            label: 'Melhor sequência',
+                            label: t.stats.bestSequence,
                             value: `${longestStreakAllHabits}d`,
                         },
                     ].map((stat, i) => (

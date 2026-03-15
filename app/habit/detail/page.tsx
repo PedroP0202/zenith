@@ -10,6 +10,7 @@ import InfiniteCalendar from '../../../components/InfiniteCalendar';
 import { useTranslation } from '../../../hooks/useTranslation';
 import ConfirmationModal from '../../../components/ConfirmationModal';
 import { deviceHaptics } from '../../../utils/haptics';
+import { motion } from 'framer-motion';
 
 function HabitDetailContent() {
     const { t } = useTranslation();
@@ -63,25 +64,30 @@ function HabitDetailContent() {
     return (
         <main className="min-h-[100dvh] bg-black text-white p-6 font-sans flex flex-col items-center">
             <div className="w-full max-w-md pt-8 flex flex-col h-full min-h-[85vh]">
-                <header className="flex justify-between items-center mb-16">
+                <motion.header
+                    className="flex justify-between items-center mb-16"
+                    initial={{ opacity: 0, y: -12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, type: 'spring', bounce: 0.2 }}
+                >
                     <button
                         onClick={() => {
                             deviceHaptics.lightImpact();
                             router.back();
                         }}
-                        className="h-12 w-12 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 transition-colors -ml-3"
+                        className="h-12 w-12 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 transition-colors -ml-3 active:scale-90"
                     >
                         <ChevronLeft size={24} />
                     </button>
 
                     <button
                         onClick={handleDelete}
-                        className="h-12 w-12 flex items-center justify-center rounded-full text-red-500/70 hover:text-red-500 hover:bg-red-500/10 transition-colors"
+                        className="h-12 w-12 flex items-center justify-center rounded-full text-red-500/70 hover:text-red-500 hover:bg-red-500/10 transition-colors active:scale-90"
                         aria-label={t.common.delete}
                     >
                         <Trash2 size={20} />
                     </button>
-                </header>
+                </motion.header>
 
                 <div className="flex-1 flex flex-col items-center justify-center text-center">
                     <input
@@ -140,7 +146,12 @@ function HabitDetailContent() {
                         />
                     )}
 
-                    <div className="relative flex flex-col items-center justify-center">
+                    <motion.div
+                        className="relative flex flex-col items-center justify-center"
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.6, delay: 0.15, type: 'spring', bounce: 0.25 }}
+                    >
 
                         <span className="text-[9rem] leading-none font-black tracking-tighter text-white drop-shadow-[0_0_40px_rgba(255,255,255,0.15)]">
                             {streak}
@@ -153,10 +164,15 @@ function HabitDetailContent() {
                                 <span className="text-2xl animate-bounce">🔥</span>
                             )}
                         </div>
-                    </div>
+                    </motion.div>
 
                     {/* Lembrete Secção (Specific Notification) */}
-                    <div className="mt-12 w-full flex flex-col p-4 rounded-2xl bg-white/5 border border-white/5 text-left">
+                    <motion.div
+                        className="mt-12 w-full flex flex-col p-4 rounded-2xl bg-white/5 border border-white/5 text-left"
+                        initial={{ opacity: 0, y: 16 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.45, delay: 0.25, type: 'spring', bounce: 0.15 }}
+                    >
                         <div className="flex items-center justify-between">
                             <div className="flex flex-col pr-4">
                                 <label className="text-sm font-bold text-white/90">
@@ -200,7 +216,7 @@ function HabitDetailContent() {
                                 />
                             </div>
                         )}
-                    </div>
+                    </motion.div>
                 </div>
 
             </div>

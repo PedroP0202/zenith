@@ -40,9 +40,10 @@ export default function ConfirmationModal({
                     />
 
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                        initial={{ opacity: 0, scale: 0.9, y: 20, filter: 'blur(8px)' }}
+                        animate={{ opacity: 1, scale: 1, y: 0, filter: 'blur(0px)' }}
+                        exit={{ opacity: 0, scale: 0.9, y: 20, filter: 'blur(8px)' }}
+                        transition={{ duration: 0.35, type: 'spring', damping: 25, stiffness: 300 }}
                         className="relative w-full max-w-sm bg-[#0A0A0A] border border-white/10 rounded-[32px] p-8 text-center shadow-2xl overflow-hidden"
                     >
                         {/* Glow Effect */}

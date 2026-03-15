@@ -59,20 +59,29 @@ export default function NewHabit() {
     return (
         <main className="min-h-[100dvh] bg-black text-white p-6 font-sans flex flex-col items-center">
             <div className="w-full max-w-md pt-8">
-                <button
+                <motion.button
                     onClick={() => {
                         deviceHaptics.lightImpact();
                         router.back();
                     }}
-                    className="mb-12 h-12 w-12 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 transition-colors -ml-3"
+                    className="mb-12 h-12 w-12 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 transition-colors -ml-3 active:scale-90"
+                    initial={{ opacity: 0, x: -12 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.4, type: 'spring' }}
                 >
                     <ChevronLeft size={24} />
-                </button>
+                </motion.button>
 
                 <form onSubmit={handleSubmit} className="flex flex-col gap-8">
-                    <label htmlFor="title" className="text-2xl font-bold tracking-tight text-white/90">
+                    <motion.label
+                        htmlFor="title"
+                        className="text-2xl font-bold tracking-tight text-white/90"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4, delay: 0.05 }}
+                    >
                         {t.habit.questionTitle}
-                    </label>
+                    </motion.label>
 
                     <div className="relative">
                         <input
@@ -100,7 +109,12 @@ export default function NewHabit() {
                         </AnimatePresence>
                     </div>
 
-                    <div className="mt-4">
+                    <motion.div
+                        className="mt-4"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4, delay: 0.15 }}
+                    >
                         <label className="text-sm font-medium text-white/50 mb-4 block uppercase tracking-widest">
                             {t.habit.frequency}
                         </label>
@@ -108,23 +122,29 @@ export default function NewHabit() {
                             {daysOfWeek.map(day => {
                                 const isSelected = selectedDays.includes(day.index);
                                 return (
-                                    <button
+                                    <motion.button
                                         key={day.index}
                                         type="button"
                                         onClick={() => toggleDay(day.index)}
+                                        whileTap={{ scale: 0.85 }}
                                         className={`h-11 w-11 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 ${isSelected
-                                            ? 'bg-white text-black'
+                                            ? 'bg-white text-black shadow-[0_0_10px_rgba(255,255,255,0.2)]'
                                             : 'bg-[#111111] text-white/40 hover:text-white/80'
                                             }`}
                                     >
                                         {day.label}
-                                    </button>
+                                    </motion.button>
                                 );
                             })}
                         </div>
-                    </div>
+                    </motion.div>
 
-                    <div className="mt-2 flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5">
+                    <motion.div
+                        className="mt-2 flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4, delay: 0.2 }}
+                    >
                         <div className="flex flex-col pr-4">
                             <label className="text-sm font-bold text-white/90">
                                 {t.habit.hardMode}
@@ -145,9 +165,14 @@ export default function NewHabit() {
                         >
                             <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${isHardMode ? 'translate-x-5' : 'translate-x-0'}`} />
                         </button>
-                    </div>
+                    </motion.div>
 
-                    <div className="mt-2 flex flex-col p-4 rounded-2xl bg-white/5 border border-white/5">
+                    <motion.div
+                        className="mt-2 flex flex-col p-4 rounded-2xl bg-white/5 border border-white/5"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4, delay: 0.25 }}
+                    >
                         <div className="flex items-center justify-between">
                             <div className="flex flex-col pr-4">
                                 <label className="text-sm font-bold text-white/90">
@@ -182,15 +207,18 @@ export default function NewHabit() {
                                 />
                             </div>
                         )}
-                    </div>
+                    </motion.div>
 
-                    <button
+                    <motion.button
                         type="submit"
                         disabled={!title.trim()}
-                        className="mt-8 bg-white text-black font-bold text-lg py-4 rounded-full disabled:opacity-30 disabled:scale-100 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                        className="mt-8 bg-white text-black font-bold text-lg py-4 rounded-full disabled:opacity-30 disabled:scale-100 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+                        initial={{ opacity: 0, y: 16 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: 0.3, type: 'spring', bounce: 0.2 }}
                     >
                         {t.habit.create}
-                    </button>
+                    </motion.button>
                 </form>
             </div>
         </main>

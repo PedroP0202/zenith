@@ -70,7 +70,7 @@ export default function SwipeableHabit({ habit, streak, doneToday, onToggle, onD
 
     return (
         <motion.div
-            className="relative group mb-4 will-animate"
+            className="relative group mb-4 will-animate overflow-hidden rounded-3xl"
             layout
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
@@ -79,7 +79,7 @@ export default function SwipeableHabit({ habit, streak, doneToday, onToggle, onD
         >
             {/* Background Trash Icon */}
             <motion.div
-                className="absolute inset-0 rounded-3xl flex items-center justify-end px-6 my-1"
+                className="absolute inset-0 rounded-3xl flex items-center justify-end px-6"
                 style={{ backgroundColor: backgroundRed }}
             >
                 <motion.div style={{ opacity: trashOpacity, scale: trashScale }}>

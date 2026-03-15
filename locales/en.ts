@@ -45,6 +45,14 @@ export const en = {
         logout: "Logout",
         namePlaceholder: "Your name...",
         theme: "Theme",
+        cloudSyncActive: "Cloud Sync Active",
+        cloudSync: "Cloud Sync",
+        lastSync: "Last Sync",
+        pending: "Pending",
+        protect: "Protect your progress.",
+        vaultStatus: "Vault Status",
+        forceSync: "Force Sync",
+        export: "Export",
         notifications: {
             title: "Notifications",
             morningReminder: "Daily Reveille",
@@ -113,6 +121,16 @@ export const en = {
         days: "Days",
         activity: "Activity",
         productivityByDay: "Productivity by Day",
-        bestStreak: "Best Streak"
+        bestStreak: "Best Streak",
+        currentWeek: "Current Week",
+        daysLabel: "days",
+        checkinsLabel: "check-ins",
+        perfectDay: "Perfect Day",
+        partial: "Partial",
+        noEntries: "No data",
+        thisMonth: "this month",
+        totalMonth: "Month Total",
+        lessActivity: "Less",
+        moreActivity: "More"
     }
 };

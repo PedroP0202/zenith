@@ -19,6 +19,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { TrendingUp, Award, Target, Calendar } from 'lucide-react';
 
 const DAY_LABELS_PT = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
+const DAY_LABELS_EN = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 export default function StatsPage() {
     const { t, language } = useTranslation();
@@ -33,6 +34,7 @@ export default function StatsPage() {
     const localeObj = language === 'pt' ? pt : enUS;
     const monthName = mounted ? format(now, 'MMMM', { locale: localeObj }) : '...';
     const year = now.getFullYear();
+    const DAY_LABELS = language === 'pt' ? DAY_LABELS_PT : DAY_LABELS_EN;
 
     const yearlyStats = getYearlyStats(logs, now);
     const activityMap = getDailyActivityMap(logs, 63, now);
@@ -101,9 +103,9 @@ export default function StatsPage() {
 
                         return (
                             <div className="flex items-baseline justify-between mb-4">
-                                <h2 className="text-[12px] font-bold text-white/40 tracking-wider uppercase">Semana atual</h2>
+                                <h2 className="text-[12px] font-bold text-white/40 tracking-wider uppercase">{t.stats.currentWeek}</h2>
                                 <span className="text-[12px] text-white/50">
-                                    <span className="text-white font-semibold">{weekCompletedDays}</span>/{pastDays} dias &nbsp;·&nbsp; <span className="text-white font-semibold">{weekTotal}</span> check-ins
+                                    <span className="text-white font-semibold">{weekCompletedDays}</span>/{pastDays} {t.stats.daysLabel} &nbsp;·&nbsp; <span className="text-white font-semibold">{weekTotal}</span> {t.stats.checkinsLabel}
                                 </span>
                             </div>
                         );
@@ -163,7 +165,7 @@ export default function StatsPage() {
 
                                         {/* Day label */}
                                         <span className={`text-[10px] font-bold ${isToday ? 'text-white' : 'text-white/25'}`}>
-                                            {DAY_LABELS_PT[day.getDay()]}
+                                            {DAY_LABELS[day.getDay()]}
                                         </span>
                                         {/* Date number */}
                                         <span className={`text-[9px] ${isToday ? 'text-white/60' : 'text-white/15'}`}>
@@ -178,15 +180,15 @@ export default function StatsPage() {
                         <div className="flex items-center gap-4 mt-4 pt-4 border-t border-white/5">
                             <div className="flex items-center gap-1.5">
                                 <div className="w-2 h-2 rounded-full bg-[#00C853]" />
-                                <span className="text-[10px] text-white/30">Dia perfeito</span>
+                                <span className="text-[10px] text-white/30">{t.stats.perfectDay}</span>
                             </div>
                             <div className="flex items-center gap-1.5">
                                 <div className="w-2 h-2 rounded-full bg-white/50" />
-                                <span className="text-[10px] text-white/30">Parcial</span>
+                                <span className="text-[10px] text-white/30">{t.stats.partial}</span>
                             </div>
                             <div className="flex items-center gap-1.5">
                                 <div className="w-2 h-2 rounded-full bg-white/10" />
-                                <span className="text-[10px] text-white/30">Sem dados</span>
+                                <span className="text-[10px] text-white/30">{t.stats.noEntries}</span>
                             </div>
                         </div>
                     </div>
@@ -308,7 +310,7 @@ export default function StatsPage() {
                                             <div className="flex-1 min-w-0">
                                                 <div className="text-sm font-medium text-white/90 truncate">{habit.title}</div>
                                                 <div className="text-[11px] text-white/40 mt-0.5">
-                                                    {completions}/{passedScheduledDays} este mês · {completionRate}%
+                                                    {completions}/{passedScheduledDays} {t.stats.thisMonth} · {completionRate}%
                                                 </div>
                                             </div>
 
@@ -353,7 +355,7 @@ export default function StatsPage() {
                                                             <div className="text-lg font-bold text-white">{bestStreak}</div>
                                                         </div>
                                                         <div className="flex-1 bg-white/5 rounded-xl p-3 text-center">
-                                                            <div className="text-[10px] uppercase tracking-widest text-white/30 mb-1">Total mês</div>
+                                                            <div className="text-[10px] uppercase tracking-widest text-white/30 mb-1">{t.stats.totalMonth}</div>
                                                             <div className="text-lg font-bold text-white">{completions}</div>
                                                         </div>
                                                     </div>

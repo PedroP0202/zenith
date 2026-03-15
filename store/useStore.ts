@@ -310,7 +310,6 @@ export const useStore = create<AppState>()(
 
                 syncWidgetData(get().habits, get().logs).catch(console.error);
                 get().syncWithCloud().catch(console.error);
-                console.log("[STORE] Toggled log. Total logs:", get().logs.length);
             },
 
             setMorningReminder: (isActive: boolean) => {

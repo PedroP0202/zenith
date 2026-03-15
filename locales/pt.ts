@@ -45,6 +45,14 @@ export const pt = {
         logout: "Sair",
         namePlaceholder: "O teu nome...",
         theme: "Tema",
+        cloudSyncActive: "Cloud Sync Ativo",
+        cloudSync: "Cloud Sync",
+        lastSync: "Última Sync",
+        pending: "Pendente",
+        protect: "Protege o teu progresso.",
+        vaultStatus: "Estado do Vault",
+        forceSync: "Forçar Sincronização",
+        export: "Exportar",
         notifications: {
             title: "Notificações",
             morningReminder: "Alvorada Diária",
@@ -113,6 +121,16 @@ export const pt = {
         days: "Dias",
         activity: "Atividade",
         productivityByDay: "Produtividade por Dia",
-        bestStreak: "Melhor Streak"
+        bestStreak: "Melhor Streak",
+        currentWeek: "Semana atual",
+        daysLabel: "dias",
+        checkinsLabel: "check-ins",
+        perfectDay: "Dia perfeito",
+        partial: "Parcial",
+        noEntries: "Sem dados",
+        thisMonth: "este mês",
+        totalMonth: "Total mês",
+        lessActivity: "Menos",
+        moreActivity: "Mais"
     }
 };

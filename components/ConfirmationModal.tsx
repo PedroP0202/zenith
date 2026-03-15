@@ -22,8 +22,8 @@ export default function ConfirmationModal({
     onConfirm,
     title,
     description,
-    confirmLabel = "Confirmar",
-    cancelLabel = "Cancelar",
+    confirmLabel = "",
+    cancelLabel = "",
     isDanger = true,
     children,
 }: ConfirmationModalProps) {
@@ -70,7 +70,6 @@ export default function ConfirmationModal({
                                             deviceHaptics.mediumImpact();
                                         }
                                         onConfirm();
-                                        onClose();
                                     }}
                                     className={`w-full h-14 ${isDanger ? 'bg-red-500 text-white' : 'bg-white text-black'} font-bold rounded-2xl transition-transform active:scale-95 shadow-lg`}
                                 >

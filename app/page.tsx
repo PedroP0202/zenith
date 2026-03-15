@@ -22,7 +22,7 @@ export default function Home() {
         setMounted(true);
     }, []);
 
-    const now = mounted ? new Date() : new Date(); // Fixed from hardcoded 2025-01-01
+    const now = new Date();
     const todayDayOfWeek = now.getDay();
 
     const allActiveHabits = habits.filter(h => h.isActive);

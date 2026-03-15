@@ -93,7 +93,6 @@ export default function SettingsPage() {
         }
 
         if (!deletePassword) return;
-        setIsDeleting(false); // Reset just in case
         setShowDeleteConfirm(false); // Close modal
         setIsDeleting(true);
         try {
@@ -201,11 +200,11 @@ export default function SettingsPage() {
                                     <Cloud className={`w-5 h-5 ${syncStatus === 'syncing' ? 'animate-pulse' : ''}`} />
                                 </div>
                                 <div>
-                                    <h3 className="text-base font-medium">{jwt ? 'Cloud Sync Active' : 'Cloud Sync'}</h3>
+                                    <h3 className="text-base font-medium">{jwt ? t.settings.cloudSyncActive : t.settings.cloudSync}</h3>
                                     <p className="text-xs text-white/50 mt-1 leading-relaxed max-w-[200px]">
                                         {jwt
-                                            ? (syncStatus === 'syncing' ? t.common.loading : `Last Sync: ${lastSyncedAt > 0 ? new Date(lastSyncedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Pending'}`)
-                                            : `Protect your progress.`}
+                                            ? (syncStatus === 'syncing' ? t.common.loading : `${t.settings.lastSync}: ${lastSyncedAt > 0 ? new Date(lastSyncedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : t.settings.pending}`)
+                                            : t.settings.protect}
                                     </p>
                                 </div>
                             </div>
@@ -231,13 +230,13 @@ export default function SettingsPage() {
 
                         {jwt && (
                             <div className="pt-2 border-t border-white/[0.03] flex items-center justify-between">
-                                <span className="text-[10px] text-white/20 uppercase tracking-widest font-bold">Vault Status</span>
+                                <span className="text-[10px] text-white/20 uppercase tracking-widest font-bold">{t.settings.vaultStatus}</span>
                                 <button
                                     onClick={() => syncWithCloud()}
                                     disabled={syncStatus === 'syncing'}
                                     className="flex items-center gap-2 text-xs font-medium text-[var(--zenith-active)] hover:opacity-80 transition-opacity disabled:opacity-30"
                                 >
-                                    {syncStatus === 'syncing' ? t.common.loading : 'Force Sync'}
+                                    {syncStatus === 'syncing' ? t.common.loading : t.settings.forceSync}
                                     {syncStatus === 'error' && <span className="text-red-400 ml-1">(! Error)</span>}
                                 </button>
                             </div>
@@ -317,7 +316,7 @@ export default function SettingsPage() {
                                 <p className="text-xs text-white/50 mt-1 max-w-[200px] leading-relaxed">{t.settings.dangerZone.exportDesc}</p>
                             </div>
                             <button onClick={handleExportData} className="text-[11px] font-bold text-white bg-white/10 px-4 py-2 rounded-xl transition-colors hover:bg-white/20 active:scale-95 uppercase tracking-wider">
-                                Exportar
+                                {t.settings.export}
                             </button>
                         </div>
 

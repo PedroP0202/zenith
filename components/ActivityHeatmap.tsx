@@ -115,7 +115,7 @@ export default function ActivityHeatmap({ data }: ActivityHeatmapProps) {
 
             {/* Legend */}
             <div className="flex items-center gap-4 mt-4 pt-4 border-t border-white/5">
-                <span className="text-[10px] text-white/25 font-medium">Menos</span>
+                <span className="text-[10px] text-white/25 font-medium">{t.stats.lessActivity}</span>
                 <div className="flex gap-1">
                     {[0, 0.25, 0.5, 0.75, 1].map((t) => (
                         <div
@@ -135,7 +135,7 @@ export default function ActivityHeatmap({ data }: ActivityHeatmapProps) {
                         />
                     ))}
                 </div>
-                <span className="text-[10px] text-white/25 font-medium">Mais</span>
+                <span className="text-[10px] text-white/25 font-medium">{t.stats.moreActivity}</span>
             </div>
         </div>
     );

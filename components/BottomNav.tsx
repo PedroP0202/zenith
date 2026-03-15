@@ -14,26 +14,24 @@ const tabs = [
 export default function BottomNav() {
     const pathname = usePathname();
     const { logs } = useStore();
-    const [lastLogCount, setLastLogCount] = useState(logs.length);
+    const prevLogCountRef = useRef(logs.length);
     const [showHighlight, setShowHighlight] = useState(false);
     const statsControls = useAnimation();
 
     useEffect(() => {
-        if (lastLogCount === undefined) {
-            setLastLogCount(logs.length);
-            return;
-        }
-        if (logs.length > lastLogCount) {
+        const currentCount = logs.length;
+        if (currentCount > prevLogCountRef.current) {
             setShowHighlight(true);
             statsControls.start({
                 scale: [1, 1.3, 1],
                 transition: { duration: 0.5, times: [0, 0.4, 1], ease: 'backOut' }
             });
             const timer = setTimeout(() => setShowHighlight(false), 2000);
+            prevLogCountRef.current = currentCount;
             return () => clearTimeout(timer);
         }
-        setLastLogCount(logs.length);
-    }, [logs.length, lastLogCount, statsControls]);
+        prevLogCountRef.current = currentCount;
+    }, [logs.length, statsControls]);
 
     if (pathname.includes('/habit/')) return null;
 

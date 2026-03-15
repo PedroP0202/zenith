@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, useAnimation, useMotionValue, useTransform, PanInfo } from 'framer-motion';
 import { Check, Trash2 } from 'lucide-react';
 import Link from 'next/link';
@@ -147,15 +148,18 @@ export default function SwipeableHabit({ habit, streak, doneToday, onToggle, onD
                 </div>
             </motion.div>
 
-            <ConfirmationModal
-                isOpen={showDeleteModal}
-                onClose={() => setShowDeleteModal(false)}
-                onConfirm={handleConfirmDelete}
-                title={t.habit.deleteWarning}
-                description={t.habit.deleteDesc}
-                confirmLabel={t.common.delete}
-                cancelLabel={t.common.cancel}
-            />
+            {typeof document !== 'undefined' && createPortal(
+                <ConfirmationModal
+                    isOpen={showDeleteModal}
+                    onClose={() => setShowDeleteModal(false)}
+                    onConfirm={handleConfirmDelete}
+                    title={t.habit.deleteWarning}
+                    description={t.habit.deleteDesc}
+                    confirmLabel={t.common.delete}
+                    cancelLabel={t.common.cancel}
+                />,
+                document.body
+            )}
         </motion.div>
     );
 }

@@ -83,15 +83,35 @@ body {
   -webkit-touch-callout: none;
   background-color: #000000;
   color: #ffffff;
+  /* Native momentum scrolling on iOS */
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: none;
+}
+
+/* Reusable momentum scroll container */
+.scroll-smooth-ios {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: none;
 }
 
 /* ===== TOUCH RESPONSIVENESS ===== */
 
-/* Eliminate iOS 300ms tap delay */
-*,
-*::before,
-*::after {
+/* Only interactive elements get touch-action: manipulation (removes 300ms delay) */
+/* DO NOT apply to *, it breaks vertical scrolling (manipulation blocks pan-y) */
+button,
+input,
+select,
+textarea,
+label,
+[role="button"],
+[role="switch"],
+[role="tab"],
+[role="link"] {
+  -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
+}
+
+a {
   -webkit-tap-highlight-color: transparent;
 }
 

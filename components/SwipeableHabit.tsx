@@ -73,6 +73,7 @@ export default function SwipeableHabit({ habit, streak, doneToday, onToggle, onD
     return (
         <motion.div
             className="relative group mb-4 will-animate overflow-hidden rounded-3xl"
+            style={{ touchAction: 'pan-y' }}
             layout
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
@@ -93,8 +94,9 @@ export default function SwipeableHabit({ habit, streak, doneToday, onToggle, onD
             <motion.div
                 drag="x"
                 dragConstraints={{ left: 0, right: 0 }}
-                dragElastic={{ left: 0.7, right: 0.05 }}
-                style={{ x }}
+                dragElastic={{ left: 0.5, right: 0.02 }}
+                dragMomentum={false}
+                style={{ x, touchAction: 'none' }}
                 onDragEnd={handleDragEnd}
                 animate={controls}
                 whileTap={{ scale: 0.975 }}

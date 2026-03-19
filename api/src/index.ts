@@ -752,6 +752,41 @@ app.get('/admin/feedbacks', async (c) => {
     }
 });
 
+app.get('/admin/stats', async (c) => {
+    const authHeader = c.req.header('Authorization');
+    if (!authHeader || authHeader !== `Bearer ${ADMIN_SECRET}`) {
+        return c.json({ error: 'Acesso Restrito Admnistrativo.' }, 401);
+    }
+
+    const db = c.env.DB;
+    try {
+        // Aggregate Metrics
+        const totalUsers = await db.prepare('SELECT COUNT(*) as count FROM users').first() as any;
+        const totalHabits = await db.prepare('SELECT COUNT(*) as count FROM habits').first() as any;
+        const totalLogs = await db.prepare('SELECT COUNT(*) as count FROM logs').first() as any;
+        
+        const last24h = Date.now() - (24 * 60 * 60 * 1000);
+        const activeUsers24h = await db.prepare('SELECT COUNT(DISTINCT user_id) as count FROM habits WHERE updated_at > ?').bind(last24h).first() as any;
+        const logs24h = await db.prepare('SELECT COUNT(*) as count FROM logs WHERE completed_at > ?').bind(last24h).first() as any;
+
+        // Get Recent Activity (Anonymized)
+        const recentUsers = await db.prepare('SELECT name, created_at FROM users ORDER BY created_at DESC LIMIT 5').all();
+
+        return c.json({
+            stats: {
+                totalUsers: totalUsers.count,
+                totalHabits: totalHabits.count,
+                totalLogs: totalLogs.count,
+                activeUsers24h: activeUsers24h.count,
+                logs24h: logs24h.count,
+            },
+            recentEvents: recentUsers.results
+        });
+    } catch (err: any) {
+        return c.json({ error: 'Erro ao carregar estatísticas: ' + err.message }, 500);
+    }
+});
+
 app.post('/admin/feedbacks/:id/status', async (c) => {
     const authHeader = c.req.header('Authorization');
     if (!authHeader || authHeader !== `Bearer ${ADMIN_SECRET}`) {

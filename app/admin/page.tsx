@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { ChevronLeft, Cloud, Loader2, ShieldAlert, CheckCircle2, MessageSquare, Clock } from "lucide-react";
+import { ChevronLeft, Cloud, Loader2, ShieldAlert, CheckCircle2, MessageSquare, Clock, Users, Activity, Zap } from "lucide-react";
 import { API_URL } from "@/utils/constants";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -17,12 +17,27 @@ type Feedback = {
     created_at: number;
 };
 
+type Stats = {
+    totalUsers: number;
+    totalHabits: number;
+    totalLogs: number;
+    activeUsers24h: number;
+    logs24h: number;
+};
+
+type RecentEvent = {
+    name: string;
+    created_at: number;
+};
+
 export default function AdminPage() {
     const router = useRouter();
     const [secret, setSecret] = useState("");
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [loading, setLoading] = useState(false);
     const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
+    const [stats, setStats] = useState<Stats | null>(null);
+    const [recentEvents, setRecentEvents] = useState<RecentEvent[]>([]);
     const [error, setError] = useState("");
 
     const handleLogin = async (e: React.FormEvent) => {
@@ -31,14 +46,20 @@ export default function AdminPage() {
         setError("");
 
         try {
-            const res = await fetch(`${API_URL}/admin/feedbacks`, {
-                headers: { 'Authorization': `Bearer ${secret}` }
-            });
-            const data = await res.json();
+            const [feedRes, statsRes] = await Promise.all([
+                fetch(`${API_URL}/admin/feedbacks`, { headers: { 'Authorization': `Bearer ${secret}` } }),
+                fetch(`${API_URL}/admin/stats`, { headers: { 'Authorization': `Bearer ${secret}` } })
+            ]);
 
-            if (!res.ok) throw new Error(data.error || 'Acesso negado.');
+            const feedData = await feedRes.json();
+            const statsData = await statsRes.json();
 
-            setFeedbacks(data.feedbacks || []);
+            if (!feedRes.ok) throw new Error(feedData.error || 'Acesso negado.');
+            if (!statsRes.ok) throw new Error(statsData.error || 'Erro nas estatísticas.');
+
+            setFeedbacks(feedData.feedbacks || []);
+            setStats(statsData.stats || null);
+            setRecentEvents(statsData.recentEvents || []);
             setIsAuthenticated(true);
         } catch (err: any) {
             setError(err.message);
@@ -119,6 +140,54 @@ export default function AdminPage() {
                 </div>
             </header>
 
+            {/* Stats Overview */}
+            {stats && (
+                <section className="mb-12 grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-white/5 border border-white/5 p-6 rounded-[32px]">
+                        <div className="flex items-center gap-3 text-white/40 mb-3">
+                            <Users className="w-4 h-4" />
+                            <span className="text-[10px] uppercase tracking-widest font-black">Utilizadores</span>
+                        </div>
+                        <div className="text-3xl font-black">{stats.totalUsers}</div>
+                        <div className="text-[10px] text-green-400 font-bold mt-1">+{stats.activeUsers24h} ativos 24h</div>
+                    </motion.div>
+
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="bg-white/5 border border-white/5 p-6 rounded-[32px]">
+                        <div className="flex items-center gap-3 text-white/40 mb-3">
+                            <Zap className="w-4 h-4" />
+                            <span className="text-[10px] uppercase tracking-widest font-black">Hábitos</span>
+                        </div>
+                        <div className="text-3xl font-black">{stats.totalHabits}</div>
+                        <div className="text-[10px] text-white/30 font-bold mt-1">Total no ecossistema</div>
+                    </motion.div>
+
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-white/5 border border-white/5 p-6 rounded-[32px]">
+                        <div className="flex items-center gap-3 text-white/40 mb-3">
+                            <CheckCircle2 className="w-4 h-4" />
+                            <span className="text-[10px] uppercase tracking-widest font-black">Conclusões</span>
+                        </div>
+                        <div className="text-3xl font-black">{stats.totalLogs}</div>
+                        <div className="text-[10px] text-[var(--zenith-active)] font-bold mt-1">+{stats.logs24h} hoje</div>
+                    </motion.div>
+
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="bg-[var(--zenith-active)]/10 border border-[var(--zenith-active)]/20 p-6 rounded-[32px]">
+                        <div className="flex items-center gap-3 text-[var(--zenith-active)] mb-3">
+                            <Activity className="w-4 h-4" />
+                            <span className="text-[10px] uppercase tracking-widest font-black">Taxa Global</span>
+                        </div>
+                        <div className="text-3xl font-black text-[var(--zenith-active)] text-shadow-sm">
+                            {stats.totalUsers > 0 ? Math.round((stats.activeUsers24h / stats.totalUsers) * 100) : 0}%
+                        </div>
+                        <div className="text-[10px] text-[var(--zenith-active)] opacity-60 font-bold mt-1">Engagement Diário</div>
+                    </motion.div>
+                </section>
+            )}
+
+            <div className="flex items-center gap-3 mb-6">
+                <MessageSquare className="w-5 h-5 text-white/40" />
+                <h2 className="text-sm uppercase tracking-widest text-white/40 font-black">Feedback Recente</h2>
+            </div>
+
             {feedbacks.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 opacity-50">
                     <MessageSquare className="w-12 h-12 mb-4 opacity-50" />
@@ -168,6 +237,34 @@ export default function AdminPage() {
                         </motion.div>
                     ))}
                 </div>
+            )}
+
+            {/* Recent Activity Section */}
+            {recentEvents.length > 0 && (
+                <section className="mt-16">
+                    <div className="flex items-center gap-3 mb-6">
+                        <Activity className="w-5 h-5 text-white/40" />
+                        <h2 className="text-sm uppercase tracking-widest text-white/40 font-black">Atividade Recente</h2>
+                    </div>
+                    <div className="bg-white/5 border border-white/5 rounded-[32px] overflow-hidden">
+                        {recentEvents.map((event, i) => (
+                            <div key={i} className={`p-5 flex items-center justify-between ${i !== recentEvents.length - 1 ? 'border-b border-white/5' : ''}`}>
+                                <div className="flex items-center gap-4">
+                                    <div className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center border border-white/10">
+                                        <Users className="w-4 h-4 text-white/40" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-bold">{event.name}</p>
+                                        <p className="text-[10px] text-white/30 uppercase tracking-widest font-bold">Novo Utilizador</p>
+                                    </div>
+                                </div>
+                                <div className="text-[10px] text-white/40 font-mono">
+                                    {format(event.created_at, "HH:mm, dd MMM", { locale: pt })}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </section>
             )}
         </main>
     );

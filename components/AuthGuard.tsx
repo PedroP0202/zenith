@@ -30,7 +30,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         if (!mounted || isInitializingAuth) return;
 
-        const isAuthRoute = pathname === '/login' || pathname === '/register';
+        const isAuthRoute = pathname === '/login' || pathname === '/register' || pathname === '/forgot-password';
 
         if (!jwt && !isAuthRoute) {
             router.replace('/login');
@@ -41,7 +41,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
     if (!mounted || isInitializingAuth) return <div className="min-h-[100dvh] bg-black text-white" />;
 
-    const isAuthRoute = pathname === '/login' || pathname === '/register';
+    const isAuthRoute = pathname === '/login' || pathname === '/register' || pathname === '/forgot-password';
     if (!jwt && !isAuthRoute) return <div className="min-h-[100dvh] bg-black text-white" />;
 
     return <>{children}</>;

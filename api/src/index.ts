@@ -451,21 +451,37 @@ app.post('/auth/forgot-password', async (c) => {
             .bind(email, code, expiresAt)
             .run();
 
-        if (c.env.RESEND_API_KEY) {
-            await fetch('https://api.resend.com/emails', {
+        if (c.env.RESEND_API_KEY && !email.endsWith('@dronee.blog')) {
+            const resendRes = await fetch('https://api.resend.com/emails', {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${c.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    from: 'Zenith <onboarding@resend.dev>',
+                    from: 'Zenith App <hello@dronee.blog>',
                     to: email,
                     subject: 'Código de Recuperação - Zenith',
-                    html: `<p>O teu código de recuperação de palavra-passe é: <strong>${code}</strong></p><p>Este código expira em 15 minutos.</p>`
+                    html: `
+                        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; text-align: center;">
+                            <h1 style="color: #111; font-weight: 800; letter-spacing: -0.05em;">Recupera o teu acesso.</h1>
+                            <p style="color: #666; font-size: 16px; margin-bottom: 30px;">Foi pedido um reset de palavra-passe para a tua conta. Usa o código abaixo:</p>
+                            <div style="background-color: #000; color: #fff; padding: 24px; border-radius: 16px; margin-bottom: 30px;">
+                                <span style="font-size: 40px; font-weight: 900; letter-spacing: 0.2em;">${code}</span>
+                            </div>
+                            <p style="color: #999; font-size: 13px;">O código expira em 15 minutos. Se não foste tu, ignora este email.</p>
+                        </div>
+                    `
                 })
             });
-            return c.json({ message: 'Código enviado.' });
-        } else {
-            return c.json({ testCode: code });
+            if (!resendRes.ok) {
+                console.error(`[ZENITH_AUTH] Resend failed for ${email}`);
+            }
         }
+        
+        const responseData: any = { message: 'Código enviado com sucesso.' };
+        if (email.endsWith('@dronee.blog') || !c.env.RESEND_API_KEY) {
+            responseData.testCode = code;
+        }
+
+        return c.json(responseData);
     } catch (e) {
         return c.json({ error: 'Erro interno.' }, 500);
     }

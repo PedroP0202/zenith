@@ -123,14 +123,14 @@ export default function AdminPage() {
     }
 
     return (
-        <main className="min-h-[100dvh] bg-black text-white p-6 pb-28 pt-12 font-sans flex flex-col max-w-4xl mx-auto">
+        <main className="min-h-[100dvh] bg-black text-white p-6 pb-28 pt-12 font-sans flex flex-col max-w-7xl mx-auto w-full">
             <header className="flex items-center justify-between mb-12">
                 <div className="flex items-center gap-4">
                     <button onClick={() => router.push('/')} className="p-3 -ml-3 bg-white/5 rounded-full text-white/60 hover:text-white transition-colors">
                         <ChevronLeft className="w-5 h-5" />
                     </button>
                     <div>
-                        <h1 className="text-2xl font-black tracking-tight">Feedbacks</h1>
+                        <h1 className="text-2xl font-black tracking-tight">Comando Central</h1>
                         <p className="text-white/50 text-xs">Visão Global do Zenith</p>
                     </div>
                 </div>
@@ -142,40 +142,40 @@ export default function AdminPage() {
 
             {/* Stats Overview */}
             {stats && (
-                <section className="mb-12 grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-white/5 border border-white/5 p-6 rounded-[32px]">
+                <section className="mb-12 grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-white/5 border border-white/5 p-6 lg:p-8 rounded-[32px] hover:bg-white/[0.07] transition-colors">
                         <div className="flex items-center gap-3 text-white/40 mb-3">
                             <Users className="w-4 h-4" />
                             <span className="text-[10px] uppercase tracking-widest font-black">Utilizadores</span>
                         </div>
-                        <div className="text-3xl font-black">{stats.totalUsers}</div>
+                        <div className="text-3xl lg:text-4xl font-black">{stats.totalUsers}</div>
                         <div className="text-[10px] text-green-400 font-bold mt-1">+{stats.activeUsers24h} ativos 24h</div>
                     </motion.div>
 
-                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="bg-white/5 border border-white/5 p-6 rounded-[32px]">
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="bg-white/5 border border-white/5 p-6 lg:p-8 rounded-[32px] hover:bg-white/[0.07] transition-colors">
                         <div className="flex items-center gap-3 text-white/40 mb-3">
                             <Zap className="w-4 h-4" />
                             <span className="text-[10px] uppercase tracking-widest font-black">Hábitos</span>
                         </div>
-                        <div className="text-3xl font-black">{stats.totalHabits}</div>
+                        <div className="text-3xl lg:text-4xl font-black">{stats.totalHabits}</div>
                         <div className="text-[10px] text-white/30 font-bold mt-1">Total no ecossistema</div>
                     </motion.div>
 
-                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-white/5 border border-white/5 p-6 rounded-[32px]">
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-white/5 border border-white/5 p-6 lg:p-8 rounded-[32px] hover:bg-white/[0.07] transition-colors">
                         <div className="flex items-center gap-3 text-white/40 mb-3">
                             <CheckCircle2 className="w-4 h-4" />
                             <span className="text-[10px] uppercase tracking-widest font-black">Conclusões</span>
                         </div>
-                        <div className="text-3xl font-black">{stats.totalLogs}</div>
+                        <div className="text-3xl lg:text-4xl font-black">{stats.totalLogs}</div>
                         <div className="text-[10px] text-[var(--zenith-active)] font-bold mt-1">+{stats.logs24h} hoje</div>
                     </motion.div>
 
-                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="bg-[var(--zenith-active)]/10 border border-[var(--zenith-active)]/20 p-6 rounded-[32px]">
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="bg-[var(--zenith-active)]/10 border border-[var(--zenith-active)]/20 p-6 lg:p-8 rounded-[32px]">
                         <div className="flex items-center gap-3 text-[var(--zenith-active)] mb-3">
                             <Activity className="w-4 h-4" />
                             <span className="text-[10px] uppercase tracking-widest font-black">Taxa Global</span>
                         </div>
-                        <div className="text-3xl font-black text-[var(--zenith-active)] text-shadow-sm">
+                        <div className="text-3xl lg:text-4xl font-black text-[var(--zenith-active)] text-shadow-sm">
                             {stats.totalUsers > 0 ? Math.round((stats.activeUsers24h / stats.totalUsers) * 100) : 0}%
                         </div>
                         <div className="text-[10px] text-[var(--zenith-active)] opacity-60 font-bold mt-1">Engagement Diário</div>
@@ -183,89 +183,95 @@ export default function AdminPage() {
                 </section>
             )}
 
-            <div className="flex items-center gap-3 mb-6">
-                <MessageSquare className="w-5 h-5 text-white/40" />
-                <h2 className="text-sm uppercase tracking-widest text-white/40 font-black">Feedback Recente</h2>
-            </div>
+            <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
+                {/* Main Content: Feedbacks */}
+                <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-6">
+                        <MessageSquare className="w-5 h-5 text-white/40" />
+                        <h2 className="text-sm uppercase tracking-widest text-white/40 font-black">Feedback Recente</h2>
+                    </div>
 
-            {feedbacks.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 opacity-50">
-                    <MessageSquare className="w-12 h-12 mb-4 opacity-50" />
-                    <p>Nenhum feedback recebido ainda.</p>
-                </div>
-            ) : (
-                <div className="grid gap-4 md:grid-cols-2">
-                    {feedbacks.map((item) => (
-                        <motion.div
-                            key={item.id}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className={`p-6 rounded-[24px] border transition-colors ${item.status === 'unread' ? 'bg-white/10 border-white/20' :
-                                item.status === 'resolved' ? 'bg-green-500/5 border-green-500/20 opacity-60' :
-                                    'bg-white/5 border-white/5'
-                                }`}
-                        >
-                            <div className="flex justify-between items-start mb-4">
-                                <div>
-                                    <h3 className="font-bold text-lg">{item.user_name}</h3>
-                                    <div className="flex items-center gap-2 mt-1">
-                                        <span className="text-[10px] font-mono bg-white/10 px-2 py-0.5 rounded text-white/50 truncate max-w-[150px]">
-                                            {item.platform}
-                                        </span>
-                                        <div className="flex items-center text-[10px] text-white/40">
-                                            <Clock className="w-3 h-3 mr-1" />
-                                            {format(item.created_at, "dd MMM, HH:mm", { locale: pt })}
+                    {feedbacks.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-20 opacity-50 bg-white/5 border border-white/5 rounded-[32px]">
+                            <MessageSquare className="w-12 h-12 mb-4 opacity-50" />
+                            <p>Nenhum feedback recebido ainda.</p>
+                        </div>
+                    ) : (
+                        <div className="grid gap-4 xl:grid-cols-2">
+                            {feedbacks.map((item) => (
+                                <motion.div
+                                    key={item.id}
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className={`p-6 rounded-[24px] border transition-all hover:scale-[1.02] ${item.status === 'unread' ? 'bg-white/10 border-white/20' :
+                                        item.status === 'resolved' ? 'bg-green-500/5 border-green-500/20 opacity-60' :
+                                            'bg-white/5 border-white/5'
+                                        }`}
+                                >
+                                    <div className="flex justify-between items-start mb-4">
+                                        <div>
+                                            <h3 className="font-bold text-lg">{item.user_name}</h3>
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <span className="text-[10px] font-mono bg-white/10 px-2 py-0.5 rounded text-white/50 truncate max-w-[150px]">
+                                                    {item.platform}
+                                                </span>
+                                                <div className="flex items-center text-[10px] text-white/40 text-[10px]">
+                                                    <Clock className="w-3 h-3 mr-1" />
+                                                    {format(item.created_at, "dd MMM, HH:mm", { locale: pt })}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            {item.status !== 'resolved' && (
+                                                <button
+                                                    onClick={() => updateStatus(item.id, 'resolved')}
+                                                    className="p-2 bg-green-500/10 text-green-500 rounded-full hover:bg-green-500/20 transition-colors"
+                                                    title="Marcar como Resolvido"
+                                                >
+                                                    <CheckCircle2 className="w-4 h-4" />
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
-                                </div>
-                                <div className="flex gap-2">
-                                    {item.status !== 'resolved' && (
-                                        <button
-                                            onClick={() => updateStatus(item.id, 'resolved')}
-                                            className="p-2 bg-green-500/10 text-green-500 rounded-full hover:bg-green-500/20 transition-colors"
-                                            title="Marcar como Resolvido"
-                                        >
-                                            <CheckCircle2 className="w-4 h-4" />
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
 
-                            <p className="text-sm text-white/80 leading-relaxed bg-black/50 p-4 rounded-xl border border-white/5">
-                                &quot;{item.content}&quot;
-                            </p>
-                        </motion.div>
-                    ))}
+                                    <p className="text-sm text-white/80 leading-relaxed bg-black/50 p-4 rounded-xl border border-white/5">
+                                        &quot;{item.content}&quot;
+                                    </p>
+                                </motion.div>
+                            ))}
+                        </div>
+                    )}
                 </div>
-            )}
 
-            {/* Recent Activity Section */}
-            {recentEvents.length > 0 && (
-                <section className="mt-16">
-                    <div className="flex items-center gap-3 mb-6">
-                        <Activity className="w-5 h-5 text-white/40" />
-                        <h2 className="text-sm uppercase tracking-widest text-white/40 font-black">Atividade Recente</h2>
-                    </div>
-                    <div className="bg-white/5 border border-white/5 rounded-[32px] overflow-hidden">
-                        {recentEvents.map((event, i) => (
-                            <div key={i} className={`p-5 flex items-center justify-between ${i !== recentEvents.length - 1 ? 'border-b border-white/5' : ''}`}>
-                                <div className="flex items-center gap-4">
-                                    <div className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center border border-white/10">
-                                        <Users className="w-4 h-4 text-white/40" />
+                {/* Sidebar: Recent Activity */}
+                {recentEvents.length > 0 && (
+                    <aside className="lg:w-80 xl:w-96 shrink-0">
+                        <div className="flex items-center gap-3 mb-6">
+                            <Activity className="w-5 h-5 text-white/40" />
+                            <h2 className="text-sm uppercase tracking-widest text-white/40 font-black">Atividade Recente</h2>
+                        </div>
+                        <div className="bg-white/5 border border-white/5 rounded-[40px] overflow-hidden">
+                            {recentEvents.map((event, i) => (
+                                <div key={i} className={`p-6 flex items-center justify-between group hover:bg-white/[0.02] transition-colors ${i !== recentEvents.length - 1 ? 'border-b border-white/5' : ''}`}>
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-10 h-10 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 group-hover:border-[var(--zenith-active)]/30 transition-colors">
+                                            <Users className="w-4 h-4 text-white/40" />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-bold truncate max-w-[120px]">{event.name}</p>
+                                            <p className="text-[10px] text-white/30 uppercase tracking-widest font-black">Adesão</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <p className="text-sm font-bold">{event.name}</p>
-                                        <p className="text-[10px] text-white/30 uppercase tracking-widest font-bold">Novo Utilizador</p>
+                                    <div className="text-[10px] text-white/40 font-mono text-right">
+                                        {format(event.created_at, "HH:mm", { locale: pt })}<br />
+                                        <span className="opacity-50">{format(event.created_at, "dd MMM", { locale: pt })}</span>
                                     </div>
                                 </div>
-                                <div className="text-[10px] text-white/40 font-mono">
-                                    {format(event.created_at, "HH:mm, dd MMM", { locale: pt })}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </section>
-            )}
+                            ))}
+                        </div>
+                    </aside>
+                )}
+            </div>
         </main>
     );
 }

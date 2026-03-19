@@ -100,7 +100,7 @@ export default function SwipeableHabit({ habit, streak, doneToday, onToggle, onD
                 onDragEnd={handleDragEnd}
                 animate={controls}
                 whileTap={{ scale: 0.975 }}
-                className={`relative z-10 py-4 px-5 rounded-3xl transition-all duration-300 flex items-center justify-between border ${doneToday ? 'bg-[#141414] border-white/[0.04]' : 'bg-[#0e0e0e] border-transparent hover:border-white/[0.06]'}`}
+                className={`relative z-10 py-4 px-5 rounded-3xl transition-all duration-300 flex items-center justify-between backdrop-blur-xl border ${doneToday ? 'bg-transparent border-white/[0.04] shadow-none' : 'bg-white/[0.03] border-white/[0.08] shadow-glass hover:bg-white/[0.05]'}`}
             >
                 <Link href={`/habit/detail?id=${habit.id}`} className="flex-1 min-w-0 pr-4 block card-press">
                     <div className="flex flex-col">
@@ -139,7 +139,7 @@ export default function SwipeableHabit({ habit, streak, doneToday, onToggle, onD
                                 deviceHaptics.lightImpact();
                             }
                         }}
-                        className={`relative z-10 h-12 w-12 rounded-[16px] flex items-center justify-center transition-all duration-300 ${doneToday ? `bg-white text-black ${glowShadow}` : 'bg-transparent border border-white/10 text-transparent hover:border-white/30'}`}
+                        className={`relative z-10 h-12 w-12 rounded-[16px] flex items-center justify-center transition-all duration-300 ${doneToday ? `bg-white text-black ${glowShadow}` : 'bg-white/[0.03] border border-white/10 text-transparent hover:border-white/30 hover:bg-white/[0.06]'}`}
                         aria-label="Marcar como feito"
                     >
                         <motion.div

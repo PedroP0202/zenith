@@ -111,7 +111,7 @@ export default function StatsPage() {
                         );
                     })()}
 
-                    <div className="bg-[#111111] rounded-2xl px-4 pt-5 pb-4">
+                    <div className="bg-zenith-surface backdrop-blur-md border border-white/[0.05] shadow-sm rounded-2xl px-4 pt-5 pb-4">
                         <div className="flex justify-between items-end gap-1.5">
                             {weekDays.map((day, i) => {
                                 const isPast = day <= todayStart;
@@ -179,7 +179,7 @@ export default function StatsPage() {
                         {/* Legend */}
                         <div className="flex items-center gap-4 mt-4 pt-4 border-t border-white/5">
                             <div className="flex items-center gap-1.5">
-                                <div className="w-2 h-2 rounded-full bg-[#00C853]" />
+                                <div className="w-2 h-2 rounded-full bg-zenith-active" />
                                 <span className="text-[10px] text-white/30">{t.stats.perfectDay}</span>
                             </div>
                             <div className="flex items-center gap-1.5">
@@ -228,7 +228,7 @@ export default function StatsPage() {
                             initial={{ opacity: 0, scale: 0.94 }}
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ duration: 0.35, delay: 0.12 + i * 0.06, type: 'spring' }}
-                            className="bg-[#111111] rounded-2xl p-4 flex flex-col gap-3"
+                            className="bg-zenith-surface backdrop-blur-md border border-white/[0.05] shadow-sm rounded-2xl p-4 flex flex-col gap-3"
                         >
                             <stat.icon size={16} className="text-white/30" strokeWidth={1.5} />
                             <div>
@@ -279,7 +279,7 @@ export default function StatsPage() {
                                         initial={{ opacity: 0, y: 14 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         transition={{ duration: 0.4, delay: 0.08 + index * 0.06, type: 'spring', bounce: 0.15 }}
-                                        className="bg-[#111111] rounded-2xl overflow-hidden"
+                                        className="bg-zenith-surface backdrop-blur-md border border-white/[0.05] shadow-sm rounded-2xl overflow-hidden"
                                     >
                                         {/* Habit row — tap to expand */}
                                         <button
@@ -348,15 +348,15 @@ export default function StatsPage() {
                                                     className="overflow-hidden"
                                                 >
                                                     <div className="flex gap-3 px-5 mb-4">
-                                                        <div className="flex-1 bg-white/5 rounded-xl p-3 text-center">
+                                                        <div className="flex-1 bg-white/[0.03] border border-white/[0.03] rounded-xl p-3 text-center">
                                                             <div className="text-[10px] uppercase tracking-widest text-white/30 mb-1">{t.habit.currentStreak}</div>
                                                             <div className="text-lg font-bold" style={{ color: ringColor }}>{currentStreak}</div>
                                                         </div>
-                                                        <div className="flex-1 bg-white/5 rounded-xl p-3 text-center">
+                                                        <div className="flex-1 bg-white/[0.03] border border-white/[0.03] rounded-xl p-3 text-center">
                                                             <div className="text-[10px] uppercase tracking-widest text-white/30 mb-1">{t.stats.bestStreak}</div>
                                                             <div className="text-lg font-bold text-white">{bestStreak}</div>
                                                         </div>
-                                                        <div className="flex-1 bg-white/5 rounded-xl p-3 text-center">
+                                                        <div className="flex-1 bg-white/[0.03] border border-white/[0.03] rounded-xl p-3 text-center">
                                                             <div className="text-[10px] uppercase tracking-widest text-white/30 mb-1">{t.stats.totalMonth}</div>
                                                             <div className="text-lg font-bold text-white">{completions}</div>
                                                         </div>

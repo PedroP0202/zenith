@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { Outfit } from 'next/font/google';
 import './globals.css';
 import BottomNav from '../components/BottomNav';
 import AuthGuard from '../components/AuthGuard';
@@ -7,7 +7,7 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import { GOOGLE_CLIENT_ID } from '@/utils/constants';
 import LangHandler from '../components/LangHandler';
 
-const inter = Inter({ subsets: ['latin'] });
+const outfit = Outfit({ subsets: ['latin'], variable: '--font-outfit' });
 
 export const metadata: Metadata = {
   title: 'Zenith',
@@ -42,7 +42,7 @@ export default function RootLayout({
       <head>
         <meta name="google-signin-client_id" content="471890064632-6pehr2hlbfudc3qbf0je5kjpd2bjavlv.apps.googleusercontent.com" />
       </head>
-      <body className={`${inter.className} bg-black text-white overscroll-none min-h-screen`}>
+      <body className={`${outfit.className} ${outfit.variable} bg-black font-sans text-white overscroll-none min-h-screen`}>
         <LangHandler />
         <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
           <AuthGuard>

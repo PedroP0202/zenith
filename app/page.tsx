@@ -97,7 +97,7 @@ export default function Home() {
                         <p className="text-lg mb-6">{t.home.emptyState}</p>
                         <Link
                             href="/habit/new"
-                            className="bg-white text-black font-bold px-8 py-4 rounded-full flex items-center gap-2 hover:scale-105 active:scale-95 transition-transform shadow-[0_0_20px_rgba(255,255,255,0.15)]"
+                            className="bg-white text-black font-bold px-8 py-4 rounded-full flex items-center gap-2 transition-all hover:-translate-y-0.5 active:scale-95 shadow-glow-white hover:shadow-[0_0_25px_rgba(255,255,255,0.25)]"
                         >
                             <Plus size={20} />
                             {t.home.startHabit}
@@ -189,7 +189,7 @@ export default function Home() {
 
                 {habits.some(h => !h.isActive) && (
                     <div className="mt-8 text-center w-full">
-                        <Link href="/trash" className="text-[10px] font-medium text-white/30 uppercase tracking-widest hover:text-white/60 transition-colors inline-block py-2 px-4 rounded-full border border-white/5 bg-white/5">
+                        <Link href="/trash" className="text-[10px] font-medium text-white/30 uppercase tracking-widest hover:text-white/60 transition-colors inline-block py-2 px-4 rounded-full border border-white/[0.05] bg-white/[0.02] backdrop-blur-md">
                             {t.home.viewTrash}
                         </Link>
                     </div>

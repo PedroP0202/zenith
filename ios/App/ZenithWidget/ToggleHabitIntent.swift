@@ -48,7 +48,15 @@ struct ToggleHabitIntent: AppIntent {
             
             // 2. Adjust total completed count
             let currentTotalCompleted = widgetData.completedHabits ?? 0
-            widgetData.completedHabits = newStatus ? currentTotalCompleted + 1 : max(0, currentTotalCompleted - 1)
+            let newTotalCompleted = newStatus ? currentTotalCompleted + 1 : max(0, currentTotalCompleted - 1)
+            widgetData.completedHabits = newTotalCompleted
+            
+            // 2.5 Update current day's weekly progress for instant chart feedback
+            if var weekly = widgetData.weeklyCompletion, !weekly.isEmpty {
+                let total = Double(widgetData.totalHabits ?? 1)
+                weekly[weekly.count - 1] = Double(newTotalCompleted) / max(total, 1.0)
+                widgetData.weeklyCompletion = weekly
+            }
             
             // 3. Save back to shared defaults so the App can see it later
             if let updatedData = try? JSONEncoder().encode(widgetData),

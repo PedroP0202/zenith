@@ -173,8 +173,20 @@ function HabitDetailContent() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.45, delay: 0.25, type: 'spring', bounce: 0.15 }}
                     >
-                        <div className="flex items-center justify-between">
-                            <div className="flex flex-col pr-4">
+                        <div 
+                            className="flex items-center justify-between cursor-pointer hover:opacity-80 transition-opacity"
+                            onClick={() => {
+                                deviceHaptics.lightImpact();
+                                const newState = !isReminderEnabled;
+                                setIsReminderEnabled(newState);
+                                if (newState) {
+                                    editHabitReminder(habit.id, localReminderTime);
+                                } else {
+                                    editHabitReminder(habit.id, undefined);
+                                }
+                            }}
+                        >
+                            <div className="flex flex-col pr-4 pointer-events-none">
                                 <label className="text-sm font-bold text-white/90">
                                     {t.habit.reminder}
                                 </label>
@@ -184,17 +196,7 @@ function HabitDetailContent() {
                             </div>
                             <button
                                 type="button"
-                                onClick={() => {
-                                    deviceHaptics.lightImpact();
-                                    const newState = !isReminderEnabled;
-                                    setIsReminderEnabled(newState);
-                                    if (newState) {
-                                        editHabitReminder(habit.id, localReminderTime);
-                                    } else {
-                                        editHabitReminder(habit.id, undefined);
-                                    }
-                                }}
-                                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${isReminderEnabled ? 'bg-white' : 'bg-white/20'}`}
+                                className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out pointer-events-none ${isReminderEnabled ? 'bg-white' : 'bg-white/20'}`}
                                 role="switch"
                                 aria-checked={isReminderEnabled}
                             >

@@ -96,7 +96,7 @@ export default function SwipeableHabit({ habit, streak, doneToday, onToggle, onD
                 dragConstraints={{ left: 0, right: 0 }}
                 dragElastic={{ left: 0.5, right: 0.02 }}
                 dragMomentum={false}
-                style={{ x, touchAction: 'none' }}
+                style={{ x }}
                 onDragEnd={handleDragEnd}
                 animate={controls}
                 whileTap={{ scale: 0.975 }}

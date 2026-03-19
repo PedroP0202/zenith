@@ -140,12 +140,16 @@ export default function NewHabit() {
                     </motion.div>
 
                     <motion.div
-                        className="mt-2 flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5"
+                        className="mt-2 flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5 cursor-pointer hover:bg-white/[0.07] transition-all"
+                        onClick={() => {
+                            deviceHaptics.lightImpact();
+                            setIsHardMode(!isHardMode);
+                        }}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.4, delay: 0.2 }}
                     >
-                        <div className="flex flex-col pr-4">
+                        <div className="flex flex-col pr-4 text-left pointer-events-none">
                             <label className="text-sm font-bold text-white/90">
                                 {t.habit.hardMode}
                             </label>
@@ -155,11 +159,7 @@ export default function NewHabit() {
                         </div>
                         <button
                             type="button"
-                            onClick={() => {
-                                deviceHaptics.lightImpact();
-                                setIsHardMode(!isHardMode);
-                            }}
-                            className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${isHardMode ? 'bg-red-500' : 'bg-white/20'}`}
+                            className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out pointer-events-none ${isHardMode ? 'bg-red-500' : 'bg-white/20'}`}
                             role="switch"
                             aria-checked={isHardMode}
                         >
@@ -173,8 +173,14 @@ export default function NewHabit() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.4, delay: 0.25 }}
                     >
-                        <div className="flex items-center justify-between">
-                            <div className="flex flex-col pr-4">
+                        <div 
+                            className="flex items-center justify-between cursor-pointer hover:opacity-80 transition-opacity"
+                            onClick={() => {
+                                deviceHaptics.lightImpact();
+                                setIsReminderEnabled(!isReminderEnabled);
+                            }}
+                        >
+                            <div className="flex flex-col pr-4 text-left pointer-events-none">
                                 <label className="text-sm font-bold text-white/90">
                                     {t.habit.reminder}
                                 </label>
@@ -184,11 +190,7 @@ export default function NewHabit() {
                             </div>
                             <button
                                 type="button"
-                                onClick={() => {
-                                    deviceHaptics.lightImpact();
-                                    setIsReminderEnabled(!isReminderEnabled);
-                                }}
-                                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${isReminderEnabled ? 'bg-white' : 'bg-white/20'}`}
+                                className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out pointer-events-none ${isReminderEnabled ? 'bg-white' : 'bg-white/20'}`}
                                 role="switch"
                                 aria-checked={isReminderEnabled}
                             >
@@ -212,7 +214,7 @@ export default function NewHabit() {
                     <motion.button
                         type="submit"
                         disabled={!title.trim()}
-                        className="mt-8 bg-white text-black font-bold text-lg py-4 rounded-full disabled:opacity-30 disabled:scale-100 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+                        className="mt-8 bg-white text-black font-bold text-lg py-4 rounded-full disabled:opacity-30 disabled:scale-100 hover:-translate-y-0.5 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-glow-white hover:shadow-[0_0_25px_rgba(255,255,255,0.25)]"
                         initial={{ opacity: 0, y: 16 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: 0.3, type: 'spring', bounce: 0.2 }}

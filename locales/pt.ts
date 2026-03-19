@@ -77,6 +77,11 @@ export const pt = {
             confirmNewPassword: "Confirmar Nova Palavra-passe",
             changeAction: "Atualizar Chave",
             passwordShort: "A password deve ter pelo menos 8 caracteres."
+        },
+        support: {
+            title: "Suporte",
+            contactUs: "Contacta-nos",
+            emailDesc: "Dúvidas ou sugestões? Envia um email."
         }
     },
     habit: {

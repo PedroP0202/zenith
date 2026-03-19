@@ -77,6 +77,11 @@ export const en = {
             confirmNewPassword: "Confirm New Password",
             changeAction: "Update Key",
             passwordShort: "Password must be at least 8 characters."
+        },
+        support: {
+            title: "Support",
+            contactUs: "Contact Us",
+            emailDesc: "Questions or suggestions? Send an email."
         }
     },
     habit: {

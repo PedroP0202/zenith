@@ -10,11 +10,19 @@ import {
     getDailyActivityMap,
     isCompletedToday,
 } from '../../utils/streak';
-import HabitCalendar from '../../components/HabitCalendar';
-import ActivityHeatmap from '../../components/ActivityHeatmap';
+import dynamic from 'next/dynamic';
+const HabitCalendar = dynamic(() => import('../../components/HabitCalendar'), {
+    loading: () => <div className="h-[200px] w-full bg-white/5 rounded-2xl animate-pulse" />,
+    ssr: false
+});
+const ActivityHeatmap = dynamic(() => import('../../components/ActivityHeatmap'), {
+    loading: () => <div className="h-[120px] w-full bg-white/5 rounded-2xl animate-pulse" />,
+    ssr: false
+});
 import { format, getDaysInMonth, startOfWeek, addDays, isSameDay, startOfDay } from 'date-fns';
 import { enUS, pt } from 'date-fns/locale';
 import { useTranslation } from '../../hooks/useTranslation';
+import Skeleton from '../../components/Skeleton';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TrendingUp, Award, Target, Calendar } from 'lucide-react';
 
@@ -71,8 +79,37 @@ export default function StatsPage() {
                     </h1>
                 </motion.header>
 
-                {/* Activity Heatmap */}
-                <ActivityHeatmap data={activityMap} />
+                {!mounted ? (
+                    <div className="space-y-8 mt-4">
+                        {/* Heatmap Skeleton */}
+                        <div className="bg-[#111111] rounded-2xl p-5 mb-6">
+                            <div className="flex justify-between mb-6">
+                                <Skeleton className="h-4 w-24 opacity-50" />
+                                <Skeleton className="h-4 w-32 opacity-30" />
+                            </div>
+                            <Skeleton className="h-[120px] w-full" />
+                        </div>
+
+                        {/* Chart Skeleton */}
+                        <div className="bg-[#111111] rounded-[32px] p-6 mb-8">
+                            <div className="flex justify-between mb-8">
+                                <Skeleton className="h-6 w-32 opacity-50" />
+                                <div className="flex gap-2">
+                                    <Skeleton className="h-4 w-12 opacity-30 px-2" />
+                                    <Skeleton className="h-4 w-12 opacity-30 px-2" />
+                                </div>
+                            </div>
+                            <div className="flex justify-between items-end h-40 px-2">
+                                {[1, 2, 3, 4, 5, 6, 7].map(i => (
+                                    <Skeleton key={i} className="w-8" style={{ height: `${20 + Math.random() * 60}%` }} />
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    <>
+                        {/* Activity Heatmap */}
+                        <ActivityHeatmap data={activityMap} />
 
                 {/* Current Week Chart — Premium */}
                 <motion.div
@@ -377,6 +414,8 @@ export default function StatsPage() {
                         </div>
                     )}
                 </div>
+            </>
+        )}
             </div>
         </main>
     );

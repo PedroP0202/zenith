@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { ChevronLeft, Cloud, Loader2, ShieldAlert, CheckCircle2, MessageSquare, Clock, Users, Activity, Zap } from "lucide-react";
+import Skeleton from "@/components/Skeleton";
 import { API_URL } from "@/utils/constants";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -141,7 +142,20 @@ export default function AdminPage() {
             </header>
 
             {/* Stats Overview */}
-            {stats && (
+            {!stats ? (
+                <section className="mb-12 grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+                    {[1, 2, 3, 4].map(i => (
+                        <div key={i} className="bg-white/5 border border-white/5 p-6 lg:p-8 rounded-[32px]">
+                            <div className="flex items-center gap-3 mb-3">
+                                <Skeleton variant="circle" className="w-4 h-4 opacity-50" />
+                                <Skeleton className="h-3 w-20 opacity-30" />
+                            </div>
+                            <Skeleton className="h-10 w-24 mb-2" />
+                            <Skeleton className="h-3 w-32 opacity-20" />
+                        </div>
+                    ))}
+                </section>
+            ) : (
                 <section className="mb-12 grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-white/5 border border-white/5 p-6 lg:p-8 rounded-[32px] hover:bg-white/[0.07] transition-colors">
                         <div className="flex items-center gap-3 text-white/40 mb-3">
@@ -191,7 +205,21 @@ export default function AdminPage() {
                         <h2 className="text-sm uppercase tracking-widest text-white/40 font-black">Feedback Recente</h2>
                     </div>
 
-                    {feedbacks.length === 0 ? (
+                    {!stats ? (
+                        <div className="grid gap-4 xl:grid-cols-2">
+                            {[1, 2, 3, 4].map(i => (
+                                <div key={i} className="p-6 rounded-[24px] border border-white/5 bg-white/5">
+                                    <div className="flex justify-between mb-6">
+                                        <div className="space-y-2">
+                                            <Skeleton className="h-5 w-32" />
+                                            <Skeleton className="h-3 w-24 opacity-30" />
+                                        </div>
+                                    </div>
+                                    <Skeleton className="h-16 w-full opacity-40" />
+                                </div>
+                            ))}
+                        </div>
+                    ) : feedbacks.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-20 opacity-50 bg-white/5 border border-white/5 rounded-[32px]">
                             <MessageSquare className="w-12 h-12 mb-4 opacity-50" />
                             <p>Nenhum feedback recebido ainda.</p>
@@ -244,12 +272,30 @@ export default function AdminPage() {
                 </div>
 
                 {/* Sidebar: Recent Activity */}
-                {recentEvents.length > 0 && (
-                    <aside className="lg:w-80 xl:w-96 shrink-0">
-                        <div className="flex items-center gap-3 mb-6">
-                            <Activity className="w-5 h-5 text-white/40" />
-                            <h2 className="text-sm uppercase tracking-widest text-white/40 font-black">Atividade Recente</h2>
+                <aside className="lg:w-80 xl:w-96 shrink-0">
+                    <div className="flex items-center gap-3 mb-6">
+                        <Activity className="w-5 h-5 text-white/40" />
+                        <h2 className="text-sm uppercase tracking-widest text-white/40 font-black">Atividade Recente</h2>
+                    </div>
+                    
+                    {!stats ? (
+                        <div className="bg-white/5 border border-white/5 rounded-[40px] p-6 space-y-8">
+                            {[1, 2, 3, 4, 5].map(i => (
+                                <div key={i} className="flex items-center justify-between">
+                                    <div className="flex items-center gap-4">
+                                        <Skeleton variant="circle" className="w-10 h-10 opacity-40 text-black" />
+                                        <div className="space-y-2">
+                                            <Skeleton className="h-4 w-24" />
+                                            <Skeleton className="h-2 w-16 opacity-20" />
+                                        </div>
+                                    </div>
+                                    <Skeleton className="h-4 w-10 opacity-30" />
+                                </div>
+                            ))}
                         </div>
+                    ) : recentEvents.length === 0 ? (
+                        <p className="text-xs text-white/20 text-center py-10 italic">Sem eventos recentes.</p>
+                    ) : (
                         <div className="bg-white/5 border border-white/5 rounded-[40px] overflow-hidden">
                             {recentEvents.map((event, i) => (
                                 <div key={i} className={`p-6 flex items-center justify-between group hover:bg-white/[0.02] transition-colors ${i !== recentEvents.length - 1 ? 'border-b border-white/5' : ''}`}>
@@ -269,8 +315,8 @@ export default function AdminPage() {
                                 </div>
                             ))}
                         </div>
-                    </aside>
-                )}
+                    )}
+                </aside>
             </div>
         </main>
     );

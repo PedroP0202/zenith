@@ -12,6 +12,7 @@ import NotificationOnboarding from '../components/NotificationOnboarding';
 import BetaFeedback from '../components/BetaFeedback';
 import BetaWelcomeModal from '../components/BetaWelcomeModal';
 import { useTranslation } from '../hooks/useTranslation';
+import Skeleton from '../components/Skeleton';
 
 export default function Home() {
     const { habits, logs, toggleHabitLog, userName, removeHabit } = useStore();
@@ -87,7 +88,18 @@ export default function Home() {
                     </motion.div>
                 </motion.header>
 
-                {allActiveHabits.length === 0 ? (
+                {!mounted ? (
+                    <div className="space-y-10">
+                        <div className="space-y-6">
+                            <Skeleton className="h-4 w-24 mb-4 opacity-50" />
+                            <div className="space-y-4">
+                                <Skeleton className="h-24 w-full" />
+                                <Skeleton className="h-24 w-full opacity-60" />
+                                <Skeleton className="h-24 w-full opacity-40" />
+                            </div>
+                        </div>
+                    </div>
+                ) : allActiveHabits.length === 0 ? (
                     <motion.div
                         className="flex flex-col items-center justify-center mt-32 text-center"
                         initial={{ opacity: 0, scale: 0.9, y: 20 }}

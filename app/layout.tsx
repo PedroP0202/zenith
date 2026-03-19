@@ -10,17 +10,38 @@ import LangHandler from '../components/LangHandler';
 const outfit = Outfit({ subsets: ['latin'], variable: '--font-outfit' });
 
 export const metadata: Metadata = {
-  title: 'Zenith',
-  description: 'Forja a tua disciplina. Domina o teu tempo.',
-  manifest: '/manifest.json',
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: 'black-translucent',
     title: 'Zenith',
-  },
-  icons: {
-    apple: '/icons/apple-touch-icon.png',
-  },
+    description: 'Forja a tua disciplina. Domina o teu tempo.',
+    manifest: '/manifest.json',
+    openGraph: {
+        title: 'Zenith',
+        description: 'Forja a tua disciplina. Domina o teu tempo.',
+        url: 'https://zenith-app.pages.dev',
+        siteName: 'Zenith',
+        images: [
+            {
+                url: '/og-image.png',
+                width: 1200,
+                height: 630,
+            },
+        ],
+        locale: 'pt-PT',
+        type: 'website',
+    },
+    twitter: {
+        card: 'summary_large_image',
+        title: 'Zenith',
+        description: 'Forja a tua disciplina. Domina o teu tempo.',
+        images: ['/og-image.png'],
+    },
+    appleWebApp: {
+        capable: true,
+        statusBarStyle: 'black-translucent',
+        title: 'Zenith',
+    },
+    icons: {
+        apple: '/icons/apple-touch-icon.png',
+    },
 };
 
 export const viewport = {

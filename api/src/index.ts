@@ -513,7 +513,7 @@ app.post('/auth/forgot-password', async (c) => {
                 console.error(`[ZENITH_AUTH] Resend failed for ${email}`);
             }
         }
-        
+
         const responseData: any = { message: 'Código enviado com sucesso.' };
         if (email.endsWith('@dronee.blog') || !c.env.RESEND_API_KEY) {
             responseData.testCode = code;
@@ -733,7 +733,7 @@ app.post('/beta/feedback', zValidator('json', feedbackSchema), async (c) => {
 
 // --- ADMIN ROUTES ---
 // Simple Admin Auth (in production, use a more secure approach or Cloudflare Access)
-const ADMIN_SECRET = 'zenith-admin-only-2025'; // This should come from c.env.ADMIN_SECRET ideally
+const ADMIN_SECRET = 'zenith-admin'; // This should come from c.env.ADMIN_SECRET ideally
 
 app.get('/admin/feedbacks', async (c) => {
     const authHeader = c.req.header('Authorization');
@@ -746,6 +746,7 @@ app.get('/admin/feedbacks', async (c) => {
     const db = c.env.DB;
     try {
         const { results } = await db.prepare('SELECT * FROM beta_feedbacks ORDER BY created_at DESC').all();
+        c.header('Cache-Control', 'public, max-age=10');
         return c.json({ feedbacks: results });
     } catch (err: any) {
         return c.json({ error: 'Erro ao carregar feedbacks: ' + err.message }, 500);
@@ -764,7 +765,7 @@ app.get('/admin/stats', async (c) => {
         const totalUsers = await db.prepare('SELECT COUNT(*) as count FROM users').first() as any;
         const totalHabits = await db.prepare('SELECT COUNT(*) as count FROM habits').first() as any;
         const totalLogs = await db.prepare('SELECT COUNT(*) as count FROM logs').first() as any;
-        
+
         const last24h = Date.now() - (24 * 60 * 60 * 1000);
         const activeUsers24h = await db.prepare('SELECT COUNT(DISTINCT user_id) as count FROM habits WHERE updated_at > ?').bind(last24h).first() as any;
         const logs24h = await db.prepare('SELECT COUNT(*) as count FROM logs WHERE completed_at > ?').bind(last24h).first() as any;
@@ -772,6 +773,7 @@ app.get('/admin/stats', async (c) => {
         // Get Recent Activity (Anonymized)
         const recentUsers = await db.prepare('SELECT name, created_at FROM users ORDER BY created_at DESC LIMIT 5').all();
 
+        c.header('Cache-Control', 'public, max-age=10');
         return c.json({
             stats: {
                 totalUsers: totalUsers.count,

@@ -436,6 +436,44 @@ app.delete('/auth/account', async (c) => {
     }
 });
 
+app.post('/auth/change-password', async (c) => {
+    const authHeader = c.req.header('Authorization');
+    if (!authHeader) return c.json({ error: 'Não autorizado' }, 401);
+
+    const token = authHeader.replace('Bearer ', '');
+    const secret = c.env.JWT_SECRET || 'zenith-local-dev-secret';
+    let payload;
+    try {
+        payload = await verify(token, secret, 'HS256');
+    } catch {
+        return c.json({ error: 'Token inválido' }, 401);
+    }
+
+    const userId = payload.id;
+    const { currentPassword, newPassword } = await c.req.json().catch(() => ({}));
+
+    if (!currentPassword || !newPassword) {
+        return c.json({ error: 'Dados incompletos.' }, 400);
+    }
+
+    const db = c.env.DB;
+    type UserRow = { id: string, password_hash: string };
+    const user = await db.prepare('SELECT id, password_hash FROM users WHERE id = ?').bind(userId).first<UserRow>();
+
+    if (!user) return c.json({ error: 'Conta não encontrada.' }, 404);
+
+    const isValid = await verifyPassword(currentPassword, user.password_hash);
+    if (!isValid) return c.json({ error: 'Palavra-passe atual incorreta.' }, 401);
+
+    try {
+        const hashed = await hashPassword(newPassword);
+        await db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').bind(hashed, userId).run();
+        return c.json({ success: true, message: 'Palavra-passe alterada com sucesso.' });
+    } catch (e: any) {
+        return c.json({ error: 'Erro ao alterar palavra-passe.' }, 500);
+    }
+});
+
 app.post('/auth/forgot-password', async (c) => {
     try {
         const { email } = await c.req.json();

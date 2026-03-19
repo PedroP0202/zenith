@@ -68,7 +68,16 @@ export const pt = {
             passwordConfirm: "Confirma a Password",
             deleteAction: "Destruir a Forja"
         },
-        language: "Idioma"
+        language: "Idioma",
+        security: {
+            title: "Segurança",
+            changePassword: "Alterar Palavra-passe",
+            currentPassword: "Palavra-passe Atual",
+            newPassword: "Nova Palavra-passe",
+            confirmNewPassword: "Confirmar Nova Palavra-passe",
+            changeAction: "Atualizar Chave",
+            passwordShort: "A password deve ter pelo menos 8 caracteres."
+        }
     },
     habit: {
         newTitle: "Novo Hábito",

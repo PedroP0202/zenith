@@ -3,13 +3,14 @@
 import { useStore } from "@/store/useStore";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Settings as SettingsIcon, Bell, ChevronLeft, UserIcon, Cloud, Globe } from "lucide-react";
+import { Settings as SettingsIcon, Bell, ChevronLeft, UserIcon, Cloud, Globe, Lock, Loader2, Eye, EyeOff } from "lucide-react";
 import { scheduleAllNotifications, cancelAllNotifications, requestNotificationPermissions, sendTestNotification } from "@/utils/notifications";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "@/hooks/useTranslation";
 import { Language } from "@/locales";
 import { API_URL } from "@/utils/constants";
 import ConfirmationModal from "@/components/ConfirmationModal";
+import { deviceHaptics } from "@/utils/haptics";
 
 export default function SettingsPage() {
     const router = useRouter();
@@ -37,6 +38,15 @@ export default function SettingsPage() {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [deletePassword, setDeletePassword] = useState("");
     const [isDeleting, setIsDeleting] = useState(false);
+
+    // Password change states
+    const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
+    const [currentPassword, setCurrentPassword] = useState("");
+    const [newPassword, setNewPassword] = useState("");
+    const [confirmNewPassword, setConfirmNewPassword] = useState("");
+    const [isChangingPassword, setIsChangingPassword] = useState(false);
+    const [showPasswords, setShowPasswords] = useState(false);
+    const [passwordError, setPasswordError] = useState("");
 
     useEffect(() => {
         setMounted(true);
@@ -117,6 +127,53 @@ export default function SettingsPage() {
         } finally {
             setIsDeleting(false);
             setDeletePassword("");
+        }
+    };
+
+    const handleChangePassword = async () => {
+        if (!jwt) return;
+        if (!currentPassword || !newPassword || !confirmNewPassword) {
+            setPasswordError(t.common.error);
+            return;
+        }
+        if (newPassword !== confirmNewPassword) {
+            setPasswordError(t.auth.passwordsMismatch);
+            return;
+        }
+        if (newPassword.length < 8) {
+            setPasswordError(t.settings.security.passwordShort);
+            return;
+        }
+
+        setIsChangingPassword(true);
+        setPasswordError("");
+
+        try {
+            const res = await fetch(`${API_URL}/auth/change-password`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${jwt}`
+                },
+                body: JSON.stringify({ currentPassword, newPassword })
+            });
+
+            const data = await res.json();
+            if (res.ok) {
+                deviceHaptics.success();
+                setShowPasswordConfirm(false);
+                setCurrentPassword("");
+                setNewPassword("");
+                setConfirmNewPassword("");
+            } else {
+                deviceHaptics.error();
+                setPasswordError(data.error || t.common.error);
+            }
+        } catch (error) {
+            deviceHaptics.error();
+            setPasswordError(t.common.error);
+        } finally {
+            setIsChangingPassword(false);
         }
     };
 
@@ -261,6 +318,34 @@ export default function SettingsPage() {
                     </div>
                 </motion.section>
 
+                {/* Security Section */}
+                {jwt && (
+                    <motion.section
+                        initial={{ opacity: 0, y: 16 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.45, delay: 0.18, type: 'spring', bounce: 0.15 }}
+                    >
+                        <h2 className="text-sm uppercase tracking-widest text-white/40 mb-3 ml-2 font-medium">{(t.settings as any).security.title}</h2>
+                        <div className="bg-white/[0.03] rounded-3xl p-5 border border-white/5 flex items-center justify-between card-press">
+                            <div className="flex items-center gap-4">
+                                <div className="text-white/40">
+                                    <Lock className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <h3 className="text-base font-medium">{(t.settings as any).security.changePassword}</h3>
+                                    <p className="text-[10px] text-white/30 uppercase tracking-widest font-bold mt-1">Sincronizado com Zenith Cloud</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setShowPasswordConfirm(true)}
+                                className="text-[11px] font-bold text-white bg-white/10 px-4 py-2 rounded-xl transition-colors hover:bg-white/20 active:scale-95 uppercase tracking-wider"
+                            >
+                                {t.common.edit}
+                            </button>
+                        </div>
+                    </motion.section>
+                )}
+
                 {/* Notifications Section */}
                 <motion.section
                     initial={{ opacity: 0, y: 16 }}
@@ -387,6 +472,76 @@ export default function SettingsPage() {
                         />
                     </div>
                 )}
+            </ConfirmationModal>
+
+            {/* Change Password Modal */}
+            <ConfirmationModal
+                isOpen={showPasswordConfirm}
+                onClose={() => {
+                    setShowPasswordConfirm(false);
+                    setCurrentPassword("");
+                    setNewPassword("");
+                    setConfirmNewPassword("");
+                    setPasswordError("");
+                }}
+                onConfirm={handleChangePassword}
+                title={(t.settings as any).security.changePassword}
+                description="Altera a tua chave de acesso à Zenith Cloud de forma segura."
+                confirmLabel={isChangingPassword ? "A Processar..." : (t.settings as any).security.changeAction}
+                cancelLabel={t.common.cancel}
+                isDanger={false}
+            >
+                <div className="mt-6 w-full text-left space-y-4">
+                    <div>
+                        <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-2 block ml-1">
+                            {(t.settings as any).security.currentPassword}
+                        </label>
+                        <div className="relative">
+                            <input
+                                type={showPasswords ? "text" : "password"}
+                                value={currentPassword}
+                                onChange={(e) => setCurrentPassword(e.target.value)}
+                                placeholder="••••••••"
+                                className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-4 pr-12 text-white outline-none focus:border-[var(--zenith-active)]/50 transition-colors"
+                            />
+                            <button onClick={() => setShowPasswords(!showPasswords)} className="absolute right-4 top-1/2 -translate-y-1/2 text-white/20">
+                                {showPasswords ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="pt-2 border-t border-white/5">
+                        <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-2 block ml-1">
+                            {(t.settings as any).security.newPassword}
+                        </label>
+                        <input
+                            type={showPasswords ? "text" : "password"}
+                            value={newPassword}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                            placeholder="••••••••"
+                            className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-4 text-white outline-none focus:border-[var(--zenith-active)]/50 transition-colors"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-2 block ml-1">
+                            {(t.settings as any).security.confirmNewPassword}
+                        </label>
+                        <input
+                            type={showPasswords ? "text" : "password"}
+                            value={confirmNewPassword}
+                            onChange={(e) => setConfirmNewPassword(e.target.value)}
+                            placeholder="••••••••"
+                            className={`w-full h-14 bg-white/5 border rounded-2xl px-4 text-white outline-none transition-colors ${confirmNewPassword && newPassword === confirmNewPassword ? 'border-green-500/50' : 'border-white/10'}`}
+                        />
+                    </div>
+
+                    {passwordError && (
+                        <p className="text-xs font-bold text-red-400 bg-red-400/10 p-3 rounded-xl border border-red-400/20 text-center">
+                            {passwordError}
+                        </p>
+                    )}
+                </div>
             </ConfirmationModal>
         </main>
     );

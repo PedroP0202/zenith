@@ -68,7 +68,16 @@ export const en = {
             passwordConfirm: "Confirm Password",
             deleteAction: "Destroy the Forge"
         },
-        language: "Language"
+        language: "Language",
+        security: {
+            title: "Security",
+            changePassword: "Change Password",
+            currentPassword: "Current Password",
+            newPassword: "New Password",
+            confirmNewPassword: "Confirm New Password",
+            changeAction: "Update Key",
+            passwordShort: "Password must be at least 8 characters."
+        }
     },
     habit: {
         newTitle: "New Habit",

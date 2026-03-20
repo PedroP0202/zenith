@@ -161,12 +161,36 @@ export const pt = {
             desc: "A forja onde a tua disciplina é moldada. Estamos aqui para transformar a tua rotina em poder."
         },
         step2: {
-            title: "O Teu Primeiro Objetivo",
-            desc: "Toda a jornada começa com um compromisso. Vamos criar o teu primeiro hábito agora?"
+            title: "O Ponto de Partida",
+            desc: "Usa o botão '+' no topo direito para criar o teu primeiro compromisso. Define o nome e a frequência."
         },
         step3: {
-            title: "Domina o Teu Tempo",
-            desc: "Vê a tua consistência crescer com estatísticas detalhadas e streaks motivadores. Pronto para o topo?"
+            title: "A Tua Forja",
+            desc: "No ícone da 'Roda Dentada' controlas o teu perfil, o idioma e as notificações matinais."
+        },
+        step4: {
+            title: "Gestos de Força",
+            desc: "Desliza para a DIREITA para concluir, ou para a ESQUERDA para remover. Rápido e tátil."
+        },
+        step5: {
+            title: "Modo Disciplinado",
+            desc: "O ícone do 'Escudo' ativa o Hard Mode: impede-te de marcar hábitos no passado. É agora ou nunca."
+        },
+        step6: {
+            title: "Sintonizado na Nuvem",
+            desc: "O ícone da 'Nuvem' indica que o teu progresso está seguro. Tudo é sincronizado de forma invisível."
+        },
+        step7: {
+            title: "Domina os Dados",
+            desc: "No separador de 'Gráficos' vês o teu mapa de calor, streaks e consistência ao longo do ano."
+        },
+        step8: {
+            title: "Segunda Oportunidade",
+            desc: "Apagaste sem querer? No fundo da página encontras o 'Lixo' para restaurar os teus hábitos."
+        },
+        step9: {
+            title: "Ajuda a Moldar o Futuro",
+            desc: "Como estamos em Beta, usa o botão flutuante de 'Feedback' para nos enviares as tuas sugestões."
         }
     }
 };

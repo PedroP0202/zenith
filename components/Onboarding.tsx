@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '../store/useStore';
 import { useTranslation } from '../hooks/useTranslation';
-import { ChevronRight, Zap, Target, LineChart, X } from 'lucide-react';
+import { ChevronRight, Zap, Target, LineChart, X, ArrowLeftRight, ShieldCheck, BellRing, Cloud, Plus, Settings, Trash2, MessageSquare } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function Onboarding() {
@@ -14,7 +14,7 @@ export default function Onboarding() {
     const router = useRouter();
 
     const handleNext = () => {
-        if (step < 3) {
+        if (step < 9) {
             setStep(step + 1);
         } else {
             handleComplete();
@@ -38,20 +38,56 @@ export default function Onboarding() {
             color: "from-[var(--zenith-active)]/20 to-transparent"
         },
         {
-            icon: <Target className="w-12 h-12 text-blue-400" />,
+            icon: <Plus className="w-12 h-12 text-blue-400" />,
             title: t.onboarding.step2.title,
             desc: t.onboarding.step2.desc,
-            color: "from-blue-500/20 to-transparent",
+            color: "from-blue-500/20 to-transparent"
+        },
+        {
+            icon: <Settings className="w-12 h-12 text-gray-400" />,
+            title: t.onboarding.step3.title,
+            desc: t.onboarding.step3.desc,
+            color: "from-gray-500/20 to-transparent"
+        },
+        {
+            icon: <ArrowLeftRight className="w-12 h-12 text-emerald-400" />,
+            title: t.onboarding.step4.title,
+            desc: t.onboarding.step4.desc,
+            color: "from-emerald-500/20 to-transparent"
+        },
+        {
+            icon: <ShieldCheck className="w-12 h-12 text-red-400" />,
+            title: t.onboarding.step5.title,
+            desc: t.onboarding.step5.desc,
+            color: "from-red-500/20 to-transparent"
+        },
+        {
+            icon: <Cloud className="w-12 h-12 text-sky-400" />,
+            title: t.onboarding.step6.title,
+            desc: t.onboarding.step6.desc,
+            color: "from-sky-500/20 to-transparent"
+        },
+        {
+            icon: <LineChart className="w-12 h-12 text-purple-400" />,
+            title: t.onboarding.step7.title,
+            desc: t.onboarding.step7.desc,
+            color: "from-purple-500/20 to-transparent"
+        },
+        {
+            icon: <Trash2 className="w-12 h-12 text-orange-400" />,
+            title: t.onboarding.step8.title,
+            desc: t.onboarding.step8.desc,
+            color: "from-orange-500/20 to-transparent"
+        },
+        {
+            icon: <MessageSquare className="w-12 h-12 text-pink-400" />,
+            title: t.onboarding.step9.title,
+            desc: t.onboarding.step9.desc,
+            color: "from-pink-500/20 to-transparent",
             action: {
                 label: t.habit.create,
                 onClick: handleCreateHabit
             }
-        },
-        {
-            icon: <LineChart className="w-12 h-12 text-purple-400" />,
-            title: t.onboarding.step3.title,
-            desc: t.onboarding.step3.desc,
-            color: "from-purple-500/20 to-transparent"
         }
     ];
 
@@ -100,30 +136,38 @@ export default function Onboarding() {
 
                 <div className="space-y-6">
                     {currentStep.action ? (
-                        <button
-                            onClick={currentStep.action.onClick}
-                            className="w-full h-16 bg-white text-black font-bold rounded-[24px] flex items-center justify-center gap-2 transition-transform active:scale-95 shadow-xl"
-                        >
-                            {currentStep.action.label}
-                            <ChevronRight className="w-5 h-5" />
-                        </button>
+                        <div className="flex flex-col gap-3">
+                            <button
+                                onClick={currentStep.action.onClick}
+                                className="w-full h-16 bg-white text-black font-bold rounded-[24px] flex items-center justify-center gap-2 transition-transform active:scale-95 shadow-xl"
+                            >
+                                {currentStep.action.label}
+                                <ChevronRight className="w-5 h-5" />
+                            </button>
+                            <button
+                                onClick={handleComplete}
+                                className="w-full h-14 bg-white/5 text-white/60 font-medium rounded-[20px] transition-all hover:bg-white/10"
+                            >
+                                {t.onboarding.finish}
+                            </button>
+                        </div>
                     ) : (
                         <button
                             onClick={handleNext}
                             className="w-full h-16 bg-white/10 border border-white/10 text-white font-bold rounded-[24px] flex items-center justify-center gap-2 transition-all hover:bg-white/15 active:scale-95"
                         >
-                            {step === 3 ? t.onboarding.finish : t.onboarding.next}
-                            {step < 3 && <ChevronRight className="w-5 h-5 opacity-40" />}
+                            {t.onboarding.next}
+                            <ChevronRight className="w-5 h-5 opacity-40" />
                         </button>
                     )}
 
                     {/* Stepper Dots */}
                     <div className="flex justify-center gap-2">
-                        {[1, 2, 3].map((i) => (
+                        {steps.map((_, i) => (
                             <div 
                                 key={i}
                                 className={`h-1.5 rounded-full transition-all duration-300 ${
-                                    step === i ? 'w-8 bg-white' : 'w-1.5 bg-white/20'
+                                    step === (i + 1) ? 'w-8 bg-white' : 'w-1.5 bg-white/20'
                                 }`}
                             />
                         ))}

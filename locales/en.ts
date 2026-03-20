@@ -161,12 +161,36 @@ export const en = {
             desc: "The forge where your discipline is shaped. We're here to turn your routine into power."
         },
         step2: {
-            title: "Your First Objective",
-            desc: "Every journey begins with a commitment. Let's create your first habit now?"
+            title: "The Starting Point",
+            desc: "Use the '+' button in the top right to create your first commitment. Set a name and frequency."
         },
         step3: {
-            title: "Master Your Time",
-            desc: "Watch your consistency grow with detailed stats and motivating streaks. Ready for the top?"
+            title: "Your Forge",
+            desc: "The 'Gear' icon is where you control your profile, language, and morning notifications."
+        },
+        step4: {
+            title: "Gestures of Strength",
+            desc: "Swipe RIGHT to complete, or LEFT to remove. It's fast, tactile, and satisfying."
+        },
+        step5: {
+            title: "Disciplined Mode",
+            desc: "The 'Shield' icon toggles Hard Mode: it prevents you from logging past days. Now or never."
+        },
+        step6: {
+            title: "Cloud Sync",
+            desc: "The 'Cloud' icon shows your progress is safe. Everything is synced invisibly in the background."
+        },
+        step7: {
+            title: "Master the Data",
+            desc: "In the 'Charts' tab, you'll find your heatmap, streaks, and consistency throughout the year."
+        },
+        step8: {
+            title: "Second Chances",
+            desc: "Deleted by mistake? At the bottom of the page, find the 'Trash' to restore your habits."
+        },
+        step9: {
+            title: "Shape the Future",
+            desc: "Since we're in Beta, use the floating 'Feedback' button to send us your suggestions."
         }
     }
 };

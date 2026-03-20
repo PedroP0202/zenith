@@ -200,7 +200,8 @@ export const useStore = create<AppState>()(
                     logs: [],
                     lastSyncedAt: 0,
                     syncStatus: 'idle',
-                    deletedHabitIds: []
+                    deletedHabitIds: [],
+                    hasCompletedOnboarding: false
                 });
             },
 

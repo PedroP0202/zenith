@@ -13,9 +13,10 @@ import BetaFeedback from '../components/BetaFeedback';
 import BetaWelcomeModal from '../components/BetaWelcomeModal';
 import { useTranslation } from '../hooks/useTranslation';
 import Skeleton from '../components/Skeleton';
+import Onboarding from '../components/Onboarding';
 
 export default function Home() {
-    const { habits, logs, toggleHabitLog, userName, removeHabit } = useStore();
+    const { habits, logs, toggleHabitLog, userName, removeHabit, hasCompletedOnboarding } = useStore();
     const { t } = useTranslation();
     const [mounted, setMounted] = useState(false);
 
@@ -51,7 +52,13 @@ export default function Home() {
     };
 
     return (
-        <main className="min-h-[100dvh] bg-black text-white p-6 pb-24 font-sans flex flex-col items-center">
+        <>
+            <AnimatePresence>
+                {mounted && !hasCompletedOnboarding && allActiveHabits.length === 0 && (
+                    <Onboarding key="onboarding" />
+                )}
+            </AnimatePresence>
+            <main className="min-h-[100dvh] bg-black text-white p-6 pb-24 font-sans flex flex-col items-center">
             <div className="w-full max-w-md pt-8">
                 <motion.header
                     className="mb-14 flex justify-between items-start"
@@ -212,5 +219,6 @@ export default function Home() {
             <BetaFeedback />
             <BetaWelcomeModal />
         </main>
+    </>
     );
 }

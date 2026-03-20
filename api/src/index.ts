@@ -20,22 +20,43 @@ app.get('/', (c) => {
     return c.text('Zenith Global API is running at the Edge!');
 });
 
+// Simple In-Memory Rate Limiter for sensitive routes
+// Note: In massive production, use Cloudflare KV or Durable Objects.
+const RATE_LIMIT_STORE = new Map<string, { count: number, resetAt: number }>();
+
+const checkRateLimit = (key: string, limit: number, windowMs: number) => {
+    const now = Date.now();
+    const record = RATE_LIMIT_STORE.get(key);
+
+    if (!record || now > record.resetAt) {
+        RATE_LIMIT_STORE.set(key, { count: 1, resetAt: now + windowMs });
+        return true;
+    }
+
+    if (record.count >= limit) return false;
+
+    record.count++;
+    return true;
+};
+
 // --- AUTHENTICATION ROUTES ---
 
 const registerSchema = z.object({
     name: z.string().min(2),
     email: z.string().email(),
-    password: z.string().min(6),
+    password: z.string().min(8),
     code: z.string().length(6),
+    hp: z.string().optional()
 });
 
 const loginSchema = z.object({
     email: z.string().email(),
-    password: z.string().min(6),
+    password: z.string().min(8),
 });
 
 const sendCodeSchema = z.object({
     email: z.string().email(),
+    hp: z.string().optional(),
 });
 
 app.post('/auth/google', async (c) => {
@@ -221,7 +242,16 @@ app.post('/auth/apple/callback', async (c) => {
 });
 
 app.post('/auth/send-code', zValidator('json', sendCodeSchema), async (c) => {
-    const { email } = c.req.valid('json');
+    const { email, hp } = c.req.valid('json');
+    if (hp) return c.json({ message: 'Código enviado com sucesso.' }); // Silent fail for bots
+
+    const ip = c.req.header('CF-Connecting-IP') || 'local';
+    
+    // Rate limit: 5 requests per 5 minutes per IP
+    if (!checkRateLimit(`send-code-${ip}`, 5, 5 * 60 * 1000)) {
+        return c.json({ error: 'Muitos códigos pedidos. Tenta novamente em 5 minutos.' }, 429);
+    }
+
     const db = c.env.DB;
 
     // Generate a 6-digit code
@@ -281,7 +311,16 @@ app.post('/auth/send-code', zValidator('json', sendCodeSchema), async (c) => {
 });
 
 app.post('/auth/register', zValidator('json', registerSchema.extend({ language: z.string().optional() })), async (c) => {
-    const { name, email, password, code, language } = c.req.valid('json');
+    const { name, email, password, code, language, hp } = c.req.valid('json');
+    if (hp) return c.json({ error: 'Erro ao processar registo.' }, 400); // Or silent fail
+
+    const ip = c.req.header('CF-Connecting-IP') || 'local';
+
+    // Rate limit: 5 registrations per hour per IP (strict)
+    if (!checkRateLimit(`register-${ip}`, 5, 60 * 60 * 1000)) {
+        return c.json({ error: 'Muitos registos. Tenta novamente mais tarde.' }, 429);
+    }
+
     const db = c.env.DB;
     const userLanguage = language || 'pt';
 
@@ -327,19 +366,59 @@ app.post('/auth/register', zValidator('json', registerSchema.extend({ language: 
 
 app.post('/auth/login', zValidator('json', loginSchema), async (c) => {
     const { email, password } = c.req.valid('json');
+    const ip = c.req.header('CF-Connecting-IP') || 'local';
+
+    // Rate limit: 10 logins per minute per IP
+    if (!checkRateLimit(`login-${ip}`, 10, 60 * 1000)) {
+        return c.json({ error: 'Muitas tentativas de login. Tenta novamente em 1 minuto.' }, 429);
+    }
+
     const db = c.env.DB;
 
-    type UserRow = { id: string, name: string, email: string, password_hash: string, language: string };
+    type UserRow = { id: string, name: string, email: string, password_hash: string, language: string, login_attempts: number, lockout_until: number, is_verified: number };
     const user = await db.prepare('SELECT * FROM users WHERE email = ?').bind(email).first<UserRow>();
 
     if (!user) {
         return c.json({ error: 'Conta não encontrada. Por favor, cria conta em baixo.' }, 404);
     }
 
-    const isValid = await verifyPassword(password, user.password_hash);
-    if (!isValid) {
-        return c.json({ error: 'Password incorreta.' }, 401);
+    // 0. Check Verification
+    if (!user.is_verified) {
+        return c.json({ error: 'Email não verificado. Por favor, regista-te novamente ou verifica o código.' }, 403);
     }
+
+    // 1. Check Lockout
+    if (user.lockout_until && Date.now() < user.lockout_until) {
+        const remainingMinutes = Math.ceil((user.lockout_until - Date.now()) / (60 * 1000));
+        return c.json({ error: `Conta bloqueada temporariamente. Tenta novamente em ${remainingMinutes} minutos.` }, 403);
+    }
+
+    const isValid = await verifyPassword(password, user.password_hash);
+    
+    if (!isValid) {
+        // 2. Increment attempts
+        const newAttempts = (user.login_attempts || 0) + 1;
+        let lockoutUntil = 0;
+        
+        if (newAttempts >= 5) {
+            lockoutUntil = Date.now() + 15 * 60 * 1000; // 15 minutes lockout
+        }
+
+        await db.prepare('UPDATE users SET login_attempts = ?, lockout_until = ? WHERE id = ?')
+            .bind(newAttempts, lockoutUntil, user.id)
+            .run();
+
+        if (newAttempts >= 5) {
+            return c.json({ error: 'Muitas tentativas falhadas. Conta bloqueada por 15 minutos.' }, 403);
+        }
+
+        return c.json({ error: `Password incorreta. Tens mais ${5 - newAttempts} tentativas.` }, 401);
+    }
+
+    // 3. Reset attempts on success
+    await db.prepare('UPDATE users SET login_attempts = 0, lockout_until = 0 WHERE id = ?')
+        .bind(user.id)
+        .run();
 
     const secret = c.env.JWT_SECRET || 'zenith-local-dev-secret';
     const token = await sign({ id: user.id, name: user.name, email: user.email, exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30 }, secret);
@@ -476,9 +555,16 @@ app.post('/auth/change-password', async (c) => {
 
 app.post('/auth/forgot-password', async (c) => {
     try {
-        const { email } = await c.req.json();
-        const db = c.env.DB;
+        const { email, hp } = await c.req.json().catch(() => ({}));
+        if (hp) return c.json({ message: 'Código enviado com sucesso.' }); // Silent fail for bots
 
+        const ip = c.req.header('CF-Connecting-IP') || 'local';
+        // Rate limit: 3 requests per 10 minutes per IP
+        if (!checkRateLimit(`forgot-${ip}`, 3, 10 * 60 * 1000)) {
+            return c.json({ error: 'Muitos pedidos de recuperação. Tenta novamente mais tarde.' }, 429);
+        }
+
+        const db = c.env.DB;
         const user = await db.prepare('SELECT id FROM users WHERE email = ?').bind(email).first();
         if (!user) return c.json({ error: 'Conta não encontrada.' }, 404);
 

@@ -20,6 +20,7 @@ export default function ForgotPasswordPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [successMsg, setSuccessMsg] = useState("");
+    const [hp, setHp] = useState(""); // Honeypot
 
     const handleSendCode = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -30,7 +31,7 @@ export default function ForgotPasswordPage() {
             const res = await fetch(`${API_URL}/auth/forgot-password`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email })
+                body: JSON.stringify({ email, hp })
             });
             const data = await res.json().catch(() => ({}));
 
@@ -146,6 +147,15 @@ export default function ForgotPasswordPage() {
                                     exit={{ opacity: 0, x: 20 }}
                                     className="space-y-6"
                                 >
+                                    <div style={{ display: 'none' }}>
+                                        <input
+                                            type="text"
+                                            value={hp}
+                                            onChange={(e) => setHp(e.target.value)}
+                                            tabIndex={-1}
+                                            autoComplete="off"
+                                        />
+                                    </div>
                                     <div className="relative group">
                                         <input
                                             type="email"

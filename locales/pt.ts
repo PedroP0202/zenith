@@ -151,5 +151,22 @@ export const pt = {
         bestSequence: "Melhor Sequência",
         lessActivity: "Menos",
         moreActivity: "Mais"
+    },
+    onboarding: {
+        skip: "Saltar",
+        next: "Continuar",
+        finish: "Começar Agora",
+        step1: {
+            title: "Bem-vindo ao Zenith",
+            desc: "A forja onde a tua disciplina é moldada. Estamos aqui para transformar a tua rotina em poder."
+        },
+        step2: {
+            title: "O Teu Primeiro Objetivo",
+            desc: "Toda a jornada começa com um compromisso. Vamos criar o teu primeiro hábito agora?"
+        },
+        step3: {
+            title: "Domina o Teu Tempo",
+            desc: "Vê a tua consistência crescer com estatísticas detalhadas e streaks motivadores. Pronto para o topo?"
+        }
     }
 };

@@ -25,6 +25,7 @@ export default function RegisterPage() {
     const [loading, setLoading] = useState(false);
     const [sendingCode, setSendingCode] = useState(false);
     const [error, setError] = useState("");
+    const [hp, setHp] = useState(""); // Honeypot
 
     const handleSendCode = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -49,7 +50,7 @@ export default function RegisterPage() {
             const res = await fetch(`${API_URL}/auth/send-code`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email })
+                body: JSON.stringify({ email, hp })
             });
             const data = await res.json().catch(() => ({}));
 
@@ -76,7 +77,7 @@ export default function RegisterPage() {
             const res = await fetch(`${API_URL}/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, email, password, code })
+                body: JSON.stringify({ name, email, password, code, hp })
             });
             const data = await res.json().catch(() => ({}));
 
@@ -192,6 +193,15 @@ export default function RegisterPage() {
                             animate={{ opacity: 1, x: 0 }}
                             className="space-y-6"
                         >
+                            <div style={{ display: 'none' }}>
+                                <input
+                                    type="text"
+                                    value={hp}
+                                    onChange={(e) => setHp(e.target.value)}
+                                    tabIndex={-1}
+                                    autoComplete="off"
+                                />
+                            </div>
                             <div>
                                 <input
                                     type="text"

@@ -36,6 +36,8 @@ interface AppState {
     syncStatus: 'idle' | 'syncing' | 'error';
     /** IDs of habits permanently deleted locally but not yet synced */
     deletedHabitIds: string[];
+    /** Whether the user has completed the onboarding flow */
+    hasCompletedOnboarding: boolean;
 
     /**
      * Creates a new habit and adds it to the global state.
@@ -144,9 +146,10 @@ interface AppState {
     logout: () => void;
 
     /**
-     * Checks if the user toggled any habits via the iOS Widget while the app was in the background.
+     * Toggles the onboarding completion flag.
+     * @param completed True if the user has finished onboarding.
      */
-    checkWidgetToggles: () => Promise<void>;
+    setHasCompletedOnboarding: (completed: boolean) => void;
 }
 
 export const useStore = create<AppState>()(
@@ -164,6 +167,7 @@ export const useStore = create<AppState>()(
             lastSyncedAt: 0,
             syncStatus: 'idle',
             deletedHabitIds: [],
+            hasCompletedOnboarding: false,
 
             setUserName: (name) => {
                 set({ userName: name });
@@ -180,6 +184,9 @@ export const useStore = create<AppState>()(
                 } else {
                     removeSecureJwt().catch(console.error);
                 }
+            },
+            setHasCompletedOnboarding: (completed) => {
+                set({ hasCompletedOnboarding: completed });
             },
 
             clearUserData: () => {
@@ -202,7 +209,8 @@ export const useStore = create<AppState>()(
                     syncStatus: 'idle',
                     deletedHabitIds: [],
                     userName: 'Pedro',
-                    language: currentLanguage
+                    language: currentLanguage,
+                    hasCompletedOnboarding: false
                 });
                 removeSecureJwt().catch(console.error);
                 // Ensure no ghost notifications remain after logout

@@ -102,105 +102,110 @@ export default function Onboarding() {
 
     const currentStep = steps[step - 1];
 
+    // Smooth feathered spotlight mask
+    const currentMask = currentStep.spotlight 
+        ? `radial-gradient(circle ${currentStep.spotlight.r} at ${currentStep.spotlight.x} ${currentStep.spotlight.y}, transparent 20%, rgba(0,0,0,0.8) 80%, black 120%)`
+        : 'radial-gradient(circle 0px at 50% 50%, transparent 0%, black 10px)';
+
     return (
         <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex flex-col items-center justify-center p-8 text-center overflow-hidden"
+            className="fixed inset-0 z-[100] flex flex-col items-center justify-center p-6 sm:p-8 text-center overflow-hidden"
         >
-            {/* Dark Mask with Spotlight */}
+            {/* Dark Mask with Soft Spotlight */}
             <motion.div 
-                className="absolute inset-0 bg-black/80 backdrop-blur-[2px] pointer-events-none"
+                className="absolute inset-0 bg-black/90 backdrop-blur-[4px] pointer-events-none"
                 animate={({
-                    WebkitMaskImage: currentStep.spotlight 
-                        ? `radial-gradient(circle ${currentStep.spotlight.r} at ${currentStep.spotlight.x} ${currentStep.spotlight.y}, transparent 100%, black 100%)`
-                        : 'radial-gradient(circle 0px at 50% 50%, transparent 100%, black 100%)',
-                    maskImage: currentStep.spotlight 
-                        ? `radial-gradient(circle ${currentStep.spotlight.r} at ${currentStep.spotlight.x} ${currentStep.spotlight.y}, transparent 100%, black 100%)`
-                        : 'radial-gradient(circle 0px at 50% 50%, transparent 100%, black 100%)'
+                    WebkitMaskImage: currentMask,
+                    maskImage: currentMask
                 } as any)}
-                transition={{ duration: 0.5, ease: "easeInOut" }}
+                transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }} // smooth apple-like spring curve
             />
 
-            {/* Background Glow */}
-            <div className={`absolute inset-0 bg-gradient-to-b ${currentStep.color} opacity-20 transition-colors duration-700 pointer-events-none`} />
+            {/* Ambient Background Glow */}
+            <div className={`absolute inset-0 bg-gradient-to-br ${currentStep.color} opacity-20 mix-blend-screen transition-colors duration-1000 pointer-events-none`} />
             
             <button 
                 onClick={handleComplete}
-                className="absolute top-12 right-8 p-3 bg-white/5 rounded-full text-white/40 hover:text-white transition-colors z-[110]"
+                className="absolute top-12 right-8 p-3 bg-white/5 backdrop-blur-md rounded-full text-white/40 hover:text-white hover:bg-white/10 transition-all z-[110] active:scale-90 border border-white/5"
             >
                 <X className="w-5 h-5" />
             </button>
 
-            <div className="relative w-full max-w-sm space-y-12 z-[110]">
+            <div className="relative w-full max-w-[380px] z-[110] mt-auto mb-auto">
                 <AnimatePresence mode="wait">
                     <motion.div
                         key={step}
-                        initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                        initial={{ opacity: 0, y: 16, scale: 0.96 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -20, scale: 0.9 }}
-                        transition={{ type: "spring", damping: 20, stiffness: 100 }}
-                        className="flex flex-col items-center"
+                        exit={{ opacity: 0, y: -16, scale: 0.96 }}
+                        transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
+                        className="flex flex-col items-center bg-[#0a0a0a]/80 backdrop-blur-2xl border border-white/10 rounded-[40px] p-8 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.08)]"
                     >
-                        <div className="mb-8 p-6 bg-white/5 rounded-[32px] border border-white/10 shadow-2xl backdrop-blur-md">
-                            {currentStep.icon}
+                        {/* Icon Container with Inner Glow */}
+                        <div className="relative mb-8">
+                            <div className={`absolute inset-0 bg-gradient-to-b ${currentStep.color} blur-2xl opacity-40`} />
+                            <div className="relative p-5 bg-white/5 rounded-3xl border border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] flex items-center justify-center">
+                                {currentStep.icon}
+                            </div>
                         </div>
                         
-                        <h2 className="text-3xl font-black mb-4 tracking-tight leading-tight">
+                        <h2 className="text-[28px] font-black mb-3 tracking-tight leading-tight text-white/90">
                             {currentStep.title}
                         </h2>
                         
-                        <p className="text-white/60 leading-relaxed max-w-[280px] text-sm">
+                        <p className="text-white/50 leading-relaxed text-[15px] mb-10 w-full px-2">
                             {currentStep.desc}
                         </p>
+
+                        <div className="w-full space-y-4">
+                            {currentStep.action ? (
+                                <div className="flex flex-col gap-3">
+                                    <button
+                                        onClick={currentStep.action.onClick}
+                                        className="w-full h-14 bg-white text-black font-bold rounded-[20px] flex items-center justify-center gap-2 transition-transform hover:-translate-y-0.5 active:scale-95 shadow-[0_0_20px_rgba(255,255,255,0.15)]"
+                                    >
+                                        {currentStep.action.label}
+                                        <ChevronRight className="w-5 h-5" />
+                                    </button>
+                                    <button
+                                        onClick={handleComplete}
+                                        className="w-full h-12 bg-transparent text-white/40 font-semibold rounded-[16px] transition-colors hover:bg-white/5 hover:text-white/80"
+                                    >
+                                        {t.onboarding.finish}
+                                    </button>
+                                </div>
+                            ) : (
+                                <button
+                                    onClick={handleNext}
+                                    className="w-full h-14 bg-white/10 hover:bg-white/15 border border-white/10 text-white font-bold rounded-[20px] flex items-center justify-center gap-2 transition-all active:scale-95 shadow-inner"
+                                >
+                                    {t.onboarding.next}
+                                    <ChevronRight className="w-5 h-5 opacity-50" />
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Elegant Stepper */}
+                        <div className="flex justify-center gap-1.5 mt-8">
+                            {steps.map((_, i) => (
+                                <div 
+                                    key={i}
+                                    className={`h-1 rounded-full transition-all duration-500 ease-out ${
+                                        step === (i + 1) ? 'w-6 bg-white/90 shadow-[0_0_8px_rgba(255,255,255,0.5)]' : 'w-2 bg-white/20'
+                                    }`}
+                                />
+                            ))}
+                        </div>
                     </motion.div>
                 </AnimatePresence>
-
-                <div className="space-y-6">
-                    {currentStep.action ? (
-                        <div className="flex flex-col gap-3">
-                            <button
-                                onClick={currentStep.action.onClick}
-                                className="w-full h-16 bg-white text-black font-bold rounded-[24px] flex items-center justify-center gap-2 transition-transform active:scale-95 shadow-xl"
-                            >
-                                {currentStep.action.label}
-                                <ChevronRight className="w-5 h-5" />
-                            </button>
-                            <button
-                                onClick={handleComplete}
-                                className="w-full h-14 bg-white/5 text-white/60 font-medium rounded-[20px] transition-all hover:bg-white/10"
-                            >
-                                {t.onboarding.finish}
-                            </button>
-                        </div>
-                    ) : (
-                        <button
-                            onClick={handleNext}
-                            className="w-full h-16 bg-white/10 border border-white/10 text-white font-bold rounded-[24px] flex items-center justify-center gap-2 transition-all hover:bg-white/15 active:scale-95 backdrop-blur-md"
-                        >
-                            {t.onboarding.next}
-                            <ChevronRight className="w-5 h-5 opacity-40" />
-                        </button>
-                    )}
-
-                    {/* Stepper Dots */}
-                    <div className="flex justify-center gap-2">
-                        {steps.map((_, i) => (
-                            <div 
-                                key={i}
-                                className={`h-1.5 rounded-full transition-all duration-300 ${
-                                    step === (i + 1) ? 'w-8 bg-white' : 'w-1.5 bg-white/20'
-                                }`}
-                            />
-                        ))}
-                    </div>
-                </div>
             </div>
 
             <button 
                 onClick={handleComplete}
-                className="mt-12 text-[10px] uppercase tracking-[0.2em] font-black text-white/20 hover:text-white/40 transition-colors z-[110]"
+                className="absolute bottom-8 text-[11px] uppercase tracking-[0.25em] font-bold text-white/20 hover:text-white/50 transition-colors z-[110]"
             >
                 {t.onboarding.skip}
             </button>

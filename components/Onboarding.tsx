@@ -35,8 +35,6 @@ export default function Onboarding() {
 
     const allActiveHabits = habits.filter(h => h.isActive);
 
-    if (!mounted || hasCompletedOnboarding || allActiveHabits.length > 0) return null;
-
     const handleComplete = () => {
         setHasCompletedOnboarding(true);
     };
@@ -142,6 +140,8 @@ export default function Onboarding() {
     }, [currentStep.targetId]);
 
     useEffect(() => {
+        if (!mounted || hasCompletedOnboarding || allActiveHabits.length > 0) return;
+
         // Handle auto-routing
         if (pathname !== currentStep.route) {
             router.push(currentStep.route);
@@ -168,6 +168,8 @@ export default function Onboarding() {
             handleComplete();
         }
     };
+
+    if (!mounted || hasCompletedOnboarding || allActiveHabits.length > 0) return null;
 
     return (
         <motion.div 

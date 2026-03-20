@@ -112,14 +112,14 @@ export default function Onboarding() {
             {/* Dark Mask with Spotlight */}
             <motion.div 
                 className="absolute inset-0 bg-black/80 backdrop-blur-[2px] pointer-events-none"
-                animate={{
+                animate={({
                     WebkitMaskImage: currentStep.spotlight 
                         ? `radial-gradient(circle ${currentStep.spotlight.r} at ${currentStep.spotlight.x} ${currentStep.spotlight.y}, transparent 100%, black 100%)`
                         : 'radial-gradient(circle 0px at 50% 50%, transparent 100%, black 100%)',
                     maskImage: currentStep.spotlight 
                         ? `radial-gradient(circle ${currentStep.spotlight.r} at ${currentStep.spotlight.x} ${currentStep.spotlight.y}, transparent 100%, black 100%)`
                         : 'radial-gradient(circle 0px at 50% 50%, transparent 100%, black 100%)'
-                }}
+                } as any)}
                 transition={{ duration: 0.5, ease: "easeInOut" }}
             />
 

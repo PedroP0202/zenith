@@ -150,6 +150,11 @@ interface AppState {
      * @param completed True if the user has finished onboarding.
      */
     setHasCompletedOnboarding: (completed: boolean) => void;
+
+    /**
+     * Checks if the user toggled any habits via the iOS Widget while the app was in the background.
+     */
+    checkWidgetToggles: () => Promise<void>;
 }
 
 export const useStore = create<AppState>()(
@@ -494,6 +499,7 @@ export const useStore = create<AppState>()(
             },
             storage: createJSONStorage(() => ({
                 getItem: async (name) => {
+                    if (typeof window === 'undefined') return null;
                     const str = localStorage.getItem(name);
                     if (!str) return null;
                     try {
@@ -505,6 +511,7 @@ export const useStore = create<AppState>()(
                     }
                 },
                 setItem: async (name, value) => {
+                    if (typeof window === 'undefined') return;
                     try {
                         const encryptedStr = await encryptData(value);
                         localStorage.setItem(name, encryptedStr);
@@ -513,6 +520,7 @@ export const useStore = create<AppState>()(
                     }
                 },
                 removeItem: async (name) => {
+                    if (typeof window === 'undefined') return;
                     localStorage.removeItem(name);
                 },
             })),

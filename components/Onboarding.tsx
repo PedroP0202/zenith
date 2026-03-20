@@ -34,6 +34,8 @@ export default function Onboarding() {
     }, []);
 
     const allActiveHabits = habits.filter(h => h.isActive);
+    
+    const isAuthRoute = pathname === '/login' || pathname === '/register' || pathname === '/forgot-password';
 
     const handleComplete = () => {
         setHasCompletedOnboarding(true);
@@ -142,7 +144,7 @@ export default function Onboarding() {
     }, [currentStep.targetId]);
 
     useEffect(() => {
-        if (!mounted || hasCompletedOnboarding || allActiveHabits.length > 0) return;
+        if (!mounted || hasCompletedOnboarding || allActiveHabits.length > 0 || isAuthRoute) return;
 
         // Handle auto-routing
         if (pathname !== currentStep.route) {
@@ -171,7 +173,7 @@ export default function Onboarding() {
         }
     };
 
-    if (!mounted || hasCompletedOnboarding || allActiveHabits.length > 0) return null;
+    if (!mounted || hasCompletedOnboarding || allActiveHabits.length > 0 || isAuthRoute) return null;
 
     return (
         <motion.div 

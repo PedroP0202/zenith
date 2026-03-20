@@ -66,6 +66,7 @@ export default function BottomNav() {
                     <Link
                         key={tab.href}
                         href={tab.href}
+                        id={tab.href === '/' ? 'nav-home' : 'nav-stats'}
                         className="relative z-10 transition-colors duration-300"
                         aria-label={tab.label}
                     >

@@ -84,11 +84,11 @@ export default function Home() {
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.4, delay: 0.2, type: 'spring' }}
                     >
-                        <Link href="/settings" className="text-white/60 hover:text-white transition-colors p-3 bg-white/5 rounded-full hover:bg-white/10 flex items-center justify-center active:scale-90">
+                        <Link id="top-settings" href="/settings" className="text-white/60 hover:text-white transition-colors p-3 bg-white/5 rounded-full hover:bg-white/10 flex items-center justify-center active:scale-90">
                             <Settings size={20} />
                         </Link>
                         {allActiveHabits.length > 0 && (
-                            <Link href="/habit/new" className="text-white/60 hover:text-white transition-colors p-3 bg-white/5 rounded-full hover:bg-white/10 flex items-center justify-center active:scale-90">
+                            <Link id="top-plus" href="/habit/new" className="text-white/60 hover:text-white transition-colors p-3 bg-white/5 rounded-full hover:bg-white/10 flex items-center justify-center active:scale-90">
                                 <Plus size={20} />
                             </Link>
                         )}
@@ -114,10 +114,11 @@ export default function Home() {
                         transition={{ duration: 0.6, delay: 0.3, type: 'spring', bounce: 0.2 }}
                     >
                         <p className="text-lg mb-6">{t.home.emptyState}</p>
-                        <Link
-                            href="/habit/new"
-                            className="bg-white text-black font-bold px-8 py-4 rounded-full flex items-center gap-2 transition-all hover:-translate-y-0.5 active:scale-95 shadow-glow-white hover:shadow-[0_0_25px_rgba(255,255,255,0.25)]"
-                        >
+                            <Link
+                                id="add-habit-empty"
+                                href="/habit/new"
+                                className="bg-white text-black font-bold px-8 py-4 rounded-full flex items-center gap-2 transition-all hover:-translate-y-0.5 active:scale-95 shadow-glow-white hover:shadow-[0_0_25px_rgba(255,255,255,0.25)]"
+                            >
                             <Plus size={20} />
                             {t.home.startHabit}
                         </Link>
@@ -208,7 +209,7 @@ export default function Home() {
 
                 {habits.some(h => !h.isActive) && (
                     <div className="mt-8 text-center w-full">
-                        <Link href="/trash" className="text-[10px] font-medium text-white/30 uppercase tracking-widest hover:text-white/60 transition-colors inline-block py-2 px-4 rounded-full border border-white/[0.05] bg-white/[0.02] backdrop-blur-md">
+                        <Link id="view-trash" href="/trash" className="text-[10px] font-medium text-white/30 uppercase tracking-widest hover:text-white/60 transition-colors inline-block py-2 px-4 rounded-full border border-white/[0.05] bg-white/[0.02] backdrop-blur-md">
                             {t.home.viewTrash}
                         </Link>
                     </div>

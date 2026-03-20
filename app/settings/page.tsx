@@ -267,7 +267,7 @@ export default function SettingsPage() {
                     transition={{ duration: 0.45, delay: 0.15, type: 'spring', bounce: 0.15 }}
                 >
                     <h2 className="text-sm uppercase tracking-widest text-white/40 mb-3 ml-2 font-medium">Zenith Cloud</h2>
-                    <div className="bg-white/[0.03] rounded-3xl p-5 border border-white/5 flex flex-col gap-6">
+                    <div id="settings-cloud" className="bg-white/[0.03] rounded-3xl p-5 border border-white/5 flex flex-col gap-6">
                         <div className="flex items-center justify-between">
                             <div className="flex items-start gap-4">
                                 <div className={`mt-1 flex-shrink-0 transition-colors ${jwt ? (syncStatus === 'error' ? 'text-red-400' : 'text-[#00C853]') : 'text-white/40'}`}>
@@ -418,7 +418,7 @@ export default function SettingsPage() {
                     transition={{ duration: 0.45, delay: 0.22, type: 'spring', bounce: 0.15 }}
                 >
                     <h2 className="text-sm uppercase tracking-widest text-white/40 mb-3 ml-2 font-medium">{(t.settings as any).support.title}</h2>
-                    <div className="bg-white/[0.03] rounded-3xl p-5 border border-white/5 flex items-center justify-between group transition-colors hover:bg-white/[0.05] card-press">
+                    <div id="settings-support" className="bg-white/[0.03] rounded-3xl p-5 border border-white/5 flex items-center justify-between group transition-colors hover:bg-white/[0.05] card-press">
                         <div className="flex items-start gap-4">
                             <div className="mt-1 flex-shrink-0 text-white/40">
                                 <Mail className="w-5 h-5" />

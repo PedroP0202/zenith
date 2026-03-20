@@ -22,11 +22,20 @@ interface Step {
 
 export default function Onboarding() {
     const { t } = useTranslation();
-    const { setHasCompletedOnboarding, habits } = useStore();
+    const { setHasCompletedOnboarding, habits, hasCompletedOnboarding } = useStore();
     const [step, setStep] = useState(1);
     const router = useRouter();
     const pathname = usePathname();
     const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    const allActiveHabits = habits.filter(h => h.isActive);
+
+    if (!mounted || hasCompletedOnboarding || allActiveHabits.length > 0) return null;
 
     const handleComplete = () => {
         setHasCompletedOnboarding(true);

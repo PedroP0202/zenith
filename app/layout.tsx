@@ -6,6 +6,7 @@ import AuthGuard from '../components/AuthGuard';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { GOOGLE_CLIENT_ID } from '@/utils/constants';
 import LangHandler from '../components/LangHandler';
+import Onboarding from '../components/Onboarding';
 
 const outfit = Outfit({ subsets: ['latin'], variable: '--font-outfit' });
 
@@ -69,6 +70,7 @@ export default function RootLayout({
           <AuthGuard>
             {children}
             <BottomNav />
+            <Onboarding />
           </AuthGuard>
         </GoogleOAuthProvider>
       </body>

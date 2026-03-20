@@ -213,6 +213,5 @@ export default function Home() {
             <BetaFeedback />
             <BetaWelcomeModal />
         </main>
-    </>
     );
 }

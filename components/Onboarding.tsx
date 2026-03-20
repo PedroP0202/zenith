@@ -130,6 +130,8 @@ export default function Onboarding() {
         if (currentStep.targetId) {
             const el = document.getElementById(currentStep.targetId);
             if (el) {
+                // Auto-scroll to ensure the element is visible
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 setTargetRect(el.getBoundingClientRect());
             } else {
                 setTargetRect(null);
@@ -290,11 +292,11 @@ export default function Onboarding() {
                         </motion.div>
                     </AnimatePresence>
 
-                    <div className="w-full flex items-center justify-between">
+                    <div className="w-full flex items-center justify-end mt-4">
                         {currentStep.action ? (
                             <button
                                 onClick={currentStep.action.onClick}
-                                className="w-full h-15 bg-white text-black font-black rounded-full flex items-center justify-center gap-2 transition-all active:scale-95 shadow-[0_8px_32px_rgba(255,255,255,0.1)] uppercase text-xs tracking-widest"
+                                className="w-full h-14 bg-white text-black font-bold rounded-full flex items-center justify-center gap-2 transition-all active:scale-95 shadow-[0_8px_32px_rgba(255,255,255,0.1)] uppercase text-[11px] tracking-widest"
                             >
                                 {currentStep.action.label}
                                 <ChevronRight className="w-5 h-5" />
@@ -302,7 +304,7 @@ export default function Onboarding() {
                         ) : (
                             <button
                                 onClick={handleNext}
-                                className="ml-auto flex items-center gap-2 h-14 pl-8 pr-6 bg-white/5 border border-white/20 text-white font-bold rounded-full transition-all active:scale-95 hover:bg-white/10"
+                                className="flex items-center gap-2 h-14 px-8 bg-white/5 border border-white/20 text-white font-bold rounded-full transition-all active:scale-95 hover:bg-white/10"
                             >
                                 <span className="uppercase text-[11px] tracking-widest opacity-80">{t.onboarding.next}</span>
                                 <ChevronRight className="w-5 h-5 opacity-40 ml-1" />

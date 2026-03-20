@@ -8,6 +8,7 @@ const ENCRYPTION_KEY_NAME = 'zenith_store_encryption_key';
  * Generates and saves a new one if it doesn't exist.
  */
 async function getEncryptionKey(): Promise<string> {
+    if (typeof window === 'undefined') return 'ssr-fallback-key';
     const { value } = await Preferences.get({ key: ENCRYPTION_KEY_NAME });
     if (value) {
         return value;
@@ -22,6 +23,7 @@ async function getEncryptionKey(): Promise<string> {
  * Encrypts a string payload using AES and the key.
  */
 export async function encryptData(data: string): Promise<string> {
+    if (typeof window === 'undefined') return data;
     try {
         const key = await getEncryptionKey();
         return CryptoJS.AES.encrypt(data, key).toString();
@@ -35,6 +37,7 @@ export async function encryptData(data: string): Promise<string> {
  * Decrypts an AES encrypted payload using the key.
  */
 export async function decryptData(encryptedData: string): Promise<string> {
+    if (typeof window === 'undefined') return encryptedData;
     try {
         const key = await getEncryptionKey();
         const bytes = CryptoJS.AES.decrypt(encryptedData, key);
@@ -52,6 +55,7 @@ export async function decryptData(encryptedData: string): Promise<string> {
 const JWT_KEY_NAME = 'zenith_auth_jwt';
 
 export async function saveSecureJwt(token: string): Promise<void> {
+    if (typeof window === 'undefined') return;
     try {
         await Preferences.set({ key: JWT_KEY_NAME, value: token });
     } catch (e) {
@@ -60,6 +64,7 @@ export async function saveSecureJwt(token: string): Promise<void> {
 }
 
 export async function getSecureJwt(): Promise<string | null> {
+    if (typeof window === 'undefined') return null;
     try {
         const { value } = await Preferences.get({ key: JWT_KEY_NAME });
         return value || null;
@@ -69,6 +74,7 @@ export async function getSecureJwt(): Promise<string | null> {
 }
 
 export async function removeSecureJwt(): Promise<void> {
+    if (typeof window === 'undefined') return;
     try {
         await Preferences.remove({ key: JWT_KEY_NAME });
     } catch (e) {

@@ -498,33 +498,36 @@ export const useStore = create<AppState>()(
                 const { jwt, isInitializingAuth, ...restToEncrypt } = state;
                 return restToEncrypt;
             },
-            storage: createJSONStorage(() => ({
-                getItem: async (name) => {
-                    if (typeof window === 'undefined') return null;
-                    const str = localStorage.getItem(name);
-                    if (!str) return null;
-                    try {
-                        const decryptedStr = await decryptData(str);
-                        return decryptedStr;
-                    } catch (e) {
-                        console.error("Failed to decrypt state", e);
-                        return null;
-                    }
-                },
-                setItem: async (name, value) => {
-                    if (typeof window === 'undefined') return;
-                    try {
-                        const encryptedStr = await encryptData(value);
-                        localStorage.setItem(name, encryptedStr);
-                    } catch (e) {
-                        console.error("Failed to encrypt state", e);
-                    }
-                },
-                removeItem: async (name) => {
-                    if (typeof window === 'undefined') return;
-                    localStorage.removeItem(name);
-                },
-            })),
+            storage: createJSONStorage(() => {
+                const isServer = typeof window === 'undefined';
+                return {
+                    getItem: async (name) => {
+                        if (isServer) return null;
+                        const str = window.localStorage.getItem(name);
+                        if (!str) return null;
+                        try {
+                            const decryptedStr = await decryptData(str);
+                            return decryptedStr;
+                        } catch (e) {
+                            console.error("Failed to decrypt state", e);
+                            return null;
+                        }
+                    },
+                    setItem: async (name, value) => {
+                        if (isServer) return;
+                        try {
+                            const encryptedStr = await encryptData(value);
+                            window.localStorage.setItem(name, encryptedStr);
+                        } catch (e) {
+                            console.error("Failed to encrypt state", e);
+                        }
+                    },
+                    removeItem: async (name) => {
+                        if (isServer) return;
+                        window.localStorage.removeItem(name);
+                    },
+                };
+            }),
             onRehydrateStorage: () => {
                 // Return a function to run after hydration is complete
                 return (state, error) => {

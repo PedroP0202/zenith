@@ -42,6 +42,13 @@ interface AppState {
     hasCompletedOnboarding: boolean;
     /** Whether the user has opted in to the global leaderboard */
     optInLeaderboard: boolean;
+    /** List of accepted friends */
+    friends: any[];
+    /** List of incoming friend requests */
+    friendRequests: any[];
+    /** Loading state for social actions */
+    friendsLoading: boolean;
+
 
     /**
      * Creates a new habit and adds it to the global state.
@@ -145,6 +152,16 @@ interface AppState {
      */
     clearUserData: () => void;
 
+    /** Fetches the accepted friends list from the cloud. */
+    fetchFriends: () => Promise<void>;
+    /** Fetches incoming friend requests from the cloud. */
+    fetchFriendRequests: () => Promise<void>;
+    /** Sends a friend request to another user. */
+    sendFriendRequest: (friendId: string) => Promise<{ success: boolean; error?: string }>;
+    /** Accepts or rejects a pending friend request. */
+    handleFriendRequest: (requestId: string, action: 'accept' | 'reject') => Promise<void>;
+
+
     /**
      * Internal helper to sync profile (name, language) to the cloud.
      */
@@ -189,6 +206,9 @@ export const useStore = create<AppState>()(
             deletedHabitIds: [],
             hasCompletedOnboarding: false,
             optInLeaderboard: false,
+            friends: [],
+            friendRequests: [],
+            friendsLoading: false,
             username: null,
 
             setUserName: (name) => {
@@ -471,6 +491,79 @@ export const useStore = create<AppState>()(
                     console.log("[STORE] Profile Sync Response:", data);
                 } catch (e) {
                     console.error("[STORE] Failed to sync profile:", e);
+                }
+            },
+
+            fetchFriends: async () => {
+                const { jwt } = get();
+                if (!jwt) return;
+                set({ friendsLoading: true });
+                try {
+                    const res = await fetch(`${API_URL}/friends`, {
+                        headers: { 'Authorization': `Bearer ${jwt}` }
+                    });
+                    const data = await res.json();
+                    if (res.ok) set({ friends: data.friends || [] });
+                } catch (e) {
+                    console.error("[STORE] Failed to fetch friends:", e);
+                } finally {
+                    set({ friendsLoading: false });
+                }
+            },
+
+            fetchFriendRequests: async () => {
+                const { jwt } = get();
+                if (!jwt) return;
+                try {
+                    const res = await fetch(`${API_URL}/friends/requests`, {
+                        headers: { 'Authorization': `Bearer ${jwt}` }
+                    });
+                    const data = await res.json();
+                    if (res.ok) set({ friendRequests: data.requests || [] });
+                } catch (e) {
+                    console.error("[STORE] Failed to fetch requests:", e);
+                }
+            },
+
+            sendFriendRequest: async (friendId: string) => {
+                const { jwt } = get();
+                if (!jwt) return { success: false, error: 'Not authenticated' };
+                try {
+                    const res = await fetch(`${API_URL}/friends/request`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${jwt}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ friendId })
+                    });
+                    const data = await res.json();
+                    if (res.ok) return { success: true };
+                    return { success: false, error: data.error };
+                } catch (e) {
+                    return { success: false, error: 'Network error' };
+                }
+            },
+
+            handleFriendRequest: async (requestId: string, action: 'accept' | 'reject') => {
+                const { jwt } = get();
+                if (!jwt) return;
+                try {
+                    const res = await fetch(`${API_URL}/friends/request/${requestId}`, {
+                        method: 'PATCH',
+                        headers: {
+                            'Authorization': `Bearer ${jwt}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ action })
+                    });
+                    if (res.ok) {
+                        // Refresh both lists
+                        get().fetchFriends();
+                        get().fetchFriendRequests();
+                    }
+                } catch (e) {
+                    console.error("[STORE] Failed to handle request:", e);
                 }
             },
 

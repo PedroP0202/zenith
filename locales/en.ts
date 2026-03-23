@@ -192,5 +192,21 @@ export const en = {
             title: "Shape the Future",
             desc: "Since we're in Beta, use the floating 'Feedback' button to send us your suggestions."
         }
+    },
+    social: {
+        title: "Social",
+        search: "Search users...",
+        friends: "Friends",
+        requests: "Requests",
+        emptyFriends: "No friends yet. Spread the Zenith!",
+        emptyRequests: "No pending requests.",
+        sendRequest: "Add",
+        accept: "Accept",
+        decline: "Decline",
+        compare: "Compare",
+        searchResult: "Search Results",
+        requestSent: "Request sent!",
+        alreadyFriends: "Already friends",
+        pending: "Pending"
     }
 };

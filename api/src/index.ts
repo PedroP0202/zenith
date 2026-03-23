@@ -495,6 +495,221 @@ app.patch('/auth/profile', async (c) => {
     }
 });
 
+// --- SOCIAL & FRIENDS ROUTES ---
+
+app.get('/users/search', async (c) => {
+    const authHeader = c.req.header('Authorization');
+    if (!authHeader) return c.json({ error: 'Não autorizado' }, 401);
+
+    const token = authHeader.replace('Bearer ', '');
+    const secret = c.env.JWT_SECRET || 'zenith-local-dev-secret';
+    try {
+        await verify(token, secret, 'HS256');
+    } catch {
+        return c.json({ error: 'Token inválido' }, 401);
+    }
+
+    const query = c.req.query('q');
+    if (!query || query.length < 2) return c.json({ results: [] });
+
+    const db = c.env.DB;
+    try {
+        // Search by username or name, excluding sensitive fields
+        const { results } = await db.prepare(`
+            SELECT id, name, username 
+            FROM users 
+            WHERE (username LIKE ? OR name LIKE ?) 
+            LIMIT 10
+        `).bind(`%${query}%`, `%${query}%`).all();
+        
+        return c.json({ results });
+    } catch (e: any) {
+        return c.json({ error: 'Erro na pesquisa: ' + e.message }, 500);
+    }
+});
+
+app.post('/friends/request', async (c) => {
+    const authHeader = c.req.header('Authorization');
+    if (!authHeader) return c.json({ error: 'Não autorizado' }, 401);
+
+    const token = authHeader.replace('Bearer ', '');
+    const secret = c.env.JWT_SECRET || 'zenith-local-dev-secret';
+    let payload;
+    try {
+        payload = await verify(token, secret, 'HS256');
+    } catch {
+        return c.json({ error: 'Token inválido' }, 401);
+    }
+
+    const { friendId } = await c.req.json().catch(() => ({}));
+    if (!friendId) return c.json({ error: 'ID do amigo em falta.' }, 400);
+    
+    const userId = payload.id;
+    if (userId === friendId) return c.json({ error: 'Não te podes adicionar a ti próprio.' }, 400);
+
+    const db = c.env.DB;
+    const now = Date.now();
+    try {
+        await db.prepare(`
+            INSERT INTO friendships (id, user_id, friend_id, status, created_at, updated_at)
+            VALUES (?, ?, ?, 'pending', ?, ?)
+        `).bind(crypto.randomUUID(), userId, friendId, now, now).run();
+        
+        return c.json({ success: true, message: 'Pedido enviado.' });
+    } catch (e: any) {
+        if (e.message.includes('UNIQUE')) {
+            return c.json({ error: 'Já existe um pedido ou amizade pendente.' }, 400);
+        }
+        return c.json({ error: 'Erro ao enviar pedido: ' + e.message }, 500);
+    }
+});
+
+app.get('/friends/requests', async (c) => {
+    const authHeader = c.req.header('Authorization');
+    if (!authHeader) return c.json({ error: 'Não autorizado' }, 401);
+
+    const token = authHeader.replace('Bearer ', '');
+    const secret = c.env.JWT_SECRET || 'zenith-local-dev-secret';
+    let payload;
+    try {
+        payload = await verify(token, secret, 'HS256');
+    } catch {
+        return c.json({ error: 'Token inválido' }, 401);
+    }
+
+    const userId = payload.id;
+    const db = c.env.DB;
+    try {
+        // List only incoming requests
+        const { results } = await db.prepare(`
+            SELECT f.id, f.user_id as from_id, u.name, u.username, f.created_at
+            FROM friendships f
+            JOIN users u ON u.id = f.user_id
+            WHERE f.friend_id = ? AND f.status = 'pending'
+        `).bind(userId).all();
+        
+        return c.json({ requests: results });
+    } catch (e: any) {
+        return c.json({ error: 'Erro ao listar pedidos: ' + e.message }, 500);
+    }
+});
+
+app.patch('/friends/request/:id', async (c) => {
+    const authHeader = c.req.header('Authorization');
+    if (!authHeader) return c.json({ error: 'Não autorizado' }, 401);
+
+    const requestId = c.req.param('id');
+    const { action } = await c.req.json().catch(() => ({})); // 'accept' or 'reject'
+
+    const token = authHeader.replace('Bearer ', '');
+    const secret = c.env.JWT_SECRET || 'zenith-local-dev-secret';
+    let payload;
+    try {
+        payload = await verify(token, secret, 'HS256');
+    } catch {
+        return c.json({ error: 'Token inválido' }, 401);
+    }
+
+    const userId = payload.id;
+    const db = c.env.DB;
+    const now = Date.now();
+
+    try {
+        if (action === 'accept') {
+            const res = await db.prepare(`
+                UPDATE friendships 
+                SET status = 'accepted', updated_at = ? 
+                WHERE id = ? AND friend_id = ?
+            `).bind(now, requestId, userId).run();
+            
+            if (res.meta.changes === 0) return c.json({ error: 'Pedido não encontrado ou já processado.' }, 404);
+
+            // Also create the reverse friendship for easy mutual querying if needed, 
+            // but we can also just use a smarter SELECT for accepted friends.
+            // For Zenith, we'll keep it simple: ONE row means A and B are friends.
+            return c.json({ success: true, message: 'Pedido aceite.' });
+        } else {
+            await db.prepare('DELETE FROM friendships WHERE id = ? AND friend_id = ?').bind(requestId, userId).run();
+            return c.json({ success: true, message: 'Pedido rejeitado.' });
+        }
+    } catch (e: any) {
+        return c.json({ error: 'Erro ao processar pedido: ' + e.message }, 500);
+    }
+});
+
+app.get('/friends', async (c) => {
+    const authHeader = c.req.header('Authorization');
+    if (!authHeader) return c.json({ error: 'Não autorizado' }, 401);
+
+    const token = authHeader.replace('Bearer ', '');
+    const secret = c.env.JWT_SECRET || 'zenith-local-dev-secret';
+    let payload;
+    try {
+        payload = await verify(token, secret, 'HS256');
+    } catch {
+        return c.json({ error: 'Token inválido' }, 401);
+    }
+
+    const userId = payload.id;
+    const db = c.env.DB;
+    try {
+        // Query both directions for accepted friendships
+        const { results } = await db.prepare(`
+            SELECT u.id, u.name, u.username, 
+                   (SELECT COUNT(*) FROM logs l JOIN habits h ON h.id = l.habit_id WHERE h.user_id = u.id) as score
+            FROM users u
+            JOIN friendships f ON (f.user_id = u.id AND f.friend_id = ?) OR (f.friend_id = u.id AND f.user_id = ?)
+            WHERE f.status = 'accepted'
+        `).bind(userId, userId).all();
+        
+        return c.json({ friends: results });
+    } catch (e: any) {
+        return c.json({ error: 'Erro ao listar amigos: ' + e.message }, 500);
+    }
+});
+
+app.get('/friends/compare/:username', async (c) => {
+    const authHeader = c.req.header('Authorization');
+    if (!authHeader) return c.json({ error: 'Não autorizado' }, 401);
+
+    const friendUsername = c.req.param('username');
+    const token = authHeader.replace('Bearer ', '');
+    const secret = c.env.JWT_SECRET || 'zenith-local-dev-secret';
+    let payload;
+    try {
+        payload = await verify(token, secret, 'HS256');
+    } catch {
+        return c.json({ error: 'Token inválido' }, 401);
+    }
+
+    const db = c.env.DB;
+    try {
+        // Find friend first and verify friendship
+        const friend = await db.prepare('SELECT id, name, username FROM users WHERE username = ?').bind(friendUsername).first();
+        if (!friend) return c.json({ error: 'Utilizador não encontrado.' }, 404);
+
+        // Verification of friendship can be added here if we want private stats
+        
+        const { results: friendHabits } = await db.prepare(`
+            SELECT h.id, h.title, COUNT(l.id) as completions
+            FROM habits h
+            LEFT JOIN logs l ON l.habit_id = h.id
+            WHERE h.user_id = ? AND h.is_active = 1
+            GROUP BY h.id
+        `).bind(friend.id as any).all();
+
+        return c.json({ 
+            friend: {
+                name: friend.name,
+                username: friend.username,
+                habits: friendHabits
+            }
+        });
+    } catch (e: any) {
+        return c.json({ error: 'Erro ao comparar stats: ' + e.message }, 500);
+    }
+});
+
 app.get('/leaderboard', async (c) => {
     const authHeader = c.req.header('Authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {

@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { calculateStreak, isCompletedToday } from '../utils/streak';
 import Link from 'next/link';
-import { Plus, Settings, Trophy } from 'lucide-react';
+import { Plus, Settings, Trophy, Users } from 'lucide-react';
 import { format } from 'date-fns';
 import { enUS } from 'date-fns/locale';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -15,13 +15,14 @@ import { useTranslation } from '../hooks/useTranslation';
 import Skeleton from '../components/Skeleton';
 
 export default function Home() {
-    const { habits, logs, toggleHabitLog, userName, removeHabit } = useStore();
+    const { habits, logs, toggleHabitLog, userName, removeHabit, friendRequests, fetchFriendRequests } = useStore();
     const { t } = useTranslation();
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
         setMounted(true);
-    }, []);
+        fetchFriendRequests();
+    }, [fetchFriendRequests]);
 
     const now = new Date();
     const todayDayOfWeek = now.getDay();
@@ -127,6 +128,12 @@ export default function Home() {
                         </Link>
                         <Link id="top-settings" href="/settings" className="text-white/60 hover:text-white transition-colors p-3 bg-white/5 rounded-full hover:bg-white/10 flex items-center justify-center active:scale-90">
                             <Settings size={20} />
+                        </Link>
+                        <Link id="top-friends" href="/friends" className="text-white/60 hover:text-white transition-colors p-3 bg-white/5 rounded-full hover:bg-white/10 flex items-center justify-center active:scale-90 relative">
+                            <Users size={20} />
+                            {mounted && friendRequests.length > 0 && (
+                                <span className="absolute top-2 right-2 w-2 h-2 bg-[var(--zenith-active)] rounded-full shadow-[0_0_8px_var(--zenith-active)]" />
+                            )}
                         </Link>
                         {allActiveHabits.length > 0 && (
                             <Link id="top-plus" href="/habit/new" className="text-white/60 hover:text-white transition-colors p-3 bg-white/5 rounded-full hover:bg-white/10 flex items-center justify-center active:scale-90">

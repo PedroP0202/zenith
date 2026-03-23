@@ -192,5 +192,21 @@ export const pt = {
             title: "Ajuda a Moldar o Futuro",
             desc: "Como estamos em Beta, usa o botão flutuante de 'Feedback' para nos enviares as tuas sugestões."
         }
+    },
+    social: {
+        title: "Social",
+        search: "Procurar utilizadores...",
+        friends: "Amigos",
+        requests: "Pedidos",
+        emptyFriends: "Ainda não tens amigos. Espalha o Zenith!",
+        emptyRequests: "Sem pedidos pendentes.",
+        sendRequest: "Adicionar",
+        accept: "Aceitar",
+        decline: "Recusar",
+        compare: "Comparar",
+        searchResult: "Resultados da Pesquisa",
+        requestSent: "Pedido enviado!",
+        alreadyFriends: "Já são amigos",
+        pending: "Pendente"
     }
 };

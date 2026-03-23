@@ -1,20 +1,31 @@
 'use client';
 
 import { useStore } from '../../store/useStore';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, Trophy, Crown, Loader2, Play, ShieldCheck } from 'lucide-react';
+import { ChevronLeft, Trophy, Crown, Loader2, Play, ShieldCheck, Orbit, Cloud, Sparkles, Zap, Star } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_URL } from '@/utils/constants';
 
 interface LeaderboardEntry {
     id: string;
     name: string;
+    username: string;
     score: number;
 }
 
+const TIERS = [
+    { name: 'Zenith', min: 1000, color: 'text-white', glow: 'shadow-[0_0_20px_rgba(255,255,255,0.4)]', bg: 'bg-white/10 ring-1 ring-white/30' },
+    { name: 'Quasar', min: 450, color: 'text-purple-400', glow: 'shadow-[0_0_15px_rgba(168,85,247,0.4)]', bg: 'bg-purple-500/10 ring-1 ring-purple-500/20' },
+    { name: 'Supernova', min: 150, color: 'text-orange-400', glow: 'shadow-[0_0_10px_rgba(251,146,60,0.4)]', bg: 'bg-orange-500/10 ring-1 ring-orange-500/20' },
+    { name: 'Nebulosa', min: 50, color: 'text-blue-400', glow: '', bg: 'bg-blue-500/10 ring-1 ring-blue-500/20' },
+    { name: 'Órbita', min: 0, color: 'text-zinc-400', glow: '', bg: 'bg-white/[0.03]' },
+];
+
+const getTier = (score: number) => TIERS.find(t => score >= t.min) || TIERS[TIERS.length - 1];
+
 export default function LeaderboardPage() {
-    const { optInLeaderboard, setOptInLeaderboard, jwt, userName } = useStore();
+    const { optInLeaderboard, setOptInLeaderboard, jwt, userName, username: myUsername } = useStore();
     const router = useRouter();
     const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
     const [loading, setLoading] = useState(false);
@@ -22,13 +33,7 @@ export default function LeaderboardPage() {
     const [showConsent, setShowConsent] = useState(false);
     const [showOptOut, setShowOptOut] = useState(false);
 
-    useEffect(() => {
-        if (optInLeaderboard && jwt) {
-            fetchLeaderboard();
-        }
-    }, [optInLeaderboard, jwt]);
-
-    const fetchLeaderboard = async () => {
+    const fetchLeaderboard = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
@@ -37,13 +42,20 @@ export default function LeaderboardPage() {
             });
             const data = await res.json();
             if (!res.ok) throw new Error(`(${res.status}) ${data?.error || 'Erro desconhecido'}`);
-            setLeaderboard(data.leaderboard);
-        } catch (e: any) {
-            setError(e.message);
+            setLeaderboard(data.leaderboard || []);
+        } catch (err: any) {
+            console.error("[ARENA] Fetch failed:", err);
+            setError(err.message || 'Erro ao carregar a arena.');
         } finally {
             setLoading(false);
         }
-    };
+    }, [jwt]);
+
+    useEffect(() => {
+        if (optInLeaderboard && jwt) {
+            fetchLeaderboard();
+        }
+    }, [optInLeaderboard, jwt, fetchLeaderboard]);
 
     const handleOptIn = () => {
         setOptInLeaderboard(true);
@@ -197,31 +209,55 @@ export default function LeaderboardPage() {
                                     A arena está vazia de momento.
                                 </div>
                             ) : (
-                                <div className="space-y-3">
-                                    {leaderboard.map((entry, index) => {
-                                        const isMe = entry.name === userName;
-                                        const rank = index + 1;
-                                        
-                                        let rankColor = "text-white/40";
-                                        let rankBadge = <span className="font-mono text-lg opacity-50">{rank}</span>;
-                                        let containerBg = isMe ? "bg-white/10 border border-white/20" : "bg-white/[0.02]";
-                                        
-                                        if (rank === 1) {
-                                            rankColor = "text-yellow-500";
-                                            rankBadge = <Crown size={20} className="text-yellow-500 drop-shadow-[0_0_8px_rgba(234,179,8,0.8)]" />;
-                                            containerBg = isMe ? "bg-yellow-500/10 border border-yellow-500/30" : "bg-gradient-to-r from-yellow-500/5 to-transparent border border-yellow-500/10";
-                                        } else if (rank === 2) {
-                                            rankColor = "text-zinc-300";
-                                            rankBadge = <span className="font-mono text-lg text-zinc-300 font-bold">2</span>;
-                                        } else if (rank === 3) {
-                                            rankColor = "text-amber-600";
-                                            rankBadge = <span className="font-mono text-lg text-amber-600 font-bold">3</span>;
-                                        }
+                                <div className="space-y-4 pb-20">
+                                    {/* Personal Stats Header */}
+                                    {leaderboard.length > 0 && (
+                                        <div className="mb-6 px-1">
+                                            {(() => {
+                                                const myEntryIndex = leaderboard.findIndex(e => e.username === myUsername);
+                                                const myEntry = myEntryIndex !== -1 ? leaderboard[myEntryIndex] : null;
+                                                
+                                                if (!myEntry) return null;
 
+                                                const nextEntry = myEntryIndex > 0 ? leaderboard[myEntryIndex - 1] : null;
+                                                const tier = getTier(myEntry.score);
+                                                
+                                                return (
+                                                    <div className="flex items-center justify-between p-6 rounded-[2.5rem] bg-gradient-to-br from-white/[0.08] to-transparent border border-white/10 shadow-2xl">
+                                                        <div className="flex flex-col gap-1">
+                                                            <p className="text-[10px] uppercase tracking-[0.2em] font-black text-white/30 mb-0.5">O teu Cosmos</p>
+                                                            <div className="flex items-center gap-2">
+                                                                <span className={`text-base font-black ${tier.color}`}>{tier.name}</span>
+                                                                <div className="w-1 h-1 rounded-full bg-white/20" />
+                                                                <span className="text-xl font-black tracking-tight">{myEntry.score} pts</span>
+                                                            </div>
+                                                        </div>
+                                                        {nextEntry && (
+                                                            <div className="text-right">
+                                                                <p className="text-[10px] uppercase tracking-[0.2em] font-black text-white/30 mb-0.5">Próximo Rank</p>
+                                                                <p className="text-xs font-medium text-white/60">
+                                                                    Faltam <span className="text-white font-bold">{(nextEntry.score - myEntry.score) + 1}</span> para o {myEntryIndex}º lugar
+                                                                </p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })()}
+                                        </div>
+                                    )}
+
+                                    {leaderboard.map((entry, index) => {
+                                        const isMe = entry.username === myUsername;
+                                        const rank = index + 1;
+                                        const tier = getTier(entry.score);
+                                        
+                                        let rankBadge = <span className="font-mono text-lg opacity-30">{rank}</span>;
+                                        if (rank === 1) rankBadge = <Crown size={20} className="text-yellow-500 drop-shadow-[0_0_8px_rgba(234,179,8,0.8)]" />;
+                                        
                                         return (
                                             <motion.div 
                                                 key={entry.id}
-                                                className={`flex items-center justify-between p-4 rounded-3xl ${containerBg}`}
+                                                className={`flex items-center justify-between p-5 rounded-[2rem] transition-all border border-transparent ${tier.bg} ${isMe ? 'ring-2 ring-white/20 !bg-white/10 border-white/10' : ''} ${tier.glow}`}
                                                 initial={{ opacity: 0, x: -10 }}
                                                 animate={{ opacity: 1, x: 0 }}
                                                 transition={{ delay: Math.min(index * 0.05, 1) }}
@@ -230,13 +266,28 @@ export default function LeaderboardPage() {
                                                     <div className="w-8 flex justify-center">
                                                         {rankBadge}
                                                     </div>
-                                                    <span className={`font-medium ${isMe ? 'text-white' : 'text-white/80'}`}>
-                                                        {entry.name} {isMe && <span className="text-[10px] text-white/40 ml-2 uppercase">(Tu)</span>}
-                                                    </span>
+                                                    <div className="flex flex-col">
+                                                        <span className={`text-sm font-black tracking-tight ${isMe ? 'text-white' : 'text-white/90'}`}>
+                                                            {entry.name}
+                                                        </span>
+                                                        <span className="text-[10px] text-white/30 font-mono">
+                                                            @{entry.username || 'user'}
+                                                        </span>
+                                                    </div>
                                                 </div>
-                                                <span className={`font-mono text-lg font-bold tracking-tighter ${rankColor}`}>
-                                                    {entry.score}
-                                                </span>
+                                                <div className="flex items-center gap-3">
+                                                    <div className="flex flex-col items-end">
+                                                        <span className="text-sm font-black tracking-tight">{entry.score}</span>
+                                                        <span className={`text-[8px] uppercase tracking-widest font-black ${tier.color}`}>{tier.name}</span>
+                                                    </div>
+                                                    <div className={`p-2 rounded-full bg-white/5 ${tier.color}`}>
+                                                        {tier.name === 'Zenith' && <Star size={14} className="animate-pulse" />}
+                                                        {tier.name === 'Quasar' && <Zap size={14} />}
+                                                        {tier.name === 'Supernova' && <Sparkles size={14} />}
+                                                        {tier.name === 'Nebulosa' && <Cloud size={14} />}
+                                                        {tier.name === 'Órbita' && <Orbit size={14} />}
+                                                    </div>
+                                                </div>
                                             </motion.div>
                                         );
                                     })}

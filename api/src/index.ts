@@ -46,6 +46,7 @@ const registerSchema = z.object({
     email: z.string().email(),
     password: z.string().min(8),
     code: z.string().length(6),
+    username: z.string().min(3).max(20).optional(),
     hp: z.string().optional()
 });
 
@@ -311,7 +312,7 @@ app.post('/auth/send-code', zValidator('json', sendCodeSchema), async (c) => {
 });
 
 app.post('/auth/register', zValidator('json', registerSchema.extend({ language: z.string().optional() })), async (c) => {
-    const { name, email, password, code, language, hp } = c.req.valid('json');
+    const { name, email, password, code, language, username, hp } = c.req.valid('json');
     if (hp) return c.json({ error: 'Erro ao processar registo.' }, 400); // Or silent fail
 
     const ip = c.req.header('CF-Connecting-IP') || 'local';
@@ -346,9 +347,17 @@ app.post('/auth/register', zValidator('json', registerSchema.extend({ language: 
     const createdAt = Date.now();
     const userName = name || 'User';
 
+    // Generate a unique username if not provided
+    let finalUsername = username;
+    if (!finalUsername) {
+        const base = userName.toLowerCase().replace(/\s/g, '').substring(0, 10);
+        const random = Math.floor(1000 + Math.random() * 9000);
+        finalUsername = `${base}_${random}`;
+    }
+
     try {
-        await db.prepare('INSERT INTO users (id, name, email, password_hash, is_verified, created_at, language) VALUES (?, ?, ?, ?, ?, ?, ?)')
-            .bind(id, userName, email, passwordHash, 1, createdAt, userLanguage)
+        await db.prepare('INSERT INTO users (id, name, email, password_hash, is_verified, created_at, language, username) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+            .bind(id, userName, email, passwordHash, 1, createdAt, userLanguage, finalUsername)
             .run();
 
         // Delete the code after use
@@ -375,7 +384,7 @@ app.post('/auth/login', zValidator('json', loginSchema), async (c) => {
 
     const db = c.env.DB;
 
-    type UserRow = { id: string, name: string, email: string, password_hash: string, language: string, login_attempts: number, lockout_until: number, is_verified: number };
+    type UserRow = { id: string, name: string, email: string, password_hash: string, language: string, login_attempts: number, lockout_until: number, is_verified: number, opt_in_leaderboard: number, username: string };
     const user = await db.prepare('SELECT * FROM users WHERE email = ?').bind(email).first<UserRow>();
 
     if (!user) {
@@ -423,7 +432,7 @@ app.post('/auth/login', zValidator('json', loginSchema), async (c) => {
     const secret = c.env.JWT_SECRET || 'zenith-local-dev-secret';
     const token = await sign({ id: user.id, name: user.name, email: user.email, exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30 }, secret);
 
-    return c.json({ token, user: { id: user.id, name: user.name, email: user.email, language: user.language || 'pt' } });
+    return c.json({ token, user: { id: user.id, name: user.name, email: user.email, language: user.language || 'pt', optInLeaderboard: user.opt_in_leaderboard === 1, username: user.username } });
 });
 
 // User Profile Sync Endpoint
@@ -450,11 +459,27 @@ app.patch('/auth/profile', async (c) => {
     const db = c.env.DB;
 
     try {
+        const body = await c.req.json().catch(() => ({}));
+        const { name, language, optInLeaderboard, username } = body;
+
         const updates: string[] = [];
         const binds: any[] = [];
         if (name !== undefined) { updates.push('name = ?'); binds.push(name); }
         if (language !== undefined) { updates.push('language = ?'); binds.push(language); }
         if (optInLeaderboard !== undefined) { updates.push('opt_in_leaderboard = ?'); binds.push(optInLeaderboard ? 1 : 0); }
+        
+        if (username !== undefined) {
+            const cleanUsername = username.toLowerCase().replace(/[^a-z0-9_]/g, '');
+            if (cleanUsername.length < 3) return c.json({ error: 'Username muito curto (mínimo 3 caracteres).' }, 400);
+
+            // Check if username is already taken by another user
+            const existing = await db.prepare('SELECT id FROM users WHERE username = ? AND id != ?').bind(cleanUsername, userId).first();
+            if (existing) {
+                return c.json({ error: 'Este @username já está a ser usado.' }, 400);
+            }
+            updates.push('username = ?');
+            binds.push(cleanUsername);
+        }
 
         let result = null;
         if (updates.length > 0) {
@@ -486,12 +511,12 @@ app.get('/leaderboard', async (c) => {
     const db = c.env.DB;
     try {
         const { results } = await db.prepare(`
-            SELECT u.id, u.name, COUNT(l.id) as score
+            SELECT u.id, u.name, u.username, COUNT(l.id) as score
             FROM users u
             LEFT JOIN habits h ON h.user_id = u.id AND h.is_active = 1
             LEFT JOIN logs l ON l.habit_id = h.id
             WHERE u.opt_in_leaderboard = 1
-            GROUP BY u.id, u.name
+            GROUP BY u.id, u.name, u.username
             ORDER BY COUNT(l.id) DESC
             LIMIT 50
         `).all();

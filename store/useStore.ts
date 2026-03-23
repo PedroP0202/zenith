@@ -18,6 +18,8 @@ interface AppState {
     logs: LogEntry[];
     /** The user's personalized display name. */
     userName: string;
+    /** The user's unique @handle. */
+    username: string | null;
     /** Current language preference (pt or en) */
     language: Language;
     /** Whether the daily Morning Reminder is enabled. */
@@ -95,6 +97,12 @@ interface AppState {
      * @param name The new display name.
      */
     setUserName: (name: string) => void;
+
+    /**
+     * Updates the user's unique @handle.
+     * @param username The new username.
+     */
+    setUsername: (username: string) => void;
 
     /**
      * Sets the user's preferred language.
@@ -181,9 +189,14 @@ export const useStore = create<AppState>()(
             deletedHabitIds: [],
             hasCompletedOnboarding: false,
             optInLeaderboard: false,
+            username: null,
 
             setUserName: (name) => {
                 set({ userName: name });
+                get().syncProfile().catch(console.error);
+            },
+            setUsername: (username) => {
+                set({ username });
                 get().syncProfile().catch(console.error);
             },
             setLanguage: (language) => {

@@ -32,11 +32,14 @@ export default function SettingsPage() {
         syncWithCloud,
         optInLeaderboard,
         setOptInLeaderboard,
+        username,
+        setUsername
     } = useStore();
     const [mounted, setMounted] = useState(false);
 
     // Local ephemeral states for optimistic rendering
     const [nameInput, setNameInput] = useState("");
+    const [usernameInput, setUsernameInput] = useState("");
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [deletePassword, setDeletePassword] = useState("");
     const [isDeleting, setIsDeleting] = useState(false);
@@ -53,7 +56,8 @@ export default function SettingsPage() {
     useEffect(() => {
         setMounted(true);
         setNameInput(userName);
-    }, [userName]);
+        setUsernameInput(username || "");
+    }, [userName, username]);
 
     if (!mounted) return null;
 
@@ -80,6 +84,15 @@ export default function SettingsPage() {
     const handleSaveName = () => {
         if (nameInput.trim()) {
             setUserName(nameInput.trim());
+        }
+    };
+
+    const handleSaveUsername = () => {
+        if (usernameInput.trim()) {
+            const clean = usernameInput.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
+            if (clean !== username) {
+                setUsername(clean);
+            }
         }
     };
 
@@ -225,6 +238,23 @@ export default function SettingsPage() {
                                     placeholder={t.settings.namePlaceholder}
                                     className="w-full bg-transparent text-lg font-medium outline-none placeholder:text-white/20"
                                     maxLength={24}
+                                />
+                            </div>
+                        </div>
+                        <div className="h-px bg-white/5 mx-2" />
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center">
+                                <span className="text-white/40 font-bold text-sm">@</span>
+                            </div>
+                            <div className="flex-1">
+                                <input
+                                    type="text"
+                                    value={usernameInput}
+                                    onChange={(e) => setUsernameInput(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                                    onBlur={handleSaveUsername}
+                                    placeholder="username"
+                                    className="w-full bg-transparent text-base font-mono text-white/60 outline-none placeholder:text-white/20"
+                                    maxLength={20}
                                 />
                             </div>
                         </div>

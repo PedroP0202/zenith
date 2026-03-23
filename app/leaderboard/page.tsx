@@ -3,7 +3,7 @@
 import { useStore } from '../../store/useStore';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, Trophy, Crown, Loader2, Play } from 'lucide-react';
+import { ChevronLeft, Trophy, Crown, Loader2, Play, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_URL } from '@/utils/constants';
 
@@ -19,6 +19,8 @@ export default function LeaderboardPage() {
     const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [showConsent, setShowConsent] = useState(false);
+    const [showOptOut, setShowOptOut] = useState(false);
 
     useEffect(() => {
         if (optInLeaderboard && jwt) {
@@ -45,10 +47,13 @@ export default function LeaderboardPage() {
 
     const handleOptIn = () => {
         setOptInLeaderboard(true);
+        setShowConsent(false);
     };
 
     const handleOptOut = () => {
         setOptInLeaderboard(false);
+        setShowOptOut(false);
+        setShowConsent(false);
     };
 
     return (
@@ -62,17 +67,11 @@ export default function LeaderboardPage() {
                         <ChevronLeft size={24} />
                     </button>
                     <h1 className="text-xl font-medium tracking-tight text-white/50">A Arena</h1>
-                    <div className="w-12 flex justify-end">
-                        {optInLeaderboard && (
-                            <button onClick={handleOptOut} className="text-[10px] font-bold text-white/20 hover:text-red-500 transition-colors uppercase tracking-widest">
-                                Sair
-                            </button>
-                        )}
-                    </div>
+                    <div className="w-12" />
                 </header>
 
                 <AnimatePresence mode="wait">
-                    {!optInLeaderboard ? (
+                    {!optInLeaderboard && !showConsent && (
                         <motion.div 
                             key="gate"
                             className="flex-1 flex flex-col items-center justify-center text-center px-4"
@@ -87,14 +86,96 @@ export default function LeaderboardPage() {
                                 Compara a tua dedicação com outros e descobre quem atinge o Zenith. Ao entrar, o teu nome e pontuação global serão visíveis.
                             </p>
                             <button
-                                onClick={handleOptIn}
+                                onClick={() => setShowConsent(true)}
                                 className="bg-white text-black font-bold px-8 py-4 rounded-full flex items-center gap-3 transition-all hover:-translate-y-0.5 active:scale-95 shadow-glow-white hover:shadow-[0_0_25px_rgba(255,255,255,0.25)]"
                             >
                                 <Play size={18} fill="currentColor" />
                                 Juntar à Arena
                             </button>
                         </motion.div>
-                    ) : (
+                    )}
+
+                    {!optInLeaderboard && showConsent && (
+                        <motion.div
+                            key="consent"
+                            className="flex-1 flex flex-col items-start justify-center px-4"
+                            initial={{ opacity: 0, x: 30 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -30 }}
+                            transition={{ duration: 0.4, type: 'spring' }}
+                        >
+                            <ShieldCheck size={32} className="text-white/40 mb-8" strokeWidth={1.5} />
+                            <h2 className="text-2xl font-medium tracking-tight mb-3">Antes de entrares</h2>
+                            <p className="text-white/40 text-sm leading-relaxed mb-10">
+                                Ao juntares-te à Arena, estás a concordar com o seguinte:
+                            </p>
+                            <ul className="space-y-4 mb-12 w-full">
+                                {[
+                                    { icon: '👤', text: 'O teu nome será visível para todos os utilizadores da Arena.' },
+                                    { icon: '🏆', text: 'A tua pontuação (número de hábitos completos) será pública.' },
+                                    { icon: '👁', text: 'Verás os nomes e pontuações de outros utilizadores que participem.' },
+                                    { icon: '🚪', text: 'Podes sair a qualquer momento. O teu perfil ficará imediatamente invisível.' },
+                                ].map((item, i) => (
+                                    <motion.li
+                                        key={i}
+                                        className="flex items-start gap-4 text-sm text-white/60"
+                                        initial={{ opacity: 0, y: 8 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: 0.05 * i }}
+                                    >
+                                        <span className="w-7 shrink-0 text-center text-base mt-px">{item.icon}</span>
+                                        <span className="leading-relaxed">{item.text}</span>
+                                    </motion.li>
+                                ))}
+                            </ul>
+                            <div className="flex flex-col gap-3 w-full">
+                                <button
+                                    onClick={handleOptIn}
+                                    className="bg-white text-black font-bold px-8 py-4 rounded-full flex items-center justify-center gap-3 transition-all active:scale-95"
+                                >
+                                    Concordo — Entrar
+                                </button>
+                                <button
+                                    onClick={() => setShowConsent(false)}
+                                    className="text-white/30 text-sm py-3 hover:text-white/60 transition-colors text-center"
+                                >
+                                    Cancelar
+                                </button>
+                            </div>
+                        </motion.div>
+                    )}
+                    {optInLeaderboard && showOptOut && (
+                        <motion.div
+                            key="optout"
+                            className="flex-1 flex flex-col items-start justify-center px-4"
+                            initial={{ opacity: 0, x: 30 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -30 }}
+                            transition={{ duration: 0.4, type: 'spring' }}
+                        >
+                            <span className="text-4xl mb-8">🚪</span>
+                            <h2 className="text-2xl font-medium tracking-tight mb-3">Sair da Arena?</h2>
+                            <p className="text-white/40 text-sm leading-relaxed mb-10">
+                                Se saíres, o teu nome e pontuação deixarão de ser visíveis para outros utilizadores imediatamente. Podes reentrar quando quiseres, mas os teus dados escolhidos voltarão a ser públicos.
+                            </p>
+                            <div className="flex flex-col gap-3 w-full">
+                                <button
+                                    onClick={handleOptOut}
+                                    className="bg-red-500/10 text-red-400 border border-red-500/20 font-bold px-8 py-4 rounded-full transition-all active:scale-95 hover:bg-red-500/20"
+                                >
+                                    Confirmar Saída
+                                </button>
+                                <button
+                                    onClick={() => setShowOptOut(false)}
+                                    className="text-white/30 text-sm py-3 hover:text-white/60 transition-colors text-center"
+                                >
+                                    Ficar na Arena
+                                </button>
+                            </div>
+                        </motion.div>
+                    )}
+
+                    {optInLeaderboard && !showOptOut && (
                         <motion.div
                             key="leaderboard"
                             className="flex-1 flex flex-col"

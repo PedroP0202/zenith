@@ -3,7 +3,7 @@
 import { useStore } from "@/store/useStore";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Settings as SettingsIcon, Bell, ChevronLeft, UserIcon, Cloud, Globe, Lock, Loader2, Eye, EyeOff, Mail } from "lucide-react";
+import { Settings as SettingsIcon, Bell, ChevronLeft, UserIcon, Cloud, Globe, Lock, Loader2, Eye, EyeOff, Mail, Trophy } from "lucide-react";
 import { scheduleAllNotifications, cancelAllNotifications, requestNotificationPermissions, sendTestNotification } from "@/utils/notifications";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -29,7 +29,9 @@ export default function SettingsPage() {
         logout,
         syncStatus,
         lastSyncedAt,
-        syncWithCloud
+        syncWithCloud,
+        optInLeaderboard,
+        setOptInLeaderboard,
     } = useStore();
     const [mounted, setMounted] = useState(false);
 
@@ -439,6 +441,34 @@ export default function SettingsPage() {
                         </a>
                     </div>
                 </motion.section>
+
+                {/* Arena Section */}
+                {optInLeaderboard && (
+                    <motion.section
+                        initial={{ opacity: 0, y: 16 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.45, delay: 0.23, type: 'spring', bounce: 0.15 }}
+                    >
+                        <h2 className="text-sm uppercase tracking-widest text-white/40 mb-3 ml-2 font-medium">A Arena</h2>
+                        <div className="bg-white/[0.03] rounded-3xl p-5 border border-white/5 flex items-center justify-between card-press">
+                            <div className="flex items-center gap-4">
+                                <div className="text-white/40">
+                                    <Trophy className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <h3 className="text-base font-medium">Arena Global</h3>
+                                    <p className="text-xs text-white/50 mt-1 leading-relaxed max-w-[200px]">O teu nome e pontuação estão visíveis para outros.</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setOptInLeaderboard(false)}
+                                className="text-[11px] font-bold text-red-400 bg-red-400/10 px-4 py-2 rounded-xl transition-colors hover:bg-red-400/20 active:scale-95 uppercase tracking-wider"
+                            >
+                                Sair
+                            </button>
+                        </div>
+                    </motion.section>
+                )}
 
                 {/* Danger Zone Section */}
                 <motion.section

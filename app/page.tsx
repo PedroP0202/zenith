@@ -38,6 +38,25 @@ export default function Home() {
 
     const dateStr = mounted ? format(now, "MMM do, yyyy", { locale: enUS }) : t.common.loading;
 
+    // Gamification Logic
+    let completedTodayCount = 0;
+    habitsForToday.forEach(habit => {
+        const habitLogs = logs.filter(l => l.habitId === habit.id);
+        if (isCompletedToday(habitLogs)) completedTodayCount++;
+    });
+    const todayCompletionPercentage = habitsForToday.length > 0 ? (completedTodayCount / habitsForToday.length) * 100 : 0;
+    const currentComboMultiplier = completedTodayCount + 1;
+
+    const totalCompletions = logs.length;
+    let userRank = "Initiate";
+    if (totalCompletions >= 365) userRank = "Zenith";
+    else if (totalCompletions >= 100) userRank = "Ascendant";
+    else if (totalCompletions >= 30) userRank = "Seeker";
+    else if (totalCompletions >= 7) userRank = "Voyager";
+
+    const orbY = 100 - (todayCompletionPercentage * 0.8); // 100% to 20% from top
+    const orbOpacity = 0.05 + (todayCompletionPercentage / 100) * 0.25;
+
     // Framer Motion Variants for Stagger Effect
     const containerVariants = {
         hidden: { opacity: 0 },
@@ -51,8 +70,21 @@ export default function Home() {
     };
 
     return (
-        <main className="min-h-[100dvh] bg-black text-white p-6 pb-24 font-sans flex flex-col items-center">
-            <div className="w-full max-w-md pt-8">
+        <main className="min-h-[100dvh] bg-black text-white p-6 pb-24 font-sans flex flex-col items-center overflow-x-hidden relative">
+            {mounted && (
+                <motion.div 
+                    className="pointer-events-none fixed left-1/2 -translate-x-1/2 w-[120vw] md:w-[600px] h-[600px] rounded-full blur-[120px] z-0 transition-all duration-1000 ease-out"
+                    style={{
+                        top: `${orbY}%`,
+                        opacity: orbOpacity,
+                        backgroundColor: todayCompletionPercentage === 100 ? '#eab308' : '#ffffff'
+                    }}
+                    animate={todayCompletionPercentage === 100 ? { scale: [1, 1.05, 1], opacity: [orbOpacity, orbOpacity + 0.1, orbOpacity] } : {}}
+                    transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
+                />
+            )}
+            
+            <div className="w-full max-w-md pt-8 relative z-10">
                 <motion.header
                     className="mb-14 flex justify-between items-start"
                     initial={{ opacity: 0, y: -16 }}
@@ -69,6 +101,19 @@ export default function Home() {
                         <h2 className="text-[2.2rem] leading-tight font-medium tracking-tight text-white/50 truncate max-w-full">
                             {userName}
                         </h2>
+                        {mounted && (
+                            <motion.div 
+                                className="flex items-center gap-2 mt-2"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ delay: 0.3 }}
+                            >
+                                <div className={`w-1.5 h-1.5 rounded-full ${totalCompletions >= 365 ? 'bg-yellow-500 shadow-[0_0_10px_rgba(234,179,8,0.8)]' : 'bg-white/30'}`} />
+                                <span className={`text-[11px] font-bold tracking-[0.2em] uppercase ${totalCompletions >= 365 ? 'text-yellow-500/90' : 'text-white/40'}`}>
+                                    {userRank}
+                                </span>
+                            </motion.div>
+                        )}
                     </div>
 
                     <motion.div
@@ -145,6 +190,7 @@ export default function Home() {
                                                     habit={habit}
                                                     streak={streak}
                                                     doneToday={doneToday}
+                                                    comboMultiplier={currentComboMultiplier}
                                                     onToggle={() => toggleHabitLog(habit.id)}
                                                     onDelete={() => removeHabit(habit.id)}
                                                 />

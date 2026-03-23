@@ -85,6 +85,7 @@ export default function TrashPage() {
                     if (habitToDelete) {
                         permanentlyDeleteHabit(habitToDelete);
                         setHabitToDelete(null);
+                        setShowDeleteModal(false);
                     }
                 }}
                 title={t.habit.permanentlyDelete}

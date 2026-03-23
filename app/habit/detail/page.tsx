@@ -1,6 +1,6 @@
 'use client';
 import { useStore } from '../../../store/useStore';
-import { calculateStreak } from '../../../utils/streak';
+import { calculateStreak, getBestStreak } from '../../../utils/streak';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ChevronLeft, Trash2, Loader2 } from 'lucide-react';
 import { Suspense, useState, useEffect, useRef } from 'react';
@@ -28,6 +28,8 @@ function HabitDetailContent() {
     const habit = habits.find((h: Habit) => h.id === id);
     const habitLogs = logs.filter((l: LogEntry) => l.habitId === id);
     const streak = calculateStreak(habitLogs, habit?.frequency);
+    const bestStreak = getBestStreak(habitLogs, habit?.frequency);
+    const milestones = [7, 30, 90, 365];
 
     useEffect(() => {
         if (habit) {
@@ -165,6 +167,45 @@ function HabitDetailContent() {
                             )}
                         </div>
                     </motion.div>
+
+                    {/* Constellation Badges */}
+                    {bestStreak >= 7 && (
+                        <motion.div 
+                            className="mt-8 mb-4 h-12 flex items-center justify-center pointer-events-auto"
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.4, duration: 0.8 }}
+                        >
+                            {milestones.map((m, i) => {
+                                const reached = bestStreak >= m;
+                                const isZenith = m === 365;
+                                // Only show up to the next unreached milestone to keep it minimal
+                                if (i > 0 && !reached && bestStreak < milestones[i-1]) return null;
+                                
+                                return (
+                                    <div key={m} className={`flex items-center ${!reached ? 'opacity-30' : 'opacity-100'}`}>
+                                        <div 
+                                            className="relative group cursor-pointer p-2 hover:scale-150 transition-transform active:scale-90"
+                                            onClick={() => {
+                                                if (reached) {
+                                                    if (isZenith) deviceHaptics.heavyImpact();
+                                                    else deviceHaptics.mediumImpact();
+                                                } else {
+                                                    deviceHaptics.lightImpact();
+                                                }
+                                            }}
+                                        >
+                                            <div className={`w-2 h-2 rounded-full transition-all duration-500 ${reached ? (isZenith ? 'bg-yellow-500 shadow-[0_0_12px_rgba(234,179,8,0.8)]' : 'bg-white shadow-[0_0_10px_rgba(255,255,255,0.8)]') : 'bg-white/20'}`} />
+                                            <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[9px] font-bold tracking-[0.2em] text-white/40">{m}</span>
+                                        </div>
+                                        {i < milestones.length - 1 && (bestStreak >= m || i === 0) && (
+                                            <div className={`w-8 h-[1px] transition-all duration-700 ${reached ? 'bg-white/40' : 'bg-white/10'}`} />
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </motion.div>
+                    )}
 
                     {/* Lembrete Secção (Specific Notification) */}
                     <motion.div

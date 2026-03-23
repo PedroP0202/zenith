@@ -16,9 +16,10 @@ interface SwipeableHabitProps {
     doneToday: boolean;
     onToggle: () => void;
     onDelete: () => void;
+    comboMultiplier?: number;
 }
 
-export default function SwipeableHabit({ habit, streak, doneToday, onToggle, onDelete }: SwipeableHabitProps) {
+export default function SwipeableHabit({ habit, streak, doneToday, onToggle, onDelete, comboMultiplier = 1 }: SwipeableHabitProps) {
     const x = useMotionValue(0);
     const { t } = useTranslation();
     const controls = useAnimation();
@@ -131,8 +132,10 @@ export default function SwipeableHabit({ habit, streak, doneToday, onToggle, onD
                             onToggle();
 
                             if (!doneToday) {
-                                deviceHaptics.success();
-                                deviceHaptics.playSuccessSound();
+                                if (comboMultiplier >= 3) deviceHaptics.heavyImpact();
+                                else if (comboMultiplier === 2) deviceHaptics.mediumImpact();
+                                else deviceHaptics.success();
+                                deviceHaptics.playSuccessSound(comboMultiplier);
                                 setShowPulse(true);
                                 setTimeout(() => setShowPulse(false), 600);
                             } else {
@@ -154,7 +157,7 @@ export default function SwipeableHabit({ habit, streak, doneToday, onToggle, onD
                     {/* Completion pulse ring */}
                     {showPulse && (
                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <div className="w-12 h-12 rounded-[16px] animate-pulse-glow bg-white/30" />
+                            <div className={`w-12 h-12 rounded-[16px] animate-pulse-glow ${comboMultiplier >= 3 ? 'bg-orange-500/30' : comboMultiplier === 2 ? 'bg-yellow-500/30' : 'bg-white/30'}`} />
                         </div>
                     )}
                 </div>

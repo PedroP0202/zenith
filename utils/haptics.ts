@@ -13,8 +13,9 @@ class HapticsController {
     /**
      * Plays a short, pleasant success tone using Web Audio API.
      * Works on both Web and Native.
+     * @param comboMultiplier Increases the pitch of the sound based on consecutive actions.
      */
-    playSuccessSound() {
+    playSuccessSound(comboMultiplier: number = 1) {
         if (typeof window === 'undefined') return;
         try {
             const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
@@ -29,8 +30,14 @@ class HapticsController {
             gain.connect(ctx.destination);
 
             const now = ctx.currentTime;
-            osc.frequency.setValueAtTime(523.25, now); // C5
-            osc.frequency.exponentialRampToValueAtTime(880, now + 0.1); // A5
+            
+            // Pitch increases by ~10% per combo multiplier step
+            const pitchIncrement = 1 + (comboMultiplier - 1) * 0.1;
+            const baseFreq = 523.25 * pitchIncrement; // C5 baseline
+            const peakFreq = 880 * pitchIncrement;    // A5 peak
+
+            osc.frequency.setValueAtTime(baseFreq, now);
+            osc.frequency.exponentialRampToValueAtTime(peakFreq, now + 0.1);
 
             gain.gain.setValueAtTime(0, now);
             gain.gain.linearRampToValueAtTime(0.2, now + 0.05);

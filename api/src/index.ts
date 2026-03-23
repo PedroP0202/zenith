@@ -486,13 +486,13 @@ app.get('/leaderboard', async (c) => {
     const db = c.env.DB;
     try {
         const { results } = await db.prepare(`
-            SELECT u.id, u.name, COUNT(l.id) as score 
+            SELECT u.id, u.name, COUNT(l.id) as score
             FROM users u
-            LEFT JOIN habits h ON u.id = h.user_id
-            LEFT JOIN logs l ON h.id = l.habit_id AND l.habit_id IN (SELECT id FROM habits WHERE is_active = 1)
+            LEFT JOIN habits h ON h.user_id = u.id AND h.is_active = 1
+            LEFT JOIN logs l ON l.habit_id = h.id
             WHERE u.opt_in_leaderboard = 1
-            GROUP BY u.id
-            ORDER BY score DESC
+            GROUP BY u.id, u.name
+            ORDER BY COUNT(l.id) DESC
             LIMIT 50
         `).all();
         

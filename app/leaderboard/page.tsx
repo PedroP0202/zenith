@@ -35,8 +35,8 @@ export default function LeaderboardPage() {
             const res = await fetch(`${API_URL}/leaderboard`, {
                 headers: { 'Authorization': `Bearer ${jwt}` }
             });
-            if (!res.ok) throw new Error('Falha ao aceder à Arena.');
             const data = await res.json();
+            if (!res.ok) throw new Error(`(${res.status}) ${data?.error || 'Erro desconhecido'}`);
             setLeaderboard(data.leaderboard);
         } catch (e: any) {
             setError(e.message);

@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS users (
     login_attempts INTEGER DEFAULT 0,
     lockout_until INTEGER DEFAULT 0,
     is_verified BOOLEAN NOT NULL DEFAULT 0,
+    opt_in_leaderboard BOOLEAN NOT NULL DEFAULT 0,
     created_at INTEGER NOT NULL
 );
 

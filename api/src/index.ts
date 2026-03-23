@@ -443,20 +443,23 @@ app.patch('/auth/profile', async (c) => {
 
     const userId = payload.id;
     const body = await c.req.json().catch(() => ({}));
-    const { name, language } = body;
+    const { name, language, optInLeaderboard } = body;
 
-    console.log(`[AUTH_PROFILE] User=${userId}, PayloadName=${name}, PayloadLang=${language}`);
+    console.log(`[AUTH_PROFILE] User=${userId}, PayloadName=${name}, PayloadLang=${language}, OptIn=${optInLeaderboard}`);
 
     const db = c.env.DB;
 
     try {
-        let result;
-        if (name && language) {
-            result = await db.prepare('UPDATE users SET name = ?, language = ? WHERE id = ?').bind(name, language, userId).run();
-        } else if (name) {
-            result = await db.prepare('UPDATE users SET name = ? WHERE id = ?').bind(name, userId).run();
-        } else if (language) {
-            result = await db.prepare('UPDATE users SET language = ? WHERE id = ?').bind(language, userId).run();
+        const updates: string[] = [];
+        const binds: any[] = [];
+        if (name !== undefined) { updates.push('name = ?'); binds.push(name); }
+        if (language !== undefined) { updates.push('language = ?'); binds.push(language); }
+        if (optInLeaderboard !== undefined) { updates.push('opt_in_leaderboard = ?'); binds.push(optInLeaderboard ? 1 : 0); }
+
+        let result = null;
+        if (updates.length > 0) {
+            binds.push(userId);
+            result = await db.prepare(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`).bind(...binds).run();
         }
 
         console.log(`[AUTH_PROFILE] DB Result:`, JSON.stringify(result));
@@ -464,6 +467,38 @@ app.patch('/auth/profile', async (c) => {
     } catch (e: any) {
         console.error(`[AUTH_PROFILE] Error:`, e.message);
         return c.json({ error: 'Erro ao atualizar perfil: ' + e.message }, 500);
+    }
+});
+
+app.get('/leaderboard', async (c) => {
+    const authHeader = c.req.header('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return c.json({ error: 'Não autorizado' }, 401);
+    }
+    const token = authHeader.split(' ')[1];
+    const secret = c.env.JWT_SECRET || 'zenith-local-dev-secret';
+    try {
+        await verify(token, secret, 'HS256');
+    } catch {
+        return c.json({ error: 'Token inválido' }, 401);
+    }
+
+    const db = c.env.DB;
+    try {
+        const { results } = await db.prepare(`
+            SELECT u.id, u.name, COUNT(l.id) as score 
+            FROM users u
+            LEFT JOIN habits h ON u.id = h.user_id
+            LEFT JOIN logs l ON h.id = l.habit_id AND l.habit_id IN (SELECT id FROM habits WHERE is_active = 1)
+            WHERE u.opt_in_leaderboard = 1
+            GROUP BY u.id
+            ORDER BY score DESC
+            LIMIT 50
+        `).all();
+        
+        return c.json({ leaderboard: results });
+    } catch (e: any) {
+        return c.json({ error: 'Erro ao carregar arena: ' + e.message }, 500);
     }
 });
 

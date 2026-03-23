@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { calculateStreak, isCompletedToday } from '../utils/streak';
 import Link from 'next/link';
-import { Plus, Settings } from 'lucide-react';
+import { Plus, Settings, Trophy } from 'lucide-react';
 import { format } from 'date-fns';
 import { enUS } from 'date-fns/locale';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -122,6 +122,9 @@ export default function Home() {
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.4, delay: 0.2, type: 'spring' }}
                     >
+                        <Link id="top-leaderboard" href="/leaderboard" className="text-white/60 hover:text-white transition-colors p-3 bg-white/5 rounded-full hover:bg-white/10 flex items-center justify-center active:scale-90">
+                            <Trophy size={20} />
+                        </Link>
                         <Link id="top-settings" href="/settings" className="text-white/60 hover:text-white transition-colors p-3 bg-white/5 rounded-full hover:bg-white/10 flex items-center justify-center active:scale-90">
                             <Settings size={20} />
                         </Link>

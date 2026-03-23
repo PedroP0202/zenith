@@ -38,6 +38,8 @@ interface AppState {
     deletedHabitIds: string[];
     /** Whether the user has completed the onboarding flow */
     hasCompletedOnboarding: boolean;
+    /** Whether the user has opted in to the global leaderboard */
+    optInLeaderboard: boolean;
 
     /**
      * Creates a new habit and adds it to the global state.
@@ -152,6 +154,11 @@ interface AppState {
     setHasCompletedOnboarding: (completed: boolean) => void;
 
     /**
+     * Toggles the user's participation in the global leaderboard.
+     */
+    setOptInLeaderboard: (optedIn: boolean) => void;
+
+    /**
      * Checks if the user toggled any habits via the iOS Widget while the app was in the background.
      */
     checkWidgetToggles: () => Promise<void>;
@@ -173,6 +180,7 @@ export const useStore = create<AppState>()(
             syncStatus: 'idle',
             deletedHabitIds: [],
             hasCompletedOnboarding: false,
+            optInLeaderboard: false,
 
             setUserName: (name) => {
                 set({ userName: name });
@@ -192,6 +200,11 @@ export const useStore = create<AppState>()(
             },
             setHasCompletedOnboarding: (completed) => {
                 set({ hasCompletedOnboarding: completed });
+            },
+
+            setOptInLeaderboard: (optedIn) => {
+                set({ optInLeaderboard: optedIn });
+                get().syncProfile().catch(console.error);
             },
 
             clearUserData: () => {
@@ -429,7 +442,7 @@ export const useStore = create<AppState>()(
             },
 
             syncProfile: async () => {
-                const { jwt, userName, language } = get();
+                const { jwt, userName, language, optInLeaderboard } = get();
                 if (!jwt) return;
 
                 try {
@@ -439,7 +452,7 @@ export const useStore = create<AppState>()(
                             'Authorization': `Bearer ${jwt}`,
                             'Content-Type': 'application/json'
                         },
-                        body: JSON.stringify({ name: userName, language })
+                        body: JSON.stringify({ name: userName, language, optInLeaderboard })
                     });
                     const data = await res.json();
                     console.log("[STORE] Profile Sync Response:", data);

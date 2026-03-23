@@ -163,7 +163,7 @@ export default function Onboarding() {
             clearInterval(interval);
             window.removeEventListener('resize', updateTargetRect);
         };
-    }, [step, currentStep.route, pathname, router, updateTargetRect]);
+    }, [step, currentStep.route, pathname, router, updateTargetRect, mounted, hasCompletedOnboarding, allActiveHabits.length, isAuthRoute]);
 
     const handleNext = () => {
         if (step < steps.length) {

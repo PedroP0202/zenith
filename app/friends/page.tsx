@@ -1,7 +1,7 @@
 "use client";
 
 import { useStore } from "@/store/useStore";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, Search, UserPlus, Check, X, Users, Zap, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -35,7 +35,7 @@ export default function FriendsPage() {
             fetchFriends();
             fetchFriendRequests();
         }
-    }, [jwt]);
+    }, [jwt, fetchFriends, fetchFriendRequests]);
 
     const performSearch = useCallback(async () => {
         setSearching(true);

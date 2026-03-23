@@ -1,9 +1,9 @@
 "use client";
 
 import { useStore } from "@/store/useStore";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, zap, Trophy, Target, Loader2 } from "lucide-react";
+import { X, Zap, Trophy, Target, Loader2 } from "lucide-react";
 import { API_URL } from "@/utils/constants";
 
 interface ComparisonModalProps {

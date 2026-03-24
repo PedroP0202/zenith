@@ -475,7 +475,7 @@ export const useStore = create<AppState>()(
             },
 
             syncProfile: async () => {
-                const { jwt, userName, language, optInLeaderboard } = get();
+                const { jwt, userName, language, optInLeaderboard, username } = get();
                 if (!jwt) return;
 
                 try {
@@ -485,7 +485,7 @@ export const useStore = create<AppState>()(
                             'Authorization': `Bearer ${jwt}`,
                             'Content-Type': 'application/json'
                         },
-                        body: JSON.stringify({ name: userName, language, optInLeaderboard })
+                        body: JSON.stringify({ name: userName, language, optInLeaderboard, username })
                     });
                     const data = await res.json();
                     console.log("[STORE] Profile Sync Response:", data);

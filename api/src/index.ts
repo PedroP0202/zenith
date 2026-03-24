@@ -451,11 +451,6 @@ app.patch('/auth/profile', async (c) => {
     }
 
     const userId = payload.id;
-    const body = await c.req.json().catch(() => ({}));
-    const { name, language, optInLeaderboard } = body;
-
-    console.log(`[AUTH_PROFILE] User=${userId}, PayloadName=${name}, PayloadLang=${language}, OptIn=${optInLeaderboard}`);
-
     const db = c.env.DB;
 
     try {
@@ -487,10 +482,8 @@ app.patch('/auth/profile', async (c) => {
             result = await db.prepare(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`).bind(...binds).run();
         }
 
-        console.log(`[AUTH_PROFILE] DB Result:`, JSON.stringify(result));
         return c.json({ success: true, result });
     } catch (e: any) {
-        console.error(`[AUTH_PROFILE] Error:`, e.message);
         return c.json({ error: 'Erro ao atualizar perfil: ' + e.message }, 500);
     }
 });
@@ -503,24 +496,26 @@ app.get('/users/search', async (c) => {
 
     const token = authHeader.replace('Bearer ', '');
     const secret = c.env.JWT_SECRET || 'zenith-local-dev-secret';
+    let payload;
     try {
-        await verify(token, secret, 'HS256');
+        payload = await verify(token, secret, 'HS256');
     } catch {
         return c.json({ error: 'Token inválido' }, 401);
     }
 
+    const userId = payload.id;
     const query = c.req.query('q');
     if (!query || query.length < 2) return c.json({ results: [] });
 
     const db = c.env.DB;
     try {
-        // Search by username or name, excluding sensitive fields
+        // Search by username or name, excluding current user and sensitive fields
         const { results } = await db.prepare(`
             SELECT id, name, username 
             FROM users 
-            WHERE (username LIKE ? OR name LIKE ?) 
+            WHERE (username LIKE ? OR name LIKE ?) AND id != ?
             LIMIT 10
-        `).bind(`%${query}%`, `%${query}%`).all();
+        `).bind(`%${query}%`, `%${query}%`, userId).all();
         
         return c.json({ results });
     } catch (e: any) {

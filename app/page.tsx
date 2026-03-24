@@ -122,9 +122,15 @@ export default function Home() {
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.4, delay: 0.2, type: 'spring' }}
                     >
-                        <Link id="top-settings" href="/settings" className="w-12 h-12 flex items-center justify-center text-white/60 hover:text-white transition-all bg-white/5 border border-white/5 backdrop-blur-md rounded-full hover:bg-white/10 active:scale-90 shadow-[0_4px_20px_rgba(0,0,0,0.2)]">
-                            <Settings size={22} className="opacity-80" />
-                        </Link>
+                        <div className="flex items-center bg-white/5 border border-white/5 backdrop-blur-md rounded-full shadow-[0_4px_20px_rgba(0,0,0,0.2)] p-1 gap-1">
+                            <Link id="top-leaderboard" href="/leaderboard" className="w-10 h-10 flex items-center justify-center text-white/50 hover:text-[#eab308] transition-all rounded-full hover:bg-white/10 active:scale-95" aria-label="Leaderboard">
+                                <Trophy size={18} />
+                            </Link>
+                            <div className="w-[1px] h-4 bg-white/10 mx-1" />
+                            <Link id="top-settings" href="/settings" className="w-10 h-10 flex items-center justify-center text-white/50 hover:text-white transition-all rounded-full hover:bg-white/10 active:scale-95" aria-label="Settings">
+                                <Settings size={18} />
+                            </Link>
+                        </div>
                     </motion.div>
                 </motion.header>
 
@@ -253,6 +259,24 @@ export default function Home() {
             <NotificationOnboarding />
             <BetaFeedback />
             <BetaWelcomeModal />
+
+            {/* Minimalist FAB for Adding Habits */}
+            {allActiveHabits.length > 0 && mounted && (
+                <motion.div
+                    className="fixed bottom-28 right-6 z-40 lg:right-10"
+                    initial={{ opacity: 0, scale: 0.5 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 25, delay: 0.5 }}
+                >
+                    <Link
+                        href="/habit/new"
+                        className="w-14 h-14 bg-gradient-to-tr from-[var(--zenith-active)] to-orange-500 rounded-full flex flex-col items-center justify-center shadow-[0_4px_20px_rgba(234,179,8,0.5)] border-[3px] border-black text-black group hover:scale-105 transition-transform"
+                        aria-label="Add Habit"
+                    >
+                        <Plus size={26} className="text-black fill-black/10 group-hover:scale-110 transition-transform" />
+                    </Link>
+                </motion.div>
+            )}
         </main>
     );
 }

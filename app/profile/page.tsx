@@ -98,9 +98,43 @@ export default function ProfilePage() {
         }
     };
 
+    const [isCheckingUsername, setIsCheckingUsername] = useState(false);
+    const [isUsernameAvailable, setIsUsernameAvailable] = useState<boolean | null>(null);
+
+    useEffect(() => {
+        if (!usernameInput.trim() || usernameInput.toLowerCase() === username?.toLowerCase()) {
+            setIsUsernameAvailable(null);
+            setIsCheckingUsername(false);
+            return;
+        }
+
+        if (usernameInput.length < 3) {
+            setIsUsernameAvailable(false);
+            setIsCheckingUsername(false);
+            return;
+        }
+
+        const debounceTimer = setTimeout(async () => {
+            setIsCheckingUsername(true);
+            try {
+                const res = await fetch(`${API_URL}/auth/check-username?q=${usernameInput}`);
+                const data = await res.json();
+                setIsUsernameAvailable(data.available);
+            } catch (error) {
+                console.error("Error checking username:", error);
+                setIsUsernameAvailable(null);
+            } finally {
+                setIsCheckingUsername(false);
+            }
+        }, 500);
+
+        return () => clearTimeout(debounceTimer);
+    }, [usernameInput, username]);
+
     const handleSaveUsername = () => {
-        if (usernameInput.trim()) {
-            const clean = usernameInput.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
+        // Only save if available or if it's the current username
+        const clean = usernameInput.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
+        if (clean && (isUsernameAvailable || clean === username?.toLowerCase())) {
             if (clean !== username) {
                 setUsername(clean);
             }
@@ -265,7 +299,7 @@ export default function ProfilePage() {
                         <div className="h-px bg-white/5 mx-2" />
                         <div className="flex items-center gap-3">
                             <span className="text-xs uppercase tracking-widest text-[var(--zenith-active)] font-bold w-12 text-right">TAG</span>
-                            <div className="flex-1 pl-2 border-l border-white/10">
+                            <div className="flex-1 pl-2 border-l border-white/10 flex flex-col gap-1">
                                 <div className="flex items-center text-white/40 font-mono text-base">
                                     <span className="mr-0.5">@</span>
                                     <input
@@ -278,6 +312,28 @@ export default function ProfilePage() {
                                         maxLength={20}
                                     />
                                 </div>
+                                {(isUsernameAvailable !== null || isCheckingUsername) && (
+                                    <div className="flex items-center gap-1.5 ml-4">
+                                        {isCheckingUsername ? (
+                                            <>
+                                                <div className="w-1.5 h-1.5 rounded-full bg-white/20 animate-pulse" />
+                                                <span className="text-[10px] text-white/30 uppercase tracking-widest font-bold">{(t as any).usernameChecking}</span>
+                                            </>
+                                        ) : isUsernameAvailable ? (
+                                            <>
+                                                <div className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]" />
+                                                <span className="text-[10px] text-green-500/70 uppercase tracking-widest font-bold">{(t as any).usernameAvailable}</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                                                <span className="text-[10px] text-red-500/70 uppercase tracking-widest font-bold">
+                                                    {usernameInput.length < 3 ? (t as any).usernameShort : (t as any).usernameTaken}
+                                                </span>
+                                            </>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

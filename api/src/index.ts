@@ -488,6 +488,21 @@ app.patch('/auth/profile', async (c) => {
     }
 });
 
+app.get('/auth/check-username', async (c) => {
+    const username = c.req.query('q');
+    if (!username || username.length < 3) return c.json({ available: false, error: 'Mínimo 3 caracteres.' });
+
+    const cleanUsername = username.toLowerCase().replace(/[^a-z0-9_]/g, '');
+    const db = c.env.DB;
+
+    try {
+        const existing = await db.prepare('SELECT id FROM users WHERE username = ?').bind(cleanUsername).first();
+        return c.json({ available: !existing });
+    } catch (e: any) {
+        return c.json({ error: 'Erro ao verificar disponibilidade.' }, 500);
+    }
+});
+
 // --- SOCIAL & FRIENDS ROUTES ---
 
 app.get('/users/search', async (c) => {

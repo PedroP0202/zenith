@@ -82,7 +82,11 @@ export const en = {
             title: "Support",
             contactUs: "Contact Us",
             emailDesc: "Questions or suggestions? Send an email."
-        }
+        },
+        usernameChecking: "Checking...",
+        usernameAvailable: "Available",
+        usernameTaken: "Taken",
+        usernameShort: "Min 3 characters"
     },
     habit: {
         newTitle: "New Habit",

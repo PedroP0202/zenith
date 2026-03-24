@@ -81,8 +81,12 @@ export const pt = {
         support: {
             title: "Suporte",
             contactUs: "Contacta-nos",
-            emailDesc: "Dúvidas ou sugestões? Envia um email."
-        }
+            emailDesc: "Questões ou sugestões? Envia um email."
+        },
+        usernameChecking: "A verificar...",
+        usernameAvailable: "Disponível",
+        usernameTaken: "Indisponível",
+        usernameShort: "Mínimo 3 caracteres"
     },
     habit: {
         newTitle: "Novo Hábito",

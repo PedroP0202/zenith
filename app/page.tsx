@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { calculateStreak, isCompletedToday } from '../utils/streak';
 import Link from 'next/link';
-import { Plus, Settings, Trophy } from 'lucide-react';
+import { Plus, Settings, Trophy, User } from 'lucide-react';
 import { format } from 'date-fns';
 import { enUS } from 'date-fns/locale';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -127,8 +127,8 @@ export default function Home() {
                                 <Trophy size={18} />
                             </Link>
                             <div className="w-[1px] h-4 bg-white/10 mx-1" />
-                            <Link id="top-settings" href="/settings" className="w-10 h-10 flex items-center justify-center text-white/50 hover:text-white transition-all rounded-full hover:bg-white/10 active:scale-95" aria-label="Settings">
-                                <Settings size={18} />
+                            <Link id="top-profile" href="/profile" className="w-10 h-10 flex items-center justify-center text-white/50 hover:text-white transition-all rounded-full hover:bg-white/10 active:scale-95" aria-label="Profile">
+                                <User size={18} />
                             </Link>
                         </div>
                     </motion.div>

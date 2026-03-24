@@ -64,7 +64,7 @@ export default function BetaFeedback() {
                 animate={{ scale: 1, opacity: 1 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={() => setIsOpen(true)}
-                className="fixed bottom-24 right-6 z-50 w-14 h-14 bg-[var(--zenith-active)] text-black rounded-full shadow-[0_8px_32px_rgba(var(--zenith-active-rgb),0.3)] flex items-center justify-center border border-white/20"
+                className="fixed bottom-28 left-6 z-50 w-14 h-14 bg-[var(--zenith-active)] text-black rounded-full shadow-[0_8px_32px_rgba(var(--zenith-active-rgb),0.3)] flex items-center justify-center border border-white/20"
                 id="beta-feedback-fab"
                 aria-label="Dar Feedback Beta"
             >

@@ -117,22 +117,14 @@ export default function Home() {
                     </div>
 
                     <motion.div
-                        className="flex gap-4 mt-6"
+                        className="mt-2"
                         initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.4, delay: 0.2, type: 'spring' }}
                     >
-                        <Link id="top-leaderboard" href="/leaderboard" className="text-white/60 hover:text-white transition-colors p-3 bg-white/5 rounded-full hover:bg-white/10 flex items-center justify-center active:scale-90">
-                            <Trophy size={20} />
+                        <Link id="top-settings" href="/settings" className="w-12 h-12 flex items-center justify-center text-white/60 hover:text-white transition-all bg-white/5 border border-white/5 backdrop-blur-md rounded-full hover:bg-white/10 active:scale-90 shadow-[0_4px_20px_rgba(0,0,0,0.2)]">
+                            <Settings size={22} className="opacity-80" />
                         </Link>
-                        <Link id="top-settings" href="/settings" className="text-white/60 hover:text-white transition-colors p-3 bg-white/5 rounded-full hover:bg-white/10 flex items-center justify-center active:scale-90">
-                            <Settings size={20} />
-                        </Link>
-                        {allActiveHabits.length > 0 && (
-                            <Link id="top-plus" href="/habit/new" className="text-white/60 hover:text-white transition-colors p-3 bg-white/5 rounded-full hover:bg-white/10 flex items-center justify-center active:scale-90">
-                                <Plus size={20} />
-                            </Link>
-                        )}
                     </motion.div>
                 </motion.header>
 

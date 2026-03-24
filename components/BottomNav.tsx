@@ -2,21 +2,26 @@
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, BarChart2 } from 'lucide-react';
+import { Home, BarChart2, Users } from 'lucide-react';
 import { motion, useAnimation, AnimatePresence } from 'framer-motion';
 import { useStore } from '../store/useStore';
 
 const tabs = [
     { href: '/', icon: Home, label: 'Hoje' },
+    { href: '/friends', icon: Users, label: 'Social' },
     { href: '/stats', icon: BarChart2, label: 'Estatísticas' },
 ];
 
 export default function BottomNav() {
     const pathname = usePathname();
-    const { logs } = useStore();
+    const { logs, friendRequests, fetchFriendRequests } = useStore();
     const prevLogCountRef = useRef(logs.length);
     const [showHighlight, setShowHighlight] = useState(false);
     const statsControls = useAnimation();
+
+    useEffect(() => {
+        fetchFriendRequests();
+    }, [fetchFriendRequests]);
 
     useEffect(() => {
         const currentCount = logs.length;
@@ -49,8 +54,7 @@ export default function BottomNav() {
                         style={{
                             width: 44,
                             height: 44,
-                            left: activeIndex === 0 ? 14 : undefined,
-                            right: activeIndex === 1 ? 14 : undefined,
+                            left: 14 + (activeIndex * 56),
                         }}
                         transition={{ type: 'spring', stiffness: 400, damping: 35 }}
                     />
@@ -66,7 +70,7 @@ export default function BottomNav() {
                     <Link
                         key={tab.href}
                         href={tab.href}
-                        id={tab.href === '/' ? 'nav-home' : 'nav-stats'}
+                        id={`nav-${tab.href.replace('/', '') || 'home'}`}
                         className="relative z-10 transition-colors duration-300"
                         aria-label={tab.label}
                     >
@@ -94,7 +98,12 @@ export default function BottomNav() {
                                     </AnimatePresence>
                                 </motion.div>
                             ) : (
-                                <Icon size={24} strokeWidth={isActive ? 2.5 : 2} />
+                                <div className="relative">
+                                    <Icon size={24} strokeWidth={isActive ? 2.5 : 2} />
+                                    {tab.href === '/friends' && friendRequests.length > 0 && (
+                                        <span className="absolute -top-1 -right-1 w-2 h-2 bg-[var(--zenith-active)] rounded-full shadow-[0_0_8px_var(--zenith-active)]" />
+                                    )}
+                                </div>
                             )}
                         </motion.div>
                     </Link>

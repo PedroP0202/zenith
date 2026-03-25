@@ -59,6 +59,39 @@ export default function ProfilePage() {
         setUsernameInput(username || "");
     }, [userName, username]);
 
+    const [isCheckingUsername, setIsCheckingUsername] = useState(false);
+    const [isUsernameAvailable, setIsUsernameAvailable] = useState<boolean | null>(null);
+
+    useEffect(() => {
+        if (!usernameInput.trim() || usernameInput.toLowerCase() === username?.toLowerCase()) {
+            setIsUsernameAvailable(null);
+            setIsCheckingUsername(false);
+            return;
+        }
+
+        if (usernameInput.length < 3) {
+            setIsUsernameAvailable(false);
+            setIsCheckingUsername(false);
+            return;
+        }
+
+        const debounceTimer = setTimeout(async () => {
+            setIsCheckingUsername(true);
+            try {
+                const res = await fetch(`${API_URL}/auth/check-username?q=${usernameInput}`);
+                const data = await res.json();
+                setIsUsernameAvailable(data.available);
+            } catch (error) {
+                console.error("Error checking username:", error);
+                setIsUsernameAvailable(null);
+            } finally {
+                setIsCheckingUsername(false);
+            }
+        }, 500);
+
+        return () => clearTimeout(debounceTimer);
+    }, [usernameInput, username]);
+
     if (!mounted) return null;
 
     // Compute stats
@@ -98,38 +131,6 @@ export default function ProfilePage() {
         }
     };
 
-    const [isCheckingUsername, setIsCheckingUsername] = useState(false);
-    const [isUsernameAvailable, setIsUsernameAvailable] = useState<boolean | null>(null);
-
-    useEffect(() => {
-        if (!usernameInput.trim() || usernameInput.toLowerCase() === username?.toLowerCase()) {
-            setIsUsernameAvailable(null);
-            setIsCheckingUsername(false);
-            return;
-        }
-
-        if (usernameInput.length < 3) {
-            setIsUsernameAvailable(false);
-            setIsCheckingUsername(false);
-            return;
-        }
-
-        const debounceTimer = setTimeout(async () => {
-            setIsCheckingUsername(true);
-            try {
-                const res = await fetch(`${API_URL}/auth/check-username?q=${usernameInput}`);
-                const data = await res.json();
-                setIsUsernameAvailable(data.available);
-            } catch (error) {
-                console.error("Error checking username:", error);
-                setIsUsernameAvailable(null);
-            } finally {
-                setIsCheckingUsername(false);
-            }
-        }, 500);
-
-        return () => clearTimeout(debounceTimer);
-    }, [usernameInput, username]);
 
     const handleSaveUsername = () => {
         // Only save if available or if it's the current username

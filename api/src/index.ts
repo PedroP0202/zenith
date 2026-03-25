@@ -503,6 +503,7 @@ app.get('/auth/check-username', async (c) => {
     }
 });
 
+
 // --- SOCIAL & FRIENDS ROUTES ---
 
 app.get('/users/search', async (c) => {

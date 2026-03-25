@@ -22,7 +22,7 @@ interface Step {
 
 export default function Onboarding() {
     const { t } = useTranslation();
-    const { setHasCompletedOnboarding, habits, hasCompletedOnboarding } = useStore();
+    const { jwt, setHasCompletedOnboarding, habits, hasCompletedOnboarding } = useStore();
     const [step, setStep] = useState(1);
     const router = useRouter();
     const pathname = usePathname();
@@ -35,7 +35,7 @@ export default function Onboarding() {
 
     const allActiveHabits = habits.filter(h => h.isActive);
     
-    const isAuthRoute = pathname === '/login' || pathname === '/register' || pathname === '/forgot-password';
+    const isAuthRoute = pathname.startsWith('/login') || pathname.startsWith('/register') || pathname.startsWith('/forgot-password');
 
     const handleComplete = () => {
         setHasCompletedOnboarding(true);
@@ -173,7 +173,7 @@ export default function Onboarding() {
         }
     };
 
-    if (!mounted || hasCompletedOnboarding || allActiveHabits.length > 0 || isAuthRoute) return null;
+    if (!mounted || !jwt || hasCompletedOnboarding || allActiveHabits.length > 0 || isAuthRoute) return null;
 
     return (
         <motion.div 

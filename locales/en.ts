@@ -86,11 +86,16 @@ export const en = {
         usernameChecking: "Checking...",
         usernameAvailable: "Available",
         usernameTaken: "Taken",
-        usernameShort: "Min 3 characters"
+        usernameShort: "Min 3 characters",
     },
     habit: {
         newTitle: "New Habit",
         editTitle: "Edit Habit",
+        habitTag: "Habit Tag",
+        tagChecking: "Checking...",
+        tagAvailable: "Tag available",
+        tagTaken: "Tag already taken",
+        tagShort: "Min 3 characters",
         namePlaceholder: "E.g: Read 10 pages...",
         deleteWarning: "Delete Habit?",
         deleteDesc: "This moves the habit to the Trash.",

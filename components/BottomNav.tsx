@@ -14,14 +14,14 @@ const tabs = [
 
 export default function BottomNav() {
     const pathname = usePathname();
-    const { logs, friendRequests, fetchFriendRequests } = useStore();
+    const { jwt, logs, friendRequests, fetchFriendRequests } = useStore();
     const prevLogCountRef = useRef(logs.length);
     const [showHighlight, setShowHighlight] = useState(false);
     const statsControls = useAnimation();
 
     useEffect(() => {
-        fetchFriendRequests();
-    }, [fetchFriendRequests]);
+        if (jwt) fetchFriendRequests();
+    }, [fetchFriendRequests, jwt]);
 
     useEffect(() => {
         const currentCount = logs.length;
@@ -38,7 +38,9 @@ export default function BottomNav() {
         prevLogCountRef.current = currentCount;
     }, [logs.length, statsControls]);
 
-    const isAuthRoute = pathname === '/login' || pathname === '/register' || pathname === '/forgot-password';
+    if (!jwt) return null;
+
+    const isAuthRoute = pathname.startsWith('/login') || pathname.startsWith('/register') || pathname.startsWith('/forgot-password');
     if (pathname.includes('/habit/') || isAuthRoute) return null;
 
     return (

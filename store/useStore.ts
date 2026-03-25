@@ -270,11 +270,12 @@ export const useStore = create<AppState>()(
             },
 
             addHabit: (title, frequency, isHardMode, reminderTime) => {
+                const now = Date.now();
                 const newHabit: Habit = {
                     id: crypto.randomUUID(),
                     title,
-                    createdAt: Date.now(),
-                    updatedAt: Date.now(),
+                    createdAt: now,
+                    updatedAt: now,
                     isActive: true,
                     frequency,
                     isHardMode,

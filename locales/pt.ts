@@ -86,11 +86,16 @@ export const pt = {
         usernameChecking: "A verificar...",
         usernameAvailable: "Disponível",
         usernameTaken: "Indisponível",
-        usernameShort: "Mínimo 3 caracteres"
+        usernameShort: "Mínimo 3 caracteres",
     },
     habit: {
         newTitle: "Novo Hábito",
         editTitle: "Editar Hábito",
+        habitTag: "Tag do Hábito",
+        tagChecking: "A verificar...",
+        tagAvailable: "Tag disponível",
+        tagTaken: "Tag já em uso",
+        tagShort: "Mínimo 3 caracteres",
         namePlaceholder: "Ex: Ler 10 páginas...",
         deleteWarning: "Apagar Hábito?",
         deleteDesc: "Isto move o hábito para o Lixo.",

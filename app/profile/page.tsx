@@ -52,6 +52,8 @@ export default function ProfilePage() {
     const [isChangingPassword, setIsChangingPassword] = useState(false);
     const [showPasswords, setShowPasswords] = useState(false);
     const [passwordError, setPasswordError] = useState("");
+    const [isSavingUsername, setIsSavingUsername] = useState(false);
+    const [usernameMessage, setUsernameMessage] = useState<{ text: string, type: 'success' | 'error' | 'info' } | null>(null);
 
     useEffect(() => {
         setMounted(true);
@@ -132,12 +134,27 @@ export default function ProfilePage() {
     };
 
 
-    const handleSaveUsername = () => {
-        // Only save if available or if it's the current username
+    const handleSaveUsername = async () => {
         const clean = usernameInput.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
-        if (clean && (isUsernameAvailable || clean === username?.toLowerCase())) {
-            if (clean !== username) {
-                setUsername(clean);
+        if (!clean || clean.length < 3) return;
+        
+        if (isUsernameAvailable || clean === username?.toLowerCase()) {
+            if (clean === username) {
+                setUsernameMessage({ text: "Esta já é a tua tag.", type: 'info' });
+                return;
+            }
+
+            setIsSavingUsername(true);
+            try {
+                await setUsername(clean);
+                deviceHaptics.success();
+                setUsernameMessage({ text: "Tag atualizada com sucesso!", type: 'success' });
+                setTimeout(() => setUsernameMessage(null), 3000);
+            } catch (error) {
+                deviceHaptics.error();
+                setUsernameMessage({ text: "Erro ao atualizar tag.", type: 'error' });
+            } finally {
+                setIsSavingUsername(false);
             }
         }
     };
@@ -306,30 +323,50 @@ export default function ProfilePage() {
                                     <input
                                         type="text"
                                         value={usernameInput}
-                                        onChange={(e) => setUsernameInput(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
-                                        onBlur={handleSaveUsername}
+                                        onChange={(e) => {
+                                            setUsernameInput(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''));
+                                            setUsernameMessage(null);
+                                        }}
                                         placeholder="username"
                                         className="w-full bg-transparent text-white/80 outline-none placeholder:text-white/20"
                                         maxLength={20}
                                     />
+                                    {usernameInput.trim().toLowerCase() !== username?.toLowerCase() && usernameInput.length >= 3 && isUsernameAvailable && (
+                                        <motion.button
+                                            initial={{ opacity: 0, x: 10 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            onClick={handleSaveUsername}
+                                            disabled={isSavingUsername || isCheckingUsername}
+                                            className="px-3 py-1 bg-[var(--zenith-active)] text-black text-[10px] font-black uppercase tracking-tighter rounded-full ml-2 active:scale-90 transition-all disabled:opacity-50"
+                                        >
+                                            {isSavingUsername ? '...' : 'Confirmar'}
+                                        </motion.button>
+                                    )}
                                 </div>
-                                {(isUsernameAvailable !== null || isCheckingUsername) && (
-                                    <div className="flex items-center gap-1.5 ml-4">
+                                {(isCheckingUsername || isUsernameAvailable !== null || usernameMessage) && (
+                                    <div className="flex items-center gap-1.5 ml-4 mt-1">
                                         {isCheckingUsername ? (
                                             <>
                                                 <div className="w-1.5 h-1.5 rounded-full bg-white/20 animate-pulse" />
-                                                <span className="text-[10px] text-white/30 uppercase tracking-widest font-bold">{(t as any).usernameChecking}</span>
+                                                <span className="text-[10px] text-white/30 uppercase tracking-widest font-bold">A verificar...</span>
+                                            </>
+                                        ) : usernameMessage ? (
+                                            <>
+                                                <div className={`w-1.5 h-1.5 rounded-full ${usernameMessage.type === 'success' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]' : usernameMessage.type === 'error' ? 'bg-red-500' : 'bg-blue-400'}`} />
+                                                <span className={`text-[10px] uppercase tracking-widest font-bold ${usernameMessage.type === 'success' ? 'text-green-500/70' : usernameMessage.type === 'error' ? 'text-red-500/70' : 'text-blue-400/70'}`}>
+                                                    {usernameMessage.text}
+                                                </span>
                                             </>
                                         ) : isUsernameAvailable ? (
                                             <>
                                                 <div className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]" />
-                                                <span className="text-[10px] text-green-500/70 uppercase tracking-widest font-bold">{(t as any).usernameAvailable}</span>
+                                                <span className="text-[10px] text-green-500/70 uppercase tracking-widest font-bold">Tag disponível</span>
                                             </>
                                         ) : (
                                             <>
                                                 <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
                                                 <span className="text-[10px] text-red-500/70 uppercase tracking-widest font-bold">
-                                                    {usernameInput.length < 3 ? (t as any).usernameShort : (t as any).usernameTaken}
+                                                    {usernameInput.length < 3 ? 'Mínimo 3 caracteres' : 'Tag indisponível'}
                                                 </span>
                                             </>
                                         )}

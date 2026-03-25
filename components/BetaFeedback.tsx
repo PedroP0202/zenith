@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MessageSquare, X, Send, Loader2, Sparkles } from "lucide-react";
 import { API_URL } from "@/utils/constants";
@@ -11,7 +11,27 @@ export default function BetaFeedback() {
     const [feedback, setFeedback] = useState("");
     const [loading, setLoading] = useState(false);
     const [sent, setSent] = useState(false);
+    const [keyboardHeight, setKeyboardHeight] = useState(0);
     const { jwt, userName } = useStore();
+
+    useEffect(() => {
+        if (!isOpen) {
+            setKeyboardHeight(0);
+            return;
+        }
+
+        const handleResize = () => {
+            if (window.visualViewport) {
+                const height = window.innerHeight - window.visualViewport.height;
+                setKeyboardHeight(Math.max(0, height));
+            }
+        };
+
+        window.visualViewport?.addEventListener('resize', handleResize);
+        handleResize(); // Initial check
+
+        return () => window.visualViewport?.removeEventListener('resize', handleResize);
+    }, [isOpen]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -85,9 +105,14 @@ export default function BetaFeedback() {
                         />
                         <motion.div
                             initial={{ opacity: 0, y: 100, scale: 0.9 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            animate={{ 
+                                opacity: 1, 
+                                y: 0, 
+                                scale: 1,
+                                bottom: keyboardHeight > 0 ? keyboardHeight + 12 : 24
+                            }}
                             exit={{ opacity: 0, y: 100, scale: 0.9 }}
-                            className="fixed bottom-6 left-6 right-6 z-[70] bg-[#111] border border-white/10 rounded-[32px] p-8 shadow-2xl max-w-lg mx-auto overflow-hidden"
+                            className="fixed left-6 right-6 z-[70] bg-[#111] border border-white/10 rounded-[32px] p-8 shadow-2xl max-w-lg mx-auto overflow-hidden"
                         >
                             {/* Decorative Sparkles */}
                             <div className="absolute top-0 right-0 p-4 opacity-10">

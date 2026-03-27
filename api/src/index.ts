@@ -73,7 +73,7 @@ app.post('/auth/google', async (c) => {
         const { email, name, sub: googleId } = googleUser;
         const db = c.env.DB;
 
-        let user = await db.prepare('SELECT id, name, email, language, username, total_xp, level FROM users WHERE google_id = ? OR email = ?').bind(googleId, email).first() as any;
+        let user = await db.prepare('SELECT id, name, email, language, username, total_xp, level, last_login_reward_date FROM users WHERE google_id = ? OR email = ?').bind(googleId, email).first() as any;
 
         const now = Date.now();
         let userId;
@@ -85,8 +85,8 @@ app.post('/auth/google', async (c) => {
         } else {
             userId = crypto.randomUUID();
             const username = await generateUniqueUsername(db, name || 'User');
-            await db.prepare('INSERT INTO users (id, name, email, password_hash, google_id, is_verified, created_at, language, username) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
-                .bind(userId, name || 'User', email, 'OAUTH_USER', googleId, 1, now, userLanguage, username).run();
+            await db.prepare('INSERT INTO users (id, name, email, password_hash, google_id, is_verified, created_at, language, username, last_login_reward_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+                .bind(userId, name || 'User', email, 'OAUTH_USER', googleId, 1, now, userLanguage, username, null).run();
         }
 
         const secret = c.env.JWT_SECRET;
@@ -97,7 +97,7 @@ app.post('/auth/google', async (c) => {
         const tokenSecret = secret || 'zenith-local-dev-secret';
         const token = await sign({ id: userId, name: user?.name || name, email, exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30 }, tokenSecret);
 
-        return c.json({ token, user: { id: userId, name: user?.name || name, email, language: userLanguage, username: user?.username || (user ? null : undefined), total_xp: user?.total_xp || 0, level: user?.level || 1 } });
+        return c.json({ token, user: { id: userId, name: user?.name || name, email, language: userLanguage, username: user?.username || (user ? null : undefined), total_xp: user?.total_xp || 0, level: user?.level || 1, lastLoginRewardDate: user?.last_login_reward_date || null } });
     } catch (e: any) {
         return c.json({ error: 'Erro de Autenticação Google: ' + e.message }, 500);
     }
@@ -119,7 +119,7 @@ app.post('/auth/google/web', async (c) => {
         const { email, name, sub: googleId } = googleUser;
         const db = c.env.DB;
 
-        let user = await db.prepare('SELECT id, name, email, language, username, total_xp, level FROM users WHERE google_id = ? OR email = ?').bind(googleId, email).first() as any;
+        let user = await db.prepare('SELECT id, name, email, language, username, total_xp, level, last_login_reward_date FROM users WHERE google_id = ? OR email = ?').bind(googleId, email).first() as any;
 
         const now = Date.now();
         let userId;
@@ -131,8 +131,8 @@ app.post('/auth/google/web', async (c) => {
         } else {
             userId = crypto.randomUUID();
             const username = await generateUniqueUsername(db, name || 'User');
-            await db.prepare('INSERT INTO users (id, name, email, password_hash, google_id, is_verified, created_at, language, username) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
-                .bind(userId, name || 'User', email, 'OAUTH_USER', googleId, 1, now, userLanguage, username).run();
+            await db.prepare('INSERT INTO users (id, name, email, password_hash, google_id, is_verified, created_at, language, username, last_login_reward_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+                .bind(userId, name || 'User', email, 'OAUTH_USER', googleId, 1, now, userLanguage, username, null).run();
         }
 
         const secret = c.env.JWT_SECRET;
@@ -143,7 +143,7 @@ app.post('/auth/google/web', async (c) => {
         const tokenSecret = secret || 'zenith-local-dev-secret';
         const token = await sign({ id: userId, name: user?.name || name, email, exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30 }, tokenSecret);
 
-        return c.json({ token, user: { id: userId, name: user?.name || name, email, language: userLanguage, username: user?.username || (user ? null : undefined), total_xp: user?.total_xp || 0, level: user?.level || 1 } });
+        return c.json({ token, user: { id: userId, name: user?.name || name, email, language: userLanguage, username: user?.username || (user ? null : undefined), total_xp: user?.total_xp || 0, level: user?.level || 1, lastLoginRewardDate: user?.last_login_reward_date || null } });
     } catch (e: any) {
         return c.json({ error: 'Erro de Autenticação Google (Web): ' + e.message }, 500);
     }
@@ -160,7 +160,7 @@ app.post('/auth/apple', async (c) => {
         }
 
         const db = c.env.DB;
-        let query = 'SELECT id, name, email, language, username, total_xp, level FROM users WHERE apple_id = ?';
+        let query = 'SELECT id, name, email, language, username, total_xp, level, last_login_reward_date FROM users WHERE apple_id = ?';
         let bindParams = [appleId] as string[];
         if (email) {
             query += ' OR email = ?';
@@ -183,8 +183,8 @@ app.post('/auth/apple', async (c) => {
         } else {
             userId = crypto.randomUUID();
             const username = await generateUniqueUsername(db, finalName);
-            await db.prepare('INSERT INTO users (id, name, email, password_hash, apple_id, is_verified, created_at, language, username) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
-                .bind(userId, finalName, finalEmail, 'OAUTH_USER', appleId, 1, now, userLanguage, username).run();
+            await db.prepare('INSERT INTO users (id, name, email, password_hash, apple_id, is_verified, created_at, language, username, last_login_reward_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+                .bind(userId, finalName, finalEmail, 'OAUTH_USER', appleId, 1, now, userLanguage, username, null).run();
         }
 
         const secret = c.env.JWT_SECRET;
@@ -196,7 +196,7 @@ app.post('/auth/apple', async (c) => {
         const token = await sign({ id: userId, name: finalName, email: finalEmail, exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30 }, tokenSecret);
 
         console.log(`[ZENITH_AUTH] Apple Login success for ${finalEmail}`);
-        return c.json({ token, user: { id: userId, name: finalName, email: finalEmail, language: userLanguage, username: user?.username, total_xp: user?.total_xp || 0, level: user?.level || 1 } });
+        return c.json({ token, user: { id: userId, name: finalName, email: finalEmail, language: userLanguage, username: user?.username, total_xp: user?.total_xp || 0, level: user?.level || 1, lastLoginRewardDate: user?.last_login_reward_date || null } });
     } catch (e: any) {
         console.error('[ZENITH_AUTH] Apple Auth Error:', e.message);
         return c.json({ error: 'Erro de Autenticação Apple: ' + e.message }, 500);
@@ -427,7 +427,7 @@ app.post('/auth/register', zValidator('json', registerSchema.extend({ language: 
         const tokenSecret = secret || 'zenith-local-dev-secret';
         const token = await sign({ id, name: userName, email, exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30 }, tokenSecret);
 
-        return c.json({ token, user: { id, name: userName, email, language: userLanguage, total_xp: 0, level: 1 } });
+        return c.json({ token, user: { id, name: userName, email, language: userLanguage, total_xp: 0, level: 1, lastLoginRewardDate: null } });
     } catch (error: any) {
         return c.json({ error: error.message }, 500);
     }
@@ -444,7 +444,7 @@ app.post('/auth/login', zValidator('json', loginSchema), async (c) => {
 
     const db = c.env.DB;
 
-    type UserRow = { id: string, name: string, email: string, password_hash: string, language: string, login_attempts: number, lockout_until: number, is_verified: number, opt_in_leaderboard: number, username: string, total_xp: number, level: number };
+    type UserRow = { id: string, name: string, email: string, password_hash: string, language: string, login_attempts: number, lockout_until: number, is_verified: number, opt_in_leaderboard: number, username: string, total_xp: number, level: number, last_login_reward_date: string | null };
     const user = await db.prepare('SELECT * FROM users WHERE email = ?').bind(email).first<UserRow>();
 
     if (!user) {
@@ -497,7 +497,7 @@ app.post('/auth/login', zValidator('json', loginSchema), async (c) => {
     const tokenSecret = secret || 'zenith-local-dev-secret';
     const token = await sign({ id: user.id, name: user.name, email: user.email, exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30 }, tokenSecret);
 
-    return c.json({ token, user: { id: user.id, name: user.name, email: user.email, language: user.language || 'pt', optInLeaderboard: user.opt_in_leaderboard === 1, username: user.username, total_xp: user.total_xp || 0, level: user.level || 1 } });
+    return c.json({ token, user: { id: user.id, name: user.name, email: user.email, language: user.language || 'pt', optInLeaderboard: user.opt_in_leaderboard === 1, username: user.username, total_xp: user.total_xp || 0, level: user.level || 1, lastLoginRewardDate: user.last_login_reward_date || null } });
 });
 
 // User Profile Sync Endpoint
@@ -548,6 +548,7 @@ app.patch('/auth/profile', async (c) => {
 
         if (total_xp !== undefined) { updates.push('total_xp = ?'); binds.push(total_xp); }
         if (level !== undefined) { updates.push('level = ?'); binds.push(level); }
+        if (body.lastLoginRewardDate !== undefined) { updates.push('last_login_reward_date = ?'); binds.push(body.lastLoginRewardDate); }
 
         let result = null;
         if (updates.length > 0) {
@@ -843,19 +844,32 @@ app.get('/leaderboard', async (c) => {
     }
 
     const db = c.env.DB;
+    const period = c.req.query('period') || 'all';
+    let minTimestamp = 0;
+    const now = Date.now();
+
+    if (period === 'weekly') {
+        minTimestamp = now - (7 * 24 * 60 * 60 * 1000);
+    } else if (period === 'seasonal') {
+        minTimestamp = now - (30 * 24 * 60 * 60 * 1000);
+    }
+
     try {
-        const { results } = await db.prepare(`
+        const query = `
             SELECT u.id, u.name, u.username, COUNT(l.id) as score
             FROM users u
             LEFT JOIN habits h ON h.user_id = u.id AND h.is_active = 1
-            LEFT JOIN logs l ON l.habit_id = h.id
+            LEFT JOIN logs l ON l.habit_id = h.id ${minTimestamp > 0 ? 'AND l.completed_at > ?' : ''}
             WHERE u.opt_in_leaderboard = 1
             GROUP BY u.id, u.name, u.username
-            ORDER BY COUNT(l.id) DESC
+            ORDER BY score DESC
             LIMIT 50
-        `).all();
+        `;
+
+        const stmt = db.prepare(query);
+        const { results } = await (minTimestamp > 0 ? stmt.bind(minTimestamp).all() : stmt.all());
         
-        return c.json({ leaderboard: results });
+        return c.json({ leaderboard: results, period, seasonEndsAt: now + (15 * 24 * 60 * 60 * 1000) }); // Dummy season end
     } catch (e: any) {
         return c.json({ error: 'Erro ao carregar arena: ' + e.message }, 500);
     }
@@ -1187,7 +1201,8 @@ app.get('/sync/pull', async (c) => {
             timestamp: Date.now(),
             user: {
                 total_xp: userProfile?.total_xp || 0,
-                level: userProfile?.level || 1
+                level: userProfile?.level || 1,
+                lastLoginRewardDate: userProfile?.last_login_reward_date || null
             }
         });
     } catch (err: any) {

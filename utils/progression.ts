@@ -11,13 +11,18 @@ export interface RankInfo {
 }
 
 export const RANKS: RankInfo[] = [
-    { name: 'Stardust', minLevel: 1, description: 'Dawning of a new journey.' },
-    { name: 'Satellite', minLevel: 11, description: 'Maintaining a steady orbit.' },
-    { name: 'Planet', minLevel: 21, description: 'A world of solid discipline.' },
-    { name: 'Nebula', minLevel: 36, description: 'Clouds of dense potential.' },
-    { name: 'Galaxy', minLevel: 51, description: 'A vast system of consistency.' },
-    { name: 'Universe', minLevel: 76, description: 'Limitless potential unlocked.' },
-    { name: 'Zenith', minLevel: 100, description: 'The absolute apex of being.' }
+    { name: 'Spark', minLevel: 1, description: 'A pequena centelha do início.' },
+    { name: 'Vácuo', minLevel: 4, description: 'A moldar o teu próprio vazio.' },
+    { name: 'Flux', minLevel: 8, description: 'A energia começa a fluir.' },
+    { name: 'Vetor', minLevel: 13, description: 'Direção e força definidas.' },
+    { name: 'Órbita', minLevel: 20, description: 'Estabilidade e ritmo orbital.' },
+    { name: 'Núcleo', minLevel: 30, description: 'O centro sólido da tua disciplina.' },
+    { name: 'Nova', minLevel: 45, description: 'Uma explosão de novos hábitos.' },
+    { name: 'Pulsar', minLevel: 65, description: 'Frequência constante e imparável.' },
+    { name: 'Astre', minLevel: 90, description: 'Brilho que ilumina o teu cosmos.' },
+    { name: 'Soberano', minLevel: 125, description: 'O comando total do teu tempo.' },
+    { name: 'Avatar', minLevel: 175, description: 'Em harmonia com o Infinito.' },
+    { name: 'Zenith', minLevel: 250, description: 'O estado supremo da consciência.' }
 ];
 
 export const getRankForLevel = (level: number): RankInfo => {

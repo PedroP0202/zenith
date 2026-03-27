@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS users (
     opt_in_leaderboard BOOLEAN NOT NULL DEFAULT 0,
     total_xp INTEGER DEFAULT 0,
     level INTEGER DEFAULT 1,
+    last_login_reward_date TEXT,
     created_at INTEGER NOT NULL
 );
 

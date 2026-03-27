@@ -3,7 +3,7 @@
 import { useStore } from '../../store/useStore';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, Trophy, Crown, Loader2, Play, ShieldCheck, Orbit, Cloud, Sparkles, Zap, Star } from 'lucide-react';
+import { ChevronLeft, Trophy, Crown, Loader2, Play, ShieldCheck, Orbit, Cloud, Sparkles, Zap, Star, Flame, Target, MoveRight, Wind, Moon, Minus, Calendar, Globe, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_URL } from '@/utils/constants';
 
@@ -15,11 +15,18 @@ interface LeaderboardEntry {
 }
 
 const TIERS = [
-    { name: 'Zenith', min: 1000, color: 'text-white', glow: 'shadow-[0_0_20px_rgba(255,255,255,0.4)]', bg: 'bg-white/10 ring-1 ring-white/30' },
-    { name: 'Quasar', min: 450, color: 'text-purple-400', glow: 'shadow-[0_0_15px_rgba(168,85,247,0.4)]', bg: 'bg-purple-500/10 ring-1 ring-purple-500/20' },
-    { name: 'Supernova', min: 150, color: 'text-orange-400', glow: 'shadow-[0_0_10px_rgba(251,146,60,0.4)]', bg: 'bg-orange-500/10 ring-1 ring-orange-500/20' },
-    { name: 'Nebulosa', min: 50, color: 'text-blue-400', glow: '', bg: 'bg-blue-500/10 ring-1 ring-blue-500/20' },
-    { name: 'Órbita', min: 0, color: 'text-zinc-400', glow: '', bg: 'bg-white/[0.03]' },
+    { name: 'Zenith', min: 2500, color: 'text-white', glow: 'shadow-[0_0_20px_rgba(255,255,255,0.4)]', bg: 'bg-white/10 ring-1 ring-white/30', icon: Star },
+    { name: 'Avatar', min: 1500, color: 'text-purple-300', glow: 'shadow-[0_0_15px_rgba(216,180,254,0.3)]', bg: 'bg-purple-500/10 ring-1 ring-purple-500/20', icon: Crown },
+    { name: 'Soberano', min: 900, color: 'text-indigo-400', glow: '', bg: 'bg-indigo-500/10 ring-1 ring-indigo-500/20', icon: ShieldCheck },
+    { name: 'Astre', min: 550, color: 'text-blue-300', glow: '', bg: 'bg-blue-300/10 ring-1 ring-blue-300/20', icon: Sparkles },
+    { name: 'Pulsar', min: 350, color: 'text-cyan-400', glow: '', bg: 'bg-cyan-500/10 ring-1 ring-cyan-500/20', icon: Zap },
+    { name: 'Nova', min: 200, color: 'text-orange-400', glow: '', bg: 'bg-orange-500/10 ring-1 ring-orange-500/20', icon: Flame },
+    { name: 'Núcleo', min: 120, color: 'text-emerald-400', glow: '', bg: 'bg-emerald-500/10 ring-1 ring-emerald-500/20', icon: Target },
+    { name: 'Órbita', min: 70, color: 'text-zinc-300', glow: '', bg: 'bg-white/[0.05] ring-1 ring-white/10', icon: Orbit },
+    { name: 'Vetor', min: 40, color: 'text-zinc-400', glow: '', bg: 'bg-white/[0.03]', icon: MoveRight },
+    { name: 'Flux', min: 20, color: 'text-zinc-500', glow: '', bg: 'bg-white/[0.02]', icon: Wind },
+    { name: 'Vácuo', min: 5, color: 'text-zinc-600', glow: '', bg: 'bg-white/[0.01]', icon: Moon },
+    { name: 'Spark', min: 0, color: 'text-zinc-700', glow: '', bg: 'bg-transparent', icon: Minus },
 ];
 
 const getTier = (score: number) => TIERS.find(t => score >= t.min) || TIERS[TIERS.length - 1];
@@ -32,24 +39,27 @@ export default function LeaderboardPage() {
     const [error, setError] = useState<string | null>(null);
     const [showConsent, setShowConsent] = useState(false);
     const [showOptOut, setShowOptOut] = useState(false);
+    const [period, setPeriod] = useState<'weekly' | 'seasonal' | 'all'>('all');
+    const [seasonEndsAt, setSeasonEndsAt] = useState<number | null>(null);
 
     const fetchLeaderboard = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
-            const res = await fetch(`${API_URL}/leaderboard`, {
+            const res = await fetch(`${API_URL}/leaderboard?period=${period}`, {
                 headers: { 'Authorization': `Bearer ${jwt}` }
             });
             const data = await res.json();
             if (!res.ok) throw new Error(`(${res.status}) ${data?.error || 'Erro desconhecido'}`);
             setLeaderboard(data.leaderboard || []);
+            if (data.seasonEndsAt) setSeasonEndsAt(data.seasonEndsAt);
         } catch (err: any) {
             console.error("[ARENA] Fetch failed:", err);
             setError(err.message || 'Erro ao carregar a arena.');
         } finally {
             setLoading(false);
         }
-    }, [jwt]);
+    }, [jwt, period]);
 
     useEffect(() => {
         if (optInLeaderboard && jwt) {
@@ -78,9 +88,30 @@ export default function LeaderboardPage() {
                     >
                         <ChevronLeft size={24} />
                     </button>
-                    <h1 className="text-xl font-medium tracking-tight text-white/50">A Arena</h1>
-                    <div className="w-12" />
+                    <h1 className="text-xl font-black tracking-tight uppercase text-white/90">A Arena</h1>
+                    <button onClick={() => setShowOptOut(true)} className="p-2 text-white/20 hover:text-red-400 transition-colors">
+                        <Globe size={20} />
+                    </button>
                 </header>
+
+                {optInLeaderboard && !showOptOut && (
+                    <div className="flex bg-white/5 rounded-2xl p-1 mb-8 gap-1 relative z-10">
+                        {[
+                            { id: 'weekly', label: 'Semana', icon: Clock },
+                            { id: 'seasonal', label: 'Temporada', icon: Calendar },
+                            { id: 'all', label: 'Global', icon: Globe }
+                        ].map((t) => (
+                            <button
+                                key={t.id}
+                                onClick={() => setPeriod(t.id as any)}
+                                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[10px] uppercase tracking-widest font-black transition-all ${period === t.id ? 'bg-white text-black shadow-lg scale-[1.02]' : 'text-white/40 hover:text-white/60'}`}
+                            >
+                                <t.icon size={12} strokeWidth={3} />
+                                {t.label}
+                            </button>
+                        ))}
+                    </div>
+                )}
 
                 <AnimatePresence mode="wait">
                     {!optInLeaderboard && !showConsent && (
@@ -250,9 +281,12 @@ export default function LeaderboardPage() {
                                         const isMe = entry.username === myUsername;
                                         const rank = index + 1;
                                         const tier = getTier(entry.score);
+                                        const TierIcon = tier.icon;
                                         
                                         let rankBadge = <span className="font-mono text-lg opacity-30">{rank}</span>;
                                         if (rank === 1) rankBadge = <Crown size={20} className="text-yellow-500 drop-shadow-[0_0_8px_rgba(234,179,8,0.8)]" />;
+                                        if (rank === 2) rankBadge = <div className="w-1.5 h-1.5 rounded-full bg-zinc-400" />;
+                                        if (rank === 3) rankBadge = <div className="w-1.5 h-1.5 rounded-full bg-orange-400" />;
                                         
                                         return (
                                             <motion.div 
@@ -277,20 +311,28 @@ export default function LeaderboardPage() {
                                                 </div>
                                                 <div className="flex items-center gap-3">
                                                     <div className="flex flex-col items-end">
-                                                        <span className="text-sm font-black tracking-tight">{entry.score}</span>
+                                                        <span className="text-sm font-black tracking-tight lowercase">{entry.score} <span className="text-[10px] opacity-30">pts</span></span>
                                                         <span className={`text-[8px] uppercase tracking-widest font-black ${tier.color}`}>{tier.name}</span>
                                                     </div>
                                                     <div className={`p-2 rounded-full bg-white/5 ${tier.color}`}>
-                                                        {tier.name === 'Zenith' && <Star size={14} className="animate-pulse" />}
-                                                        {tier.name === 'Quasar' && <Zap size={14} />}
-                                                        {tier.name === 'Supernova' && <Sparkles size={14} />}
-                                                        {tier.name === 'Nebulosa' && <Cloud size={14} />}
-                                                        {tier.name === 'Órbita' && <Orbit size={14} />}
+                                                        <TierIcon size={14} className={tier.name === 'Zenith' ? 'animate-pulse' : ''} />
                                                     </div>
                                                 </div>
                                             </motion.div>
                                         );
                                     })}
+
+                                    {seasonEndsAt && (
+                                        <div className="pt-8 pb-12 text-center">
+                                            <p className="text-[10px] uppercase tracking-[0.3em] font-black text-white/20 mb-2">Próximo Reset Sazonal</p>
+                                            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/5">
+                                                <Clock size={12} className="text-white/40" />
+                                                <span className="text-xs font-medium text-white/40">
+                                                    {Math.ceil((seasonEndsAt - Date.now()) / (1000 * 60 * 60 * 24))} dias restantes
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </motion.div>

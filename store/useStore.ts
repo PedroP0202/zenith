@@ -53,6 +53,10 @@ interface AppState {
     totalXP: number;
     /** User's current level */
     level: number;
+    /** The UTC date of the last collected daily reward (YYYY-MM-DD) */
+    lastLoginRewardDate: string | null;
+    /** Temporary flag to show reward toast */
+    showDailyRewardToast: boolean;
 
 
     /**
@@ -192,6 +196,16 @@ interface AppState {
      * Checks if the user toggled any habits via the iOS Widget while the app was in the background.
      */
     checkWidgetToggles: () => Promise<void>;
+
+    /**
+     * Checks if the user should receive a daily login reward.
+     */
+    checkDailyReward: () => void;
+
+    /**
+     * Dismisses the daily reward toast.
+     */
+    dismissDailyRewardToast: () => void;
 }
 
 export const useStore = create<AppState>()(
@@ -217,6 +231,8 @@ export const useStore = create<AppState>()(
             username: null,
             totalXP: 0,
             level: 1,
+            lastLoginRewardDate: null,
+            showDailyRewardToast: false,
 
             setUserName: (name) => {
                 set({ userName: name });
@@ -247,6 +263,26 @@ export const useStore = create<AppState>()(
                 get().syncProfile().catch(console.error);
             },
 
+            checkDailyReward: () => {
+                if (!get().jwt) return;
+                
+                const today = new Date().toISOString().split('T')[0];
+                if (get().lastLoginRewardDate !== today) {
+                    const newXp = get().totalXP + 5;
+                    set({ 
+                        totalXP: newXp, 
+                        level: getLevelFromXp(newXp),
+                        lastLoginRewardDate: today,
+                        showDailyRewardToast: true 
+                    });
+                    get().syncProfile().catch(console.error);
+                }
+            },
+
+            dismissDailyRewardToast: () => {
+                set({ showDailyRewardToast: false });
+            },
+
             clearUserData: () => {
                 set({
                     habits: [],
@@ -256,7 +292,9 @@ export const useStore = create<AppState>()(
                     deletedHabitIds: [],
                     hasCompletedOnboarding: false,
                     totalXP: 0,
-                    level: 1
+                    level: 1,
+                    lastLoginRewardDate: null,
+                    showDailyRewardToast: false
                 });
             },
 
@@ -273,7 +311,9 @@ export const useStore = create<AppState>()(
                     language: currentLanguage,
                     hasCompletedOnboarding: false,
                     totalXP: 0,
-                    level: 1
+                    level: 1,
+                    lastLoginRewardDate: null,
+                    showDailyRewardToast: false
                 });
                 removeSecureJwt().catch(console.error);
                 // Ensure no ghost notifications remain after logout

@@ -6,7 +6,7 @@ if (!global.crypto) {
   (global as any).crypto = {};
 }
 if (!global.crypto.randomUUID) {
-  global.crypto.randomUUID = vi.fn(() => 'test-uuid-' + Math.random());
+  (global.crypto as any).randomUUID = vi.fn(() => '00000000-0000-0000-0000-000000000000' as `${string}-${string}-${string}-${string}-${string}`);
 }
 
 // Mock fetch

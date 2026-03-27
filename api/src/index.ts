@@ -73,7 +73,7 @@ app.post('/auth/google', async (c) => {
         const { email, name, sub: googleId } = googleUser;
         const db = c.env.DB;
 
-        let user = await db.prepare('SELECT id, name, email, language, username FROM users WHERE google_id = ? OR email = ?').bind(googleId, email).first() as any;
+        let user = await db.prepare('SELECT id, name, email, language, username, total_xp, level FROM users WHERE google_id = ? OR email = ?').bind(googleId, email).first() as any;
 
         const now = Date.now();
         let userId;
@@ -97,7 +97,7 @@ app.post('/auth/google', async (c) => {
         const tokenSecret = secret || 'zenith-local-dev-secret';
         const token = await sign({ id: userId, name: user?.name || name, email, exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30 }, tokenSecret);
 
-        return c.json({ token, user: { id: userId, name: user?.name || name, email, language: userLanguage, username: user?.username || (user ? null : undefined) } });
+        return c.json({ token, user: { id: userId, name: user?.name || name, email, language: userLanguage, username: user?.username || (user ? null : undefined), total_xp: user?.total_xp || 0, level: user?.level || 1 } });
     } catch (e: any) {
         return c.json({ error: 'Erro de Autenticação Google: ' + e.message }, 500);
     }
@@ -119,7 +119,7 @@ app.post('/auth/google/web', async (c) => {
         const { email, name, sub: googleId } = googleUser;
         const db = c.env.DB;
 
-        let user = await db.prepare('SELECT id, name, email, language, username FROM users WHERE google_id = ? OR email = ?').bind(googleId, email).first() as any;
+        let user = await db.prepare('SELECT id, name, email, language, username, total_xp, level FROM users WHERE google_id = ? OR email = ?').bind(googleId, email).first() as any;
 
         const now = Date.now();
         let userId;
@@ -143,7 +143,7 @@ app.post('/auth/google/web', async (c) => {
         const tokenSecret = secret || 'zenith-local-dev-secret';
         const token = await sign({ id: userId, name: user?.name || name, email, exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30 }, tokenSecret);
 
-        return c.json({ token, user: { id: userId, name: user?.name || name, email, language: userLanguage, username: user?.username || (user ? null : undefined) } });
+        return c.json({ token, user: { id: userId, name: user?.name || name, email, language: userLanguage, username: user?.username || (user ? null : undefined), total_xp: user?.total_xp || 0, level: user?.level || 1 } });
     } catch (e: any) {
         return c.json({ error: 'Erro de Autenticação Google (Web): ' + e.message }, 500);
     }
@@ -160,7 +160,7 @@ app.post('/auth/apple', async (c) => {
         }
 
         const db = c.env.DB;
-        let query = 'SELECT id, name, email, language, username FROM users WHERE apple_id = ?';
+        let query = 'SELECT id, name, email, language, username, total_xp, level FROM users WHERE apple_id = ?';
         let bindParams = [appleId] as string[];
         if (email) {
             query += ' OR email = ?';
@@ -196,7 +196,7 @@ app.post('/auth/apple', async (c) => {
         const token = await sign({ id: userId, name: finalName, email: finalEmail, exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30 }, tokenSecret);
 
         console.log(`[ZENITH_AUTH] Apple Login success for ${finalEmail}`);
-        return c.json({ token, user: { id: userId, name: finalName, email: finalEmail, language: userLanguage, username: user?.username } });
+        return c.json({ token, user: { id: userId, name: finalName, email: finalEmail, language: userLanguage, username: user?.username, total_xp: user?.total_xp || 0, level: user?.level || 1 } });
     } catch (e: any) {
         console.error('[ZENITH_AUTH] Apple Auth Error:', e.message);
         return c.json({ error: 'Erro de Autenticação Apple: ' + e.message }, 500);
@@ -232,7 +232,7 @@ app.post('/auth/apple/callback', async (c) => {
         }
 
         const db = c.env.DB;
-        let user = await db.prepare('SELECT id, name, email, language FROM users WHERE apple_id = ? OR email = ?').bind(appleId, email).first() as any;
+        let user = await db.prepare('SELECT id, name, email, language, total_xp, level FROM users WHERE apple_id = ? OR email = ?').bind(appleId, email).first() as any;
 
         const now = Date.now();
         let userId;
@@ -427,7 +427,7 @@ app.post('/auth/register', zValidator('json', registerSchema.extend({ language: 
         const tokenSecret = secret || 'zenith-local-dev-secret';
         const token = await sign({ id, name: userName, email, exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30 }, tokenSecret);
 
-        return c.json({ token, user: { id, name: userName, email, language: userLanguage } });
+        return c.json({ token, user: { id, name: userName, email, language: userLanguage, total_xp: 0, level: 1 } });
     } catch (error: any) {
         return c.json({ error: error.message }, 500);
     }
@@ -444,7 +444,7 @@ app.post('/auth/login', zValidator('json', loginSchema), async (c) => {
 
     const db = c.env.DB;
 
-    type UserRow = { id: string, name: string, email: string, password_hash: string, language: string, login_attempts: number, lockout_until: number, is_verified: number, opt_in_leaderboard: number, username: string };
+    type UserRow = { id: string, name: string, email: string, password_hash: string, language: string, login_attempts: number, lockout_until: number, is_verified: number, opt_in_leaderboard: number, username: string, total_xp: number, level: number };
     const user = await db.prepare('SELECT * FROM users WHERE email = ?').bind(email).first<UserRow>();
 
     if (!user) {
@@ -497,7 +497,7 @@ app.post('/auth/login', zValidator('json', loginSchema), async (c) => {
     const tokenSecret = secret || 'zenith-local-dev-secret';
     const token = await sign({ id: user.id, name: user.name, email: user.email, exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30 }, tokenSecret);
 
-    return c.json({ token, user: { id: user.id, name: user.name, email: user.email, language: user.language || 'pt', optInLeaderboard: user.opt_in_leaderboard === 1, username: user.username } });
+    return c.json({ token, user: { id: user.id, name: user.name, email: user.email, language: user.language || 'pt', optInLeaderboard: user.opt_in_leaderboard === 1, username: user.username, total_xp: user.total_xp || 0, level: user.level || 1 } });
 });
 
 // User Profile Sync Endpoint
@@ -525,7 +525,7 @@ app.patch('/auth/profile', async (c) => {
 
     try {
         const body = await c.req.json().catch(() => ({}));
-        const { name, language, optInLeaderboard, username } = body;
+        const { name, language, optInLeaderboard, username, total_xp, level } = body;
 
         const updates: string[] = [];
         const binds: any[] = [];
@@ -545,6 +545,9 @@ app.patch('/auth/profile', async (c) => {
             updates.push('username = ?');
             binds.push(cleanUsername);
         }
+
+        if (total_xp !== undefined) { updates.push('total_xp = ?'); binds.push(total_xp); }
+        if (level !== undefined) { updates.push('level = ?'); binds.push(level); }
 
         let result = null;
         if (updates.length > 0) {
@@ -1176,7 +1179,17 @@ app.get('/sync/pull', async (c) => {
             completedAt: r.completed_at,
         }));
 
-        return c.json({ habits, logs, timestamp: Date.now() });
+        const userProfile = await db.prepare('SELECT total_xp, level FROM users WHERE id = ?').bind(user.id).first() as any;
+
+        return c.json({ 
+            habits, 
+            logs, 
+            timestamp: Date.now(),
+            user: {
+                total_xp: userProfile?.total_xp || 0,
+                level: userProfile?.level || 1
+            }
+        });
     } catch (err: any) {
         return c.json({ error: 'Pull failed: ' + err.message }, 500);
     }

@@ -12,6 +12,7 @@ import ConfirmationModal from "@/components/ConfirmationModal";
 import { deviceHaptics } from "@/utils/haptics";
 import TrophyWall from "@/components/TrophyWall";
 import { getBestStreak, getYearlyStats } from "@/utils/streak";
+import { getRankForLevel, getLevelProgress, getXPNeededForLevel, getXpToNextLevel } from "@/utils/progression";
 
 export default function ProfilePage() {
     const router = useRouter();
@@ -34,7 +35,9 @@ export default function ProfilePage() {
         optInLeaderboard,
         setOptInLeaderboard,
         username,
-        setUsername
+        setUsername,
+        totalXP,
+        level
     } = useStore();
     const [mounted, setMounted] = useState(false);
 
@@ -103,13 +106,11 @@ export default function ProfilePage() {
         Math.max(max, getBestStreak(logs.filter(l => l.habitId === h.id), h.frequency)), 0);
     const yearlyStats = getYearlyStats(logs, new Date());
 
-    // User rank based on total completions
-    const userRank = totalCompletions >= 365 ? '✦ Mestre Zen' :
-        totalCompletions >= 100 ? '◈ Médio' :
-        totalCompletions >= 30 ? '◇ Aprendiz' : '○ Iniciante';
-    const rankColor = totalCompletions >= 365 ? '#FFD700' :
-        totalCompletions >= 100 ? '#00C853' :
-        totalCompletions >= 30 ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.3)';
+    // New Space-Themed Progression
+    const currentRank = getRankForLevel(level);
+    const levelProgress = getLevelProgress(totalXP, level);
+    const xpInLevel = totalXP - getXPNeededForLevel(level);
+    const xpRequiredForNext = getXpToNextLevel(level);
 
     const handleReminderToggle = async () => {
         const newValue = !isMorningReminderActive;
@@ -287,17 +288,62 @@ export default function ProfilePage() {
                         <UserIcon className="w-10 h-10 text-white/80 -rotate-3" />
                     </div>
 
-                    {/* Rank Badge */}
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.7 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 0.15, type: 'spring' }}
-                        className="mb-5 px-3 py-1 rounded-full border flex items-center gap-1.5"
-                        style={{ borderColor: `${rankColor}40`, backgroundColor: `${rankColor}10` }}
-                    >
-                        <span className="text-[10px] font-black tracking-widest uppercase" style={{ color: rankColor }}>{userRank}</span>
-                        <span className="text-[10px] text-white/30">· {totalCompletions} check-ins</span>
-                    </motion.div>
+                    {/* Level & Rank Header */}
+                    <div className="flex flex-col items-center mb-6">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="relative flex items-center justify-center mb-2"
+                        >
+                            <div className="absolute inset-0 bg-[var(--zenith-active)]/20 blur-2xl rounded-full" />
+                            <span className="text-4xl font-black italic tracking-tighter text-white z-10">
+                                <span className="text-white/40 not-italic mr-1 text-xl font-medium uppercase tracking-widest">Zen</span>
+                                {level}
+                            </span>
+                        </motion.div>
+                        <motion.div
+                            initial={{ opacity: 0, y: 5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.1 }}
+                            className="px-4 py-1.5 rounded-full bg-white/5 border border-white/10 flex items-center gap-2"
+                        >
+                            <div className="w-1.5 h-1.5 rounded-full bg-[var(--zenith-active)] shadow-[0_0_8px_var(--zenith-active)]" />
+                            <span className="text-xs font-black uppercase tracking-[0.2em] text-white/90">{currentRank.name}</span>
+                        </motion.div>
+                    </div>
+
+                    {/* Progres Bar Section */}
+                    <div className="w-full bg-white/[0.03] rounded-3xl p-6 border border-white/5 backdrop-blur-md mb-6">
+                        <div className="flex justify-between items-end mb-3">
+                            <div>
+                                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 mb-1">Experiência</div>
+                                <div className="text-lg font-mono font-bold text-white/90 tabular-nums">
+                                    {xpInLevel} <span className="text-white/20">/ {xpRequiredForNext} ZP</span>
+                                </div>
+                            </div>
+                            <div className="text-right">
+                                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 mb-1">Próximo Nível</div>
+                                <div className="text-xs font-bold text-[var(--zenith-active)]">{Math.round(levelProgress * 100)}%</div>
+                            </div>
+                        </div>
+                        
+                        {/* The Actual Progress Bar */}
+                        <div className="h-3 w-full bg-white/5 rounded-full overflow-hidden border border-white/10 p-[2px]">
+                            <motion.div 
+                                initial={{ width: 0 }}
+                                animate={{ width: `${levelProgress * 100}%` }}
+                                transition={{ duration: 1, ease: "easeOut" }}
+                                className="h-full bg-gradient-to-r from-[var(--zenith-active)]/40 to-[var(--zenith-active)] rounded-full relative"
+                            >
+                                <div className="absolute inset-0 bg-white/20 animate-pulse" />
+                            </motion.div>
+                        </div>
+                        
+                        <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between text-[10px] font-bold text-white/20 uppercase tracking-widest">
+                            <span>{currentRank.description}</span>
+                            <span className="text-white/40">{totalXP} ZP Total</span>
+                        </div>
+                    </div>
 
                     <div className="w-full bg-white/[0.03] rounded-3xl p-4 flex flex-col gap-4 border border-white/5 backdrop-blur-sm">
                         <div className="flex items-center gap-3">

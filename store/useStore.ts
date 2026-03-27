@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import { Habit, LogEntry } from '@/types';
 import { encryptData, decryptData, saveSecureJwt, getSecureJwt, removeSecureJwt } from '@/utils/secureStorage';
 import { Capacitor } from '@capacitor/core';
+import { getLevelFromXp } from '@/utils/progression';
 import { syncWidgetData } from '../utils/widgetSync';
 import { scheduleAllNotifications, cancelAllNotifications } from '../utils/notifications';
 import { Language, translations } from '../locales';
@@ -48,6 +49,10 @@ interface AppState {
     friendRequests: any[];
     /** Loading state for social actions */
     friendsLoading: boolean;
+    /** User's total experience points */
+    totalXP: number;
+    /** User's current level */
+    level: number;
 
 
     /**
@@ -210,6 +215,8 @@ export const useStore = create<AppState>()(
             friendRequests: [],
             friendsLoading: false,
             username: null,
+            totalXP: 0,
+            level: 1,
 
             setUserName: (name) => {
                 set({ userName: name });
@@ -247,7 +254,9 @@ export const useStore = create<AppState>()(
                     lastSyncedAt: 0,
                     syncStatus: 'idle',
                     deletedHabitIds: [],
-                    hasCompletedOnboarding: false
+                    hasCompletedOnboarding: false,
+                    totalXP: 0,
+                    level: 1
                 });
             },
 
@@ -262,7 +271,9 @@ export const useStore = create<AppState>()(
                     deletedHabitIds: [],
                     userName: 'Pedro',
                     language: currentLanguage,
-                    hasCompletedOnboarding: false
+                    hasCompletedOnboarding: false,
+                    totalXP: 0,
+                    level: 1
                 });
                 removeSecureJwt().catch(console.error);
                 // Ensure no ghost notifications remain after logout
@@ -361,12 +372,21 @@ export const useStore = create<AppState>()(
                     set({ logs: newLogs });
                 } else {
                     // Tick (add a log for that date)
+                    const habit = get().habits.find(h => h.id === habitId);
+                    const xpGained = habit?.isHardMode ? 20 : 10;
+                    const newTotalXP = get().totalXP + xpGained;
+                    const newLevel = getLevelFromXp(newTotalXP);
+
                     const newLog: LogEntry = {
                         id: crypto.randomUUID(),
                         habitId,
                         completedAt: targetDate.getTime(),
                     };
-                    set({ logs: [...logs, newLog] });
+                    set({ 
+                        logs: [...logs, newLog],
+                        totalXP: newTotalXP,
+                        level: newLevel
+                    });
                 }
 
                 syncWidgetData(get().habits, get().logs).catch(console.error);
@@ -425,7 +445,12 @@ export const useStore = create<AppState>()(
                         }
                     });
 
-                    set({ habits: newHabits, logs: newLogs });
+                    set({ 
+                        habits: newHabits, 
+                        logs: newLogs,
+                        totalXP: pullData.user?.total_xp !== undefined ? pullData.user.total_xp : get().totalXP,
+                        level: pullData.user?.level !== undefined ? pullData.user.level : get().level
+                    });
 
                     // 2. PUSH upstream changes
                     const unsyncedHabits = newHabits.filter(h => !(h.syncedAt) || (h.updatedAt || h.createdAt || 0) > h.syncedAt);
@@ -476,7 +501,7 @@ export const useStore = create<AppState>()(
             },
 
             syncProfile: async () => {
-                const { jwt, userName, language, optInLeaderboard, username } = get();
+                const { jwt, userName, language, optInLeaderboard, username, totalXP, level } = get();
                 if (!jwt) return;
 
                 try {
@@ -486,7 +511,7 @@ export const useStore = create<AppState>()(
                             'Authorization': `Bearer ${jwt}`,
                             'Content-Type': 'application/json'
                         },
-                        body: JSON.stringify({ name: userName, language, optInLeaderboard, username })
+                        body: JSON.stringify({ name: userName, language, optInLeaderboard, username, total_xp: totalXP, level })
                     });
                     const data = await res.json();
                     console.log("[STORE] Profile Sync Response:", data);

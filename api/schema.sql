@@ -19,6 +19,8 @@ CREATE TABLE IF NOT EXISTS users (
     lockout_until INTEGER DEFAULT 0,
     is_verified BOOLEAN NOT NULL DEFAULT 0,
     opt_in_leaderboard BOOLEAN NOT NULL DEFAULT 0,
+    total_xp INTEGER DEFAULT 0,
+    level INTEGER DEFAULT 1,
     created_at INTEGER NOT NULL
 );
 

@@ -9,6 +9,7 @@ export type Bindings = {
     DB: D1Database;
     JWT_SECRET: string;
     RESEND_API_KEY: string;
+    ENVIRONMENT?: string;
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
@@ -88,8 +89,13 @@ app.post('/auth/google', async (c) => {
                 .bind(userId, name || 'User', email, 'OAUTH_USER', googleId, 1, now, userLanguage, username).run();
         }
 
-        const secret = c.env.JWT_SECRET || 'zenith-local-dev-secret';
-        const token = await sign({ id: userId, name: user?.name || name, email, exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30 }, secret);
+        const secret = c.env.JWT_SECRET;
+        if (!secret && c.env.ENVIRONMENT === 'production') {
+            console.error('[AUTH] MISSING JWT_SECRET IN PRODUCTION!');
+            return c.json({ error: 'Erro de configuração do servidor.' }, 500);
+        }
+        const tokenSecret = secret || 'zenith-local-dev-secret';
+        const token = await sign({ id: userId, name: user?.name || name, email, exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30 }, tokenSecret);
 
         return c.json({ token, user: { id: userId, name: user?.name || name, email, language: userLanguage, username: user?.username || (user ? null : undefined) } });
     } catch (e: any) {
@@ -129,8 +135,13 @@ app.post('/auth/google/web', async (c) => {
                 .bind(userId, name || 'User', email, 'OAUTH_USER', googleId, 1, now, userLanguage, username).run();
         }
 
-        const secret = c.env.JWT_SECRET || 'zenith-local-dev-secret';
-        const token = await sign({ id: userId, name: user?.name || name, email, exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30 }, secret);
+        const secret = c.env.JWT_SECRET;
+        if (!secret && c.env.ENVIRONMENT === 'production') {
+            console.error('[AUTH] MISSING JWT_SECRET IN PRODUCTION!');
+            return c.json({ error: 'Erro de configuração do servidor.' }, 500);
+        }
+        const tokenSecret = secret || 'zenith-local-dev-secret';
+        const token = await sign({ id: userId, name: user?.name || name, email, exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30 }, tokenSecret);
 
         return c.json({ token, user: { id: userId, name: user?.name || name, email, language: userLanguage, username: user?.username || (user ? null : undefined) } });
     } catch (e: any) {
@@ -176,8 +187,13 @@ app.post('/auth/apple', async (c) => {
                 .bind(userId, finalName, finalEmail, 'OAUTH_USER', appleId, 1, now, userLanguage, username).run();
         }
 
-        const secret = c.env.JWT_SECRET || 'zenith-local-dev-secret';
-        const token = await sign({ id: userId, name: finalName, email: finalEmail, exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30 }, secret);
+        const secret = c.env.JWT_SECRET;
+        if (!secret && c.env.ENVIRONMENT === 'production') {
+            console.error('[AUTH] MISSING JWT_SECRET IN PRODUCTION!');
+            return c.json({ error: 'Erro de configuração do servidor.' }, 500);
+        }
+        const tokenSecret = secret || 'zenith-local-dev-secret';
+        const token = await sign({ id: userId, name: finalName, email: finalEmail, exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30 }, tokenSecret);
 
         console.log(`[ZENITH_AUTH] Apple Login success for ${finalEmail}`);
         return c.json({ token, user: { id: userId, name: finalName, email: finalEmail, language: userLanguage, username: user?.username } });
@@ -231,8 +247,13 @@ app.post('/auth/apple/callback', async (c) => {
                 .bind(userId, name, email, 'OAUTH_USER', appleId, 1, now, userLanguage).run();
         }
 
-        const secret = c.env.JWT_SECRET || 'zenith-local-dev-secret';
-        const token = await sign({ id: userId, name: user?.name || name, email, exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30 }, secret);
+        const secret = c.env.JWT_SECRET;
+        if (!secret && c.env.ENVIRONMENT === 'production') {
+            console.error('[AUTH] MISSING JWT_SECRET IN PRODUCTION!');
+            return c.json({ error: 'Erro de configuração do servidor.' }, 500);
+        }
+        const tokenSecret = secret || 'zenith-local-dev-secret';
+        const token = await sign({ id: userId, name: user?.name || name, email, exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30 }, tokenSecret);
 
         // Redirect back to frontend. We assume state might contain the original origin, or we use defaults.
         // For security, usually we should check standard origins.
@@ -398,8 +419,13 @@ app.post('/auth/register', zValidator('json', registerSchema.extend({ language: 
         await db.prepare('DELETE FROM verification_codes WHERE email = ?').bind(email).run();
 
         // Generate JWT (Valid for 30 days)
-        const secret = c.env.JWT_SECRET || 'zenith-local-dev-secret';
-        const token = await sign({ id, name: userName, email, exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30 }, secret);
+        const secret = c.env.JWT_SECRET;
+        if (!secret && c.env.ENVIRONMENT === 'production') {
+            console.error('[AUTH] MISSING JWT_SECRET IN PRODUCTION!');
+            return c.json({ error: 'Erro de configuração do servidor.' }, 500);
+        }
+        const tokenSecret = secret || 'zenith-local-dev-secret';
+        const token = await sign({ id, name: userName, email, exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30 }, tokenSecret);
 
         return c.json({ token, user: { id, name: userName, email, language: userLanguage } });
     } catch (error: any) {
@@ -463,8 +489,13 @@ app.post('/auth/login', zValidator('json', loginSchema), async (c) => {
         .bind(user.id)
         .run();
 
-    const secret = c.env.JWT_SECRET || 'zenith-local-dev-secret';
-    const token = await sign({ id: user.id, name: user.name, email: user.email, exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30 }, secret);
+    const secret = c.env.JWT_SECRET;
+    if (!secret && c.env.ENVIRONMENT === 'production') {
+        console.error('[AUTH] MISSING JWT_SECRET IN PRODUCTION!');
+        return c.json({ error: 'Erro de configuração do servidor.' }, 500);
+    }
+    const tokenSecret = secret || 'zenith-local-dev-secret';
+    const token = await sign({ id: user.id, name: user.name, email: user.email, exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30 }, tokenSecret);
 
     return c.json({ token, user: { id: user.id, name: user.name, email: user.email, language: user.language || 'pt', optInLeaderboard: user.opt_in_leaderboard === 1, username: user.username } });
 });
@@ -476,10 +507,15 @@ app.patch('/auth/profile', async (c) => {
         return c.json({ error: 'Não autorizado' }, 401);
     }
     const token = authHeader.split(' ')[1];
-    const secret = c.env.JWT_SECRET || 'zenith-local-dev-secret';
+    const secret = c.env.JWT_SECRET;
+    if (!secret && c.env.ENVIRONMENT === 'production') {
+        console.error('[AUTH] MISSING JWT_SECRET IN PRODUCTION!');
+        return c.json({ error: 'Erro de configuração do servidor.' }, 500);
+    }
+    const tokenSecret = secret || 'zenith-local-dev-secret';
     let payload;
     try {
-        payload = await verify(token, secret, 'HS256');
+        payload = await verify(token, tokenSecret, 'HS256');
     } catch {
         return c.json({ error: 'Token inválido' }, 401);
     }
@@ -497,7 +533,7 @@ app.patch('/auth/profile', async (c) => {
         if (language !== undefined) { updates.push('language = ?'); binds.push(language); }
         if (optInLeaderboard !== undefined) { updates.push('opt_in_leaderboard = ?'); binds.push(optInLeaderboard ? 1 : 0); }
         
-        if (username !== undefined) {
+        if (username !== undefined && username !== null) {
             const cleanUsername = username.toLowerCase().replace(/[^a-z0-9_]/g, '');
             if (cleanUsername.length < 3) return c.json({ error: 'Username muito curto (mínimo 3 caracteres).' }, 400);
 
@@ -545,10 +581,15 @@ app.get('/users/search', async (c) => {
     if (!authHeader) return c.json({ error: 'Não autorizado' }, 401);
 
     const token = authHeader.replace('Bearer ', '');
-    const secret = c.env.JWT_SECRET || 'zenith-local-dev-secret';
+    const secret = c.env.JWT_SECRET;
+    if (!secret && c.env.ENVIRONMENT === 'production') {
+        console.error('[AUTH] MISSING JWT_SECRET IN PRODUCTION!');
+        return c.json({ error: 'Erro de configuração do servidor.' }, 500);
+    }
+    const tokenSecret = secret || 'zenith-local-dev-secret';
     let payload;
     try {
-        payload = await verify(token, secret, 'HS256');
+        payload = await verify(token, tokenSecret, 'HS256');
     } catch {
         return c.json({ error: 'Token inválido' }, 401);
     }
@@ -578,10 +619,15 @@ app.post('/friends/request', async (c) => {
     if (!authHeader) return c.json({ error: 'Não autorizado' }, 401);
 
     const token = authHeader.replace('Bearer ', '');
-    const secret = c.env.JWT_SECRET || 'zenith-local-dev-secret';
+    const secret = c.env.JWT_SECRET;
+    if (!secret && c.env.ENVIRONMENT === 'production') {
+        console.error('[AUTH] MISSING JWT_SECRET IN PRODUCTION!');
+        return c.json({ error: 'Erro de configuração do servidor.' }, 500);
+    }
+    const tokenSecret = secret || 'zenith-local-dev-secret';
     let payload;
     try {
-        payload = await verify(token, secret, 'HS256');
+        payload = await verify(token, tokenSecret, 'HS256');
     } catch {
         return c.json({ error: 'Token inválido' }, 401);
     }
@@ -614,10 +660,15 @@ app.get('/friends/requests', async (c) => {
     if (!authHeader) return c.json({ error: 'Não autorizado' }, 401);
 
     const token = authHeader.replace('Bearer ', '');
-    const secret = c.env.JWT_SECRET || 'zenith-local-dev-secret';
+    const secret = c.env.JWT_SECRET;
+    if (!secret && c.env.ENVIRONMENT === 'production') {
+        console.error('[AUTH] MISSING JWT_SECRET IN PRODUCTION!');
+        return c.json({ error: 'Erro de configuração do servidor.' }, 500);
+    }
+    const tokenSecret = secret || 'zenith-local-dev-secret';
     let payload;
     try {
-        payload = await verify(token, secret, 'HS256');
+        payload = await verify(token, tokenSecret, 'HS256');
     } catch {
         return c.json({ error: 'Token inválido' }, 401);
     }
@@ -647,10 +698,15 @@ app.patch('/friends/request/:id', async (c) => {
     const { action } = await c.req.json().catch(() => ({})); // 'accept' or 'reject'
 
     const token = authHeader.replace('Bearer ', '');
-    const secret = c.env.JWT_SECRET || 'zenith-local-dev-secret';
+    const secret = c.env.JWT_SECRET;
+    if (!secret && c.env.ENVIRONMENT === 'production') {
+        console.error('[AUTH] MISSING JWT_SECRET IN PRODUCTION!');
+        return c.json({ error: 'Erro de configuração do servidor.' }, 500);
+    }
+    const tokenSecret = secret || 'zenith-local-dev-secret';
     let payload;
     try {
-        payload = await verify(token, secret, 'HS256');
+        payload = await verify(token, tokenSecret, 'HS256');
     } catch {
         return c.json({ error: 'Token inválido' }, 401);
     }
@@ -687,10 +743,15 @@ app.get('/friends', async (c) => {
     if (!authHeader) return c.json({ error: 'Não autorizado' }, 401);
 
     const token = authHeader.replace('Bearer ', '');
-    const secret = c.env.JWT_SECRET || 'zenith-local-dev-secret';
+    const secret = c.env.JWT_SECRET;
+    if (!secret && c.env.ENVIRONMENT === 'production') {
+        console.error('[AUTH] MISSING JWT_SECRET IN PRODUCTION!');
+        return c.json({ error: 'Erro de configuração do servidor.' }, 500);
+    }
+    const tokenSecret = secret || 'zenith-local-dev-secret';
     let payload;
     try {
-        payload = await verify(token, secret, 'HS256');
+        payload = await verify(token, tokenSecret, 'HS256');
     } catch {
         return c.json({ error: 'Token inválido' }, 401);
     }
@@ -719,10 +780,15 @@ app.get('/friends/compare/:username', async (c) => {
 
     const friendUsername = c.req.param('username');
     const token = authHeader.replace('Bearer ', '');
-    const secret = c.env.JWT_SECRET || 'zenith-local-dev-secret';
+    const secret = c.env.JWT_SECRET;
+    if (!secret && c.env.ENVIRONMENT === 'production') {
+        console.error('[AUTH] MISSING JWT_SECRET IN PRODUCTION!');
+        return c.json({ error: 'Erro de configuração do servidor.' }, 500);
+    }
+    const tokenSecret = secret || 'zenith-local-dev-secret';
     let payload;
     try {
-        payload = await verify(token, secret, 'HS256');
+        payload = await verify(token, tokenSecret, 'HS256');
     } catch {
         return c.json({ error: 'Token inválido' }, 401);
     }
@@ -761,9 +827,14 @@ app.get('/leaderboard', async (c) => {
         return c.json({ error: 'Não autorizado' }, 401);
     }
     const token = authHeader.split(' ')[1];
-    const secret = c.env.JWT_SECRET || 'zenith-local-dev-secret';
+    const secret = c.env.JWT_SECRET;
+    if (!secret && c.env.ENVIRONMENT === 'production') {
+        console.error('[AUTH] MISSING JWT_SECRET IN PRODUCTION!');
+        return c.json({ error: 'Erro de configuração do servidor.' }, 500);
+    }
+    const tokenSecret = secret || 'zenith-local-dev-secret';
     try {
-        await verify(token, secret, 'HS256');
+        await verify(token, tokenSecret, 'HS256');
     } catch {
         return c.json({ error: 'Token inválido' }, 401);
     }
@@ -793,10 +864,15 @@ app.delete('/auth/account', async (c) => {
         return c.json({ error: 'Não autorizado' }, 401);
     }
     const token = authHeader.split(' ')[1];
-    const secret = c.env.JWT_SECRET || 'zenith-local-dev-secret';
+    const secret = c.env.JWT_SECRET;
+    if (!secret && c.env.ENVIRONMENT === 'production') {
+        console.error('[AUTH] MISSING JWT_SECRET IN PRODUCTION!');
+        return c.json({ error: 'Erro de configuração do servidor.' }, 500);
+    }
+    const tokenSecret = secret || 'zenith-local-dev-secret';
     let payload;
     try {
-        payload = await verify(token, secret, 'HS256');
+        payload = await verify(token, tokenSecret, 'HS256');
     } catch {
         return c.json({ error: 'Token inválido' }, 401);
     }
@@ -840,10 +916,15 @@ app.post('/auth/change-password', async (c) => {
     if (!authHeader) return c.json({ error: 'Não autorizado' }, 401);
 
     const token = authHeader.replace('Bearer ', '');
-    const secret = c.env.JWT_SECRET || 'zenith-local-dev-secret';
+    const secret = c.env.JWT_SECRET;
+    if (!secret && c.env.ENVIRONMENT === 'production') {
+        console.error('[AUTH] MISSING JWT_SECRET IN PRODUCTION!');
+        return c.json({ error: 'Erro de configuração do servidor.' }, 500);
+    }
+    const tokenSecret = secret || 'zenith-local-dev-secret';
     let payload;
     try {
-        payload = await verify(token, secret, 'HS256');
+        payload = await verify(token, tokenSecret, 'HS256');
     } catch {
         return c.json({ error: 'Token inválido' }, 401);
     }

@@ -12,6 +12,15 @@ export type Bindings = {
     ENVIRONMENT?: string;
 };
 
+export type ArenaWinner = {
+    id: string;
+    user_id: string;
+    season_id: string;
+    rank_name: string;
+    position: number | null;
+    created_at: number;
+};
+
 const app = new Hono<{ Bindings: Bindings }>();
 
 // Enable CORS for the Capacitor iOS App
@@ -1323,6 +1332,46 @@ app.post('/admin/feedbacks/:id/status', async (c) => {
         return c.json({ success: true, message: `Estado atualizado para ${status}` });
     } catch (err: any) {
         return c.json({ error: 'Erro ao atualizar feedback: ' + err.message }, 500);
+    }
+});
+
+// --- ARENA REWARDS & DECORATIONS ---
+
+app.get('/users/me/rewards', async (c) => {
+    try {
+        const authHeader = c.req.header('Authorization');
+        if (!authHeader) return c.json({ error: 'Não autorizado.' }, 401);
+        
+        const token = authHeader.split(' ')[1];
+        const payload = decode(token).payload as any;
+        const userId = payload.id;
+        const db = c.env.DB;
+
+        const rewards = await db.prepare('SELECT * FROM arena_winners WHERE user_id = ? ORDER BY created_at DESC')
+            .bind(userId)
+            .all();
+
+        return c.json(rewards.results);
+    } catch (e: any) {
+        return c.json({ error: 'Erro ao carregar recompensas: ' + e.message }, 500);
+    }
+});
+
+// Admin/Internal Mock: Award an Arena Decoration (For testing/simulation)
+app.post('/admin/award-arena', async (c) => {
+    try {
+        const { userId, seasonId, rankName, position } = await c.req.json();
+        const db = c.env.DB;
+        const id = crypto.randomUUID();
+        const now = Date.now();
+
+        await db.prepare('INSERT INTO arena_winners (id, user_id, season_id, rank_name, position, created_at) VALUES (?, ?, ?, ?, ?, ?)')
+            .bind(id, userId, seasonId, rankName, position || null, now)
+            .run();
+
+        return c.json({ success: true, id });
+    } catch (e: any) {
+        return c.json({ error: e.message }, 500);
     }
 });
 

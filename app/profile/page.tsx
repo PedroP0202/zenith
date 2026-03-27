@@ -57,6 +57,8 @@ export default function ProfilePage() {
     const [passwordError, setPasswordError] = useState("");
     const [isSavingUsername, setIsSavingUsername] = useState(false);
     const [usernameMessage, setUsernameMessage] = useState<{ text: string, type: 'success' | 'error' | 'info' } | null>(null);
+    const [rewards, setRewards] = useState<any[]>([]);
+    const [isLoadingRewards, setIsLoadingRewards] = useState(false);
 
     useEffect(() => {
         setMounted(true);
@@ -94,8 +96,30 @@ export default function ProfilePage() {
             }
         }, 500);
 
-        return () => clearTimeout(debounceTimer);
     }, [usernameInput, username]);
+
+    useEffect(() => {
+        if (jwt) {
+            fetchRewards();
+        }
+    }, [jwt]);
+
+    const fetchRewards = async () => {
+        setIsLoadingRewards(true);
+        try {
+            const res = await fetch(`${API_URL}/users/me/rewards`, {
+                headers: { 'Authorization': `Bearer ${jwt}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setRewards(data);
+            }
+        } catch (error) {
+            console.error("Error fetching rewards:", error);
+        } finally {
+            setIsLoadingRewards(false);
+        }
+    };
 
     if (!mounted) return null;
 
@@ -472,6 +496,42 @@ export default function ProfilePage() {
                 >
                     <TrophyWall />
                 </motion.section>
+
+                {/* Arena History - Condecorações */}
+                {rewards.length > 0 && (
+                    <motion.section
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="space-y-4"
+                    >
+                        <div className="flex items-center justify-between px-2">
+                            <h2 className="text-xs uppercase tracking-[0.2em] text-white/40 font-black">Histórico da Arena</h2>
+                            <span className="text-[10px] text-[var(--zenith-active)] font-bold">{rewards.length} {rewards.length === 1 ? 'Condecoração' : 'Condecorações'}</span>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-3">
+                            {rewards.map((reward) => (
+                                <div 
+                                    key={reward.id}
+                                    className="bg-white/[0.03] border border-white/5 rounded-3xl p-4 flex flex-col items-center text-center gap-2 backdrop-blur-sm"
+                                >
+                                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-white/10 to-transparent flex items-center justify-center mb-1 shadow-inner">
+                                        <Trophy size={20} className={reward.position <= 3 ? "text-yellow-400" : "text-white/40"} />
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-xs font-black uppercase tracking-widest text-white">{reward.rank_name}</span>
+                                        <span className="text-[10px] font-bold text-white/30 uppercase tracking-tighter mt-0.5">Época {reward.season_id}</span>
+                                    </div>
+                                    {reward.position && (
+                                        <div className="px-2 py-0.5 rounded-full bg-[var(--zenith-active)]/10 border border-[var(--zenith-active)]/20 text-[9px] font-black text-[var(--zenith-active)]">
+                                            #{reward.position} GLOBAL
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </motion.section>
+                )}
 
                 <div className="h-px w-full bg-white/5" />
 

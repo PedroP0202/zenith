@@ -7,6 +7,7 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import { GOOGLE_CLIENT_ID } from '@/utils/constants';
 import LangHandler from '../components/LangHandler';
 import Onboarding from '../components/Onboarding';
+import DailyRewardToast from '../components/DailyRewardToast';
 
 const outfit = Outfit({ subsets: ['latin'], variable: '--font-outfit' });
 
@@ -68,6 +69,7 @@ export default function RootLayout({
         <LangHandler />
         <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
           <AuthGuard>
+            <DailyRewardToast />
             {children}
             <BottomNav />
             <Onboarding />

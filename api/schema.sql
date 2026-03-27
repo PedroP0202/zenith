@@ -65,3 +65,16 @@ CREATE TABLE IF NOT EXISTS beta_feedbacks (
 CREATE INDEX idx_habits_user_id ON habits(user_id);
 CREATE INDEX idx_logs_habit_id ON logs(habit_id);
 CREATE INDEX idx_beta_feedbacks_status ON beta_feedbacks(status);
+
+-- Arena Championship Winners & Decorations
+CREATE TABLE IF NOT EXISTS arena_winners (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  season_id TEXT NOT NULL, -- Format: YYYY-MM (e.g., "2026-03")
+  rank_name TEXT NOT NULL, -- The final tier name (e.g., "Zenith", "Avatar")
+  position INTEGER,        -- Numeric position (1, 2, 3...)
+  created_at INTEGER NOT NULL,
+  FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_arena_winners_user ON arena_winners(user_id);

@@ -87,15 +87,16 @@ app.post('/auth/google', async (c) => {
         const now = Date.now();
         let userId;
         let userLanguage = user?.language || 'pt';
+        let currentUsername = user?.username;
 
         if (user) {
             userId = user.id;
             await db.prepare('UPDATE users SET google_id = ? WHERE id = ?').bind(googleId, userId).run();
         } else {
             userId = crypto.randomUUID();
-            const username = await generateUniqueUsername(db, name || 'User');
+            currentUsername = await generateUniqueUsername(db, name || 'User');
             await db.prepare('INSERT INTO users (id, name, email, password_hash, google_id, is_verified, created_at, language, username, last_login_reward_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-                .bind(userId, name || 'User', email, 'OAUTH_USER', googleId, 1, now, userLanguage, username, null).run();
+                .bind(userId, name || 'User', email, 'OAUTH_USER', googleId, 1, now, userLanguage, currentUsername, null).run();
         }
 
         const secret = c.env.JWT_SECRET;
@@ -106,7 +107,7 @@ app.post('/auth/google', async (c) => {
         const tokenSecret = secret || 'zenith-local-dev-secret';
         const token = await sign({ id: userId, name: user?.name || name, email, exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30 }, tokenSecret);
 
-        return c.json({ token, user: { id: userId, name: user?.name || name, email, language: userLanguage, username: user?.username || (user ? null : undefined), total_xp: user?.total_xp || 0, level: user?.level || 1, lastLoginRewardDate: user?.last_login_reward_date || null } });
+        return c.json({ token, user: { id: userId, name: user?.name || name, email, language: userLanguage, username: currentUsername, total_xp: user?.total_xp || 0, level: user?.level || 1, lastLoginRewardDate: user?.last_login_reward_date || null } });
     } catch (e: any) {
         return c.json({ error: 'Erro de Autenticação Google: ' + e.message }, 500);
     }
@@ -133,15 +134,16 @@ app.post('/auth/google/web', async (c) => {
         const now = Date.now();
         let userId;
         let userLanguage = user?.language || 'pt';
+        let currentUsername = user?.username;
 
         if (user) {
             userId = user.id;
             await db.prepare('UPDATE users SET google_id = ? WHERE id = ?').bind(googleId, userId).run();
         } else {
             userId = crypto.randomUUID();
-            const username = await generateUniqueUsername(db, name || 'User');
+            currentUsername = await generateUniqueUsername(db, name || 'User');
             await db.prepare('INSERT INTO users (id, name, email, password_hash, google_id, is_verified, created_at, language, username, last_login_reward_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-                .bind(userId, name || 'User', email, 'OAUTH_USER', googleId, 1, now, userLanguage, username, null).run();
+                .bind(userId, name || 'User', email, 'OAUTH_USER', googleId, 1, now, userLanguage, currentUsername, null).run();
         }
 
         const secret = c.env.JWT_SECRET;
@@ -152,7 +154,7 @@ app.post('/auth/google/web', async (c) => {
         const tokenSecret = secret || 'zenith-local-dev-secret';
         const token = await sign({ id: userId, name: user?.name || name, email, exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30 }, tokenSecret);
 
-        return c.json({ token, user: { id: userId, name: user?.name || name, email, language: userLanguage, username: user?.username || (user ? null : undefined), total_xp: user?.total_xp || 0, level: user?.level || 1, lastLoginRewardDate: user?.last_login_reward_date || null } });
+        return c.json({ token, user: { id: userId, name: user?.name || name, email, language: userLanguage, username: currentUsername, total_xp: user?.total_xp || 0, level: user?.level || 1, lastLoginRewardDate: user?.last_login_reward_date || null } });
     } catch (e: any) {
         return c.json({ error: 'Erro de Autenticação Google (Web): ' + e.message }, 500);
     }
@@ -205,7 +207,11 @@ app.post('/auth/apple', async (c) => {
         const token = await sign({ id: userId, name: finalName, email: finalEmail, exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30 }, tokenSecret);
 
         console.log(`[ZENITH_AUTH] Apple Login success for ${finalEmail}`);
-        return c.json({ token, user: { id: userId, name: finalName, email: finalEmail, language: userLanguage, username: user?.username, total_xp: user?.total_xp || 0, level: user?.level || 1, lastLoginRewardDate: user?.last_login_reward_date || null } });
+        // If it was a new user, we need to get the generated username. 
+        // If it's an existing one, it's user.username.
+        const currentUsername = user?.username || (user ? null : undefined);
+        
+        return c.json({ token, user: { id: userId, name: finalName, email: finalEmail, language: userLanguage, username: currentUsername, total_xp: user?.total_xp || 0, level: user?.level || 1, lastLoginRewardDate: user?.last_login_reward_date || null } });
     } catch (e: any) {
         console.error('[ZENITH_AUTH] Apple Auth Error:', e.message);
         return c.json({ error: 'Erro de Autenticação Apple: ' + e.message }, 500);
@@ -252,8 +258,9 @@ app.post('/auth/apple/callback', async (c) => {
             await db.prepare('UPDATE users SET apple_id = ? WHERE id = ?').bind(appleId, userId).run();
         } else {
             userId = crypto.randomUUID();
-            await db.prepare('INSERT INTO users (id, name, email, password_hash, apple_id, is_verified, created_at, language) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
-                .bind(userId, name, email, 'OAUTH_USER', appleId, 1, now, userLanguage).run();
+            const username = await generateUniqueUsername(db, name || "Utilizador Apple");
+            await db.prepare('INSERT INTO users (id, name, email, password_hash, apple_id, is_verified, created_at, language, username) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
+                .bind(userId, name, email, 'OAUTH_USER', appleId, 1, now, userLanguage, username).run();
         }
 
         const secret = c.env.JWT_SECRET;
@@ -436,7 +443,7 @@ app.post('/auth/register', zValidator('json', registerSchema.extend({ language: 
         const tokenSecret = secret || 'zenith-local-dev-secret';
         const token = await sign({ id, name: userName, email, exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30 }, tokenSecret);
 
-        return c.json({ token, user: { id, name: userName, email, language: userLanguage, total_xp: 0, level: 1, lastLoginRewardDate: null } });
+        return c.json({ token, user: { id, name: userName, email, language: userLanguage, username: finalUsername, total_xp: 0, level: 1, lastLoginRewardDate: null } });
     } catch (error: any) {
         return c.json({ error: error.message }, 500);
     }
@@ -838,7 +845,9 @@ app.get('/users/:username/profile', async (c) => {
     const authHeader = c.req.header('Authorization');
     if (!authHeader) return c.json({ error: 'Não autorizado' }, 401);
 
-    const targetUsername = c.req.param('username');
+    const rawUsername = c.req.param('username');
+    const targetUsername = rawUsername.startsWith('@') ? rawUsername.substring(1) : rawUsername;
+
     const token = authHeader.replace('Bearer ', '');
     const secret = c.env.JWT_SECRET;
     const tokenSecret = secret || 'zenith-local-dev-secret';
@@ -854,8 +863,8 @@ app.get('/users/:username/profile', async (c) => {
     const db = c.env.DB;
 
     try {
-        // Find target user
-        const user = await db.prepare('SELECT id, name, username, level, total_xp FROM users WHERE username = ?').bind(targetUsername).first();
+        // Find target user (Case-insensitive lookup)
+        const user = await db.prepare('SELECT id, name, username, level, total_xp FROM users WHERE LOWER(username) = LOWER(?)').bind(targetUsername).first() as any;
         if (!user) return c.json({ error: 'Utilizador não encontrado.' }, 404);
 
         // Check if requester is friends with target (or is the target themselves)
@@ -1526,6 +1535,10 @@ app.post('/admin/award-arena', async (c) => {
     } catch (e: any) {
         return c.json({ error: e.message }, 500);
     }
+});
+
+app.notFound((c) => {
+    return c.json({ error: 'Endpoint não encontrado no servidor Zenith.' }, 404);
 });
 
 export default app;

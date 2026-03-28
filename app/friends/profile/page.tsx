@@ -54,7 +54,7 @@ function FriendProfileContent() {
             });
             
             const contentType = res.headers.get("content-type");
-            if (contentType && contentType.indexOf("application/json") !== -1) {
+            if (contentType && contentType.includes("application/json")) {
                 const data = await res.json();
                 if (res.ok) {
                     setFriendData(data);
@@ -62,15 +62,15 @@ function FriendProfileContent() {
                     setError(data.error || `Erro ${res.status}: Problema no servidor`);
                 }
             } else {
-                const text = await res.text();
+                // Not a JSON response, likely a raw 404/500 from the router or worker
                 if (res.status === 404) {
-                    setError("O endpoint do perfil ainda não foi encontrado no servidor. Por favor, verifica se a API foi atualizada.");
+                    setError(`O utilizador "@${username}" não foi encontrado ou o servidor não reconhece este endereço.`);
                 } else {
-                    setError(`Erro ${res.status}: Resposta inesperada do servidor`);
+                    setError(`Erro ${res.status}: O servidor devolveu uma resposta inesperada.`);
                 }
             }
         } catch (e) {
-            setError("Não foi possível contactar o servidor. Verifica a tua ligação.");
+            setError("Não foi possível estabelecer ligação com o servidor Zenith. Verifica a tua internet.");
         } finally {
             setIsLoading(false);
         }

@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS users (
     opt_in_leaderboard BOOLEAN NOT NULL DEFAULT 0,
     total_xp INTEGER DEFAULT 0,
     level INTEGER DEFAULT 1,
+    username TEXT UNIQUE,
     last_login_reward_date TEXT,
     created_at INTEGER NOT NULL
 );
@@ -89,4 +90,26 @@ CREATE TABLE IF NOT EXISTS arena_seasons (
   created_at INTEGER NOT NULL
 );
 
+-- Index for user lookups by username
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username);
+
 CREATE INDEX IF NOT EXISTS idx_arena_seasons_status ON arena_seasons(is_finalized, end_at);
+
+-- Friendships system
+CREATE TABLE IF NOT EXISTS friendships (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    friend_id TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending', -- 'pending' or 'accepted'
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY(friend_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Ensure a unique pair for a friendship request in any direction
+CREATE UNIQUE INDEX IF NOT EXISTS idx_friendships_directed ON friendships(user_id, friend_id);
+
+-- Index for querying a user's friendships quickly
+CREATE INDEX IF NOT EXISTS idx_friendships_user_id ON friendships(user_id);
+CREATE INDEX IF NOT EXISTS idx_friendships_friend_id ON friendships(friend_id);

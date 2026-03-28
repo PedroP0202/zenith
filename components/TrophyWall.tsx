@@ -15,20 +15,25 @@ const ICON_MAP: Record<string, React.ElementType> = {
     Layout,
 };
 
-export default function TrophyWall() {
+export default function TrophyWall({ unlockedIds: externalUnlockedIds }: { unlockedIds?: string[] }) {
     const { habits, logs, friends } = useStore();
-    const unlockedTrophies = getUnlockedTrophies(habits, logs, friends);
-    const unlockedIds = new Set(unlockedTrophies.map(t => t.id));
+    
+    // Use external IDs if provided (for friend profiles), otherwise calculate from store
+    const unlockedIds = externalUnlockedIds 
+        ? new Set(externalUnlockedIds)
+        : new Set(getUnlockedTrophies(habits, logs, friends).map(t => t.id));
+    
+    const unlockedCount = unlockedIds.size;
     const [selectedTrophy, setSelectedTrophy] = useState<string | null>(null);
 
     // Calculate progress (e.g., 3/6)
-    const progress = Math.round((unlockedTrophies.length / TROPHIES.length) * 100);
+    const progress = Math.round((unlockedCount / TROPHIES.length) * 100);
 
     return (
         <div className="w-full">
             <div className="flex items-center justify-between mb-4 px-2">
                 <h2 className="text-sm uppercase tracking-widest text-white/40 font-medium">Mural de Troféus</h2>
-                <span className="text-xs font-bold text-white/30">{unlockedTrophies.length}/{TROPHIES.length}</span>
+                <span className="text-xs font-bold text-white/30">{unlockedCount}/{TROPHIES.length}</span>
             </div>
 
             {/* Progress Bar */}

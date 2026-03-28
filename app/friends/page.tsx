@@ -7,7 +7,7 @@ import { ChevronLeft, Search, UserPlus, Check, X, Users, Zap, Loader2 } from "lu
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "@/hooks/useTranslation";
 import { API_URL } from "@/utils/constants";
-import ComparisonModal from "@/components/ComparisonModal";
+import Link from "next/link";
 
 export default function FriendsPage() {
     const { 
@@ -27,7 +27,6 @@ export default function FriendsPage() {
     const [searchResults, setSearchResults] = useState<any[]>([]);
     const [searching, setSearching] = useState(false);
     const [tab, setTab] = useState<'friends' | 'requests'>('friends');
-    const [selectedFriend, setSelectedFriend] = useState<{username: string, name: string} | null>(null);
 
     useEffect(() => {
         setMounted(true);
@@ -180,12 +179,12 @@ export default function FriendsPage() {
                                         </div>
                                     </div>
                                 </div>
-                                <button 
-                                    onClick={() => setSelectedFriend({username: friend.username, name: friend.name})}
-                                    className="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-white/60 transition-all active:scale-95"
+                                <Link 
+                                    href={`/friends/profile?u=${friend.username}`}
+                                    className="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-white/60 transition-all active:scale-95 flex items-center gap-2"
                                 >
-                                    {t.social.compare}
-                                </button>
+                                    Ver Perfil
+                                </Link>
                             </motion.div>
                         ))
                     )
@@ -226,12 +225,6 @@ export default function FriendsPage() {
                 )}
             </div>
 
-            <ComparisonModal 
-                isOpen={!!selectedFriend}
-                onClose={() => setSelectedFriend(null)}
-                friendUsername={selectedFriend?.username || ""}
-                friendName={selectedFriend?.name || ""}
-            />
         </main>
     );
 }

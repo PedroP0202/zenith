@@ -834,6 +834,104 @@ app.get('/friends/compare/:username', async (c) => {
     }
 });
 
+app.get('/users/:username/profile', async (c) => {
+    const authHeader = c.req.header('Authorization');
+    if (!authHeader) return c.json({ error: 'Não autorizado' }, 401);
+
+    const targetUsername = c.req.param('username');
+    const token = authHeader.replace('Bearer ', '');
+    const secret = c.env.JWT_SECRET;
+    const tokenSecret = secret || 'zenith-local-dev-secret';
+    
+    let payload;
+    try {
+        payload = await verify(token, tokenSecret, 'HS256');
+    } catch {
+        return c.json({ error: 'Token inválido' }, 401);
+    }
+
+    const requesterId = payload.id;
+    const db = c.env.DB;
+
+    try {
+        // Find target user
+        const user = await db.prepare('SELECT id, name, username, level, total_xp FROM users WHERE username = ?').bind(targetUsername).first();
+        if (!user) return c.json({ error: 'Utilizador não encontrado.' }, 404);
+
+        // Check if requester is friends with target (or is the target themselves)
+        if (user.id !== requesterId) {
+            const friendship = await db.prepare(`
+                SELECT status FROM friendships 
+                WHERE ((user_id = ? AND friend_id = ?) OR (user_id = ? AND friend_id = ?))
+                AND status = 'accepted'
+            `).bind(requesterId, user.id, user.id, requesterId).first();
+            
+            if (!friendship) return c.json({ error: 'Apenas amigos podem ver este perfil.' }, 403);
+        }
+
+        // Get Arena History
+        const { results: arenaWinners } = await db.prepare('SELECT season_id, rank_name, position FROM arena_winners WHERE user_id = ? ORDER BY created_at DESC').bind(user.id as any).all();
+
+        // Get Habit Summary
+        const habits = await db.prepare('SELECT id, title, is_hard_mode, is_active FROM habits WHERE user_id = ?').bind(user.id as any).all();
+        const habitIds = habits.results.map(h => h.id);
+
+        // Get Stats: Total Completions
+        const logsCount = await db.prepare('SELECT COUNT(*) as total FROM logs WHERE habit_id IN (SELECT id FROM habits WHERE user_id = ?)').bind(user.id as any).first();
+
+        // Get Active Weekdays (Day of Week distribution)
+        // Note: strftime('%w', ...) returns 0 (Sunday) to 6 (Saturday)
+        const weekdayStats = await db.prepare(`
+            SELECT strftime('%w', datetime(completed_at / 1000, 'unixepoch')) as dow, COUNT(*) as count 
+            FROM logs 
+            WHERE habit_id IN (SELECT id FROM habits WHERE user_id = ?)
+            GROUP BY dow
+        `).bind(user.id as any).all();
+
+        const activeWeekdays = [0, 0, 0, 0, 0, 0, 0];
+        weekdayStats.results.forEach((row: any) => {
+            const dayIndex = parseInt(row.dow);
+            activeWeekdays[dayIndex] = row.count;
+        });
+
+        // Basic Achievement Checks (Replicating some frontend logic)
+        const unlockedTrophies = [];
+        const totalCompletions = (logsCount?.total as number) || 0;
+        
+        if (totalCompletions >= 100) unlockedTrophies.push('checkin_master');
+        if (habits.results.length > 0 && totalCompletions > 0) unlockedTrophies.push('zen_beginner');
+        if (habitIds.length >= 5) unlockedTrophies.push('habit_architect');
+        
+        // Friendship count for 'socializer'
+        const friendsCountRes = await db.prepare("SELECT COUNT(*) as total FROM friendships WHERE (user_id = ? OR friend_id = ?) AND status = 'accepted'").bind(user.id as any, user.id as any).first();
+        if (((friendsCountRes?.total as number) || 0) >= 5) unlockedTrophies.push('socializer');
+
+        // Best Streak (Simplified for now: return max completions per specific days etc or just a mock)
+        // Finding real streak in one SQL is hard, so we return 0 and let frontend handle if it has enough data, 
+        // but for friends we don't send all logs. For now we just return a placeholder or totalXP based rank.
+        
+        return c.json({
+            user: {
+                id: user.id,
+                name: user.name,
+                username: user.username,
+                level: user.level,
+                totalXp: user.total_xp
+            },
+            arenaHistory: arenaWinners,
+            stats: {
+                totalCompletions,
+                activeWeekdays,
+                activeHabitsCount: habitIds.length
+            },
+            unlockedTrophies
+        });
+
+    } catch (e: any) {
+        return c.json({ error: 'Erro ao carregar perfil: ' + e.message }, 500);
+    }
+});
+
 app.get('/leaderboard', async (c) => {
     const authHeader = c.req.header('Authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {

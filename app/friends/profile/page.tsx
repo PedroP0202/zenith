@@ -110,14 +110,40 @@ function FriendProfileContent() {
 
     if (error) {
         return (
-            <div className="min-h-screen bg-black text-white p-6 flex flex-col items-center justify-center gap-4">
-                <p className="text-white/40 font-medium text-center">{error}</p>
-                <button 
-                    onClick={() => router.back()}
-                    className="px-6 py-3 bg-white/5 rounded-2xl text-sm font-bold uppercase tracking-widest"
-                >
-                    Voltar
-                </button>
+            <div className="min-h-screen bg-black text-white p-6 flex flex-col items-center justify-center gap-6">
+                <div className="w-16 h-16 bg-red-500/10 rounded-3xl flex items-center justify-center text-red-500 mb-2">
+                    <Activity size={32} />
+                </div>
+                <div className="space-y-2 text-center">
+                    <p className="text-white/60 font-medium">{error}</p>
+                    <p className="text-[10px] text-white/20 uppercase tracking-widest">Verifica se a API está online e atualizada</p>
+                </div>
+                
+                <div className="flex flex-col gap-3 w-full max-w-[200px]">
+                    <button 
+                        onClick={fetchFriendProfile}
+                        className="w-full px-6 py-4 bg-[var(--zenith-active)] rounded-2xl text-sm font-black uppercase tracking-widest active:scale-95 transition-transform"
+                    >
+                        Tentar Novamente
+                    </button>
+                    <button 
+                        onClick={() => router.back()}
+                        className="w-full px-6 py-4 bg-white/5 rounded-2xl text-sm font-bold uppercase tracking-widest text-white/40 active:scale-95 transition-transform"
+                    >
+                        Voltar
+                    </button>
+                </div>
+
+                <details className="mt-8 w-full group">
+                    <summary className="text-[9px] text-white/10 uppercase tracking-[0.2em] cursor-pointer text-center list-none group-open:text-white/30">
+                        Detalhes do Diagnóstico
+                    </summary>
+                    <div className="mt-4 p-4 bg-white/[0.02] border border-white/5 rounded-2xl text-[10px] font-mono text-white/30 break-all">
+                        URL: {API_URL}/users/{username}/profile<br/>
+                        User: {username || 'undefined'}<br/>
+                        Auth: {jwt ? 'Token Present' : 'Missing Token'}
+                    </div>
+                </details>
             </div>
         );
     }

@@ -47,18 +47,30 @@ function FriendProfileContent() {
 
     const fetchFriendProfile = async () => {
         setIsLoading(true);
+        setError(null);
         try {
             const res = await fetch(`${API_URL}/users/${username}/profile`, {
                 headers: { 'Authorization': `Bearer ${jwt}` }
             });
-            const data = await res.json();
-            if (res.ok) {
-                setFriendData(data);
+            
+            const contentType = res.headers.get("content-type");
+            if (contentType && contentType.indexOf("application/json") !== -1) {
+                const data = await res.json();
+                if (res.ok) {
+                    setFriendData(data);
+                } else {
+                    setError(data.error || `Erro ${res.status}: Problema no servidor`);
+                }
             } else {
-                setError(data.error || "Erro ao carregar perfil");
+                const text = await res.text();
+                if (res.status === 404) {
+                    setError("O endpoint do perfil ainda não foi encontrado no servidor. Por favor, verifica se a API foi atualizada.");
+                } else {
+                    setError(`Erro ${res.status}: Resposta inesperada do servidor`);
+                }
             }
         } catch (e) {
-            setError("Falha na ligação ao servidor");
+            setError("Não foi possível contactar o servidor. Verifica a tua ligação.");
         } finally {
             setIsLoading(false);
         }

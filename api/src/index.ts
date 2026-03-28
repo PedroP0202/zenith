@@ -873,8 +873,9 @@ app.get('/users/:username/profile', async (c) => {
         const { results: arenaWinners } = await db.prepare('SELECT season_id, rank_name, position FROM arena_winners WHERE user_id = ? ORDER BY created_at DESC').bind(user.id as any).all();
 
         // Get Habit Summary
-        const habits = await db.prepare('SELECT id, title, is_hard_mode, is_active FROM habits WHERE user_id = ?').bind(user.id as any).all();
-        const habitIds = habits.results.map(h => h.id);
+        const habitsRes = await db.prepare('SELECT id, title, is_hard_mode, is_active FROM habits WHERE user_id = ?').bind(user.id as any).all();
+        const habits = habitsRes.results || [];
+        const habitIds = habits.map((h: any) => h.id);
 
         // Get Stats: Total Completions
         const logsCount = await db.prepare('SELECT COUNT(*) as total FROM logs WHERE habit_id IN (SELECT id FROM habits WHERE user_id = ?)').bind(user.id as any).first();
@@ -889,17 +890,21 @@ app.get('/users/:username/profile', async (c) => {
         `).bind(user.id as any).all();
 
         const activeWeekdays = [0, 0, 0, 0, 0, 0, 0];
-        weekdayStats.results.forEach((row: any) => {
-            const dayIndex = parseInt(row.dow);
-            activeWeekdays[dayIndex] = row.count;
-        });
+        if (weekdayStats.results) {
+            weekdayStats.results.forEach((row: any) => {
+                const dayIndex = parseInt(row.dow);
+                if (!isNaN(dayIndex) && dayIndex >= 0 && dayIndex < 7) {
+                    activeWeekdays[dayIndex] = row.count;
+                }
+            });
+        }
 
         // Basic Achievement Checks (Replicating some frontend logic)
         const unlockedTrophies = [];
         const totalCompletions = (logsCount?.total as number) || 0;
         
         if (totalCompletions >= 100) unlockedTrophies.push('checkin_master');
-        if (habits.results.length > 0 && totalCompletions > 0) unlockedTrophies.push('zen_beginner');
+        if (habits.length > 0 && totalCompletions > 0) unlockedTrophies.push('zen_beginner');
         if (habitIds.length >= 5) unlockedTrophies.push('habit_architect');
         
         // Friendship count for 'socializer'
@@ -928,7 +933,8 @@ app.get('/users/:username/profile', async (c) => {
         });
 
     } catch (e: any) {
-        return c.json({ error: 'Erro ao carregar perfil: ' + e.message }, 500);
+        console.error('Error in /users/:username/profile:', e);
+        return c.json({ error: 'Erro interno ao carregar perfil: ' + e.message }, 500);
     }
 });
 

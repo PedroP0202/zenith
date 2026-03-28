@@ -13,6 +13,7 @@ import BetaFeedback from '../components/BetaFeedback';
 import BetaWelcomeModal from '../components/BetaWelcomeModal';
 import { useTranslation } from '../hooks/useTranslation';
 import Skeleton from '../components/Skeleton';
+import { getRankForLevel } from '../utils/progression';
 
 export default function Home() {
     const { 
@@ -23,7 +24,8 @@ export default function Home() {
         removeHabit, 
         checkDailyReward, 
         showDailyRewardToast, 
-        dismissDailyRewardToast 
+        dismissDailyRewardToast,
+        level 
     } = useStore();
     const { t } = useTranslation();
     const [mounted, setMounted] = useState(false);
@@ -59,11 +61,8 @@ export default function Home() {
     const currentComboMultiplier = completedTodayCount + 1;
 
     const totalCompletions = logs.length;
-    let userRank = "Initiate";
-    if (totalCompletions >= 365) userRank = "Zenith";
-    else if (totalCompletions >= 100) userRank = "Ascendant";
-    else if (totalCompletions >= 30) userRank = "Seeker";
-    else if (totalCompletions >= 7) userRank = "Voyager";
+    const currentRank = getRankForLevel(level);
+    const userRank = currentRank.name;
 
     const orbY = 100 - (todayCompletionPercentage * 0.8); // 100% to 20% from top
     const orbOpacity = 0.05 + (todayCompletionPercentage / 100) * 0.25;
@@ -115,12 +114,12 @@ export default function Home() {
                         {mounted && (
                             <motion.div 
                                 className="flex items-center gap-2 mt-2"
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                transition={{ delay: 0.3 }}
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: 0.4 }}
                             >
-                                <div className={`w-1.5 h-1.5 rounded-full ${totalCompletions >= 365 ? 'bg-yellow-500 shadow-[0_0_10px_rgba(234,179,8,0.8)]' : 'bg-white/30'}`} />
-                                <span className={`text-[11px] font-bold tracking-[0.2em] uppercase ${totalCompletions >= 365 ? 'text-yellow-500/90' : 'text-white/40'}`}>
+                                <div className="w-1.5 h-1.5 rounded-full bg-[var(--zenith-active)] shadow-[0_0_8px_var(--zenith-active)]" />
+                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--zenith-active)]">
                                     {userRank}
                                 </span>
                             </motion.div>

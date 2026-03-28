@@ -407,9 +407,18 @@ export const useStore = create<AppState>()(
 
                 if (existingLogIndex >= 0) {
                     // Un-tick (remove the log for that date)
+                    const habit = get().habits.find(h => h.id === habitId);
+                    const xpLost = habit?.isHardMode ? 20 : 10;
+                    const newTotalXP = Math.max(0, get().totalXP - xpLost);
+                    const newLevel = getLevelFromXp(newTotalXP);
+
                     const newLogs = [...logs];
                     newLogs.splice(existingLogIndex, 1);
-                    set({ logs: newLogs });
+                    set({ 
+                        logs: newLogs,
+                        totalXP: newTotalXP,
+                        level: newLevel
+                    });
                 } else {
                     // Tick (add a log for that date)
                     const habit = get().habits.find(h => h.id === habitId);

@@ -957,33 +957,82 @@ app.get('/leaderboard', async (c) => {
     }
 
     const db = c.env.DB;
-    const period = c.req.query('period') || 'all';
-    let minTimestamp = 0;
     const now = Date.now();
 
-    if (period === 'weekly') {
-        minTimestamp = now - (7 * 24 * 60 * 60 * 1000);
-    } else if (period === 'seasonal') {
-        minTimestamp = now - (30 * 24 * 60 * 60 * 1000);
-    }
-
     try {
+        // 1. Get Current Active Season
+        let activeSeason = await db.prepare('SELECT * FROM arena_seasons WHERE is_finalized = 0 AND end_at > ? ORDER BY end_at ASC LIMIT 1').bind(now).first<any>();
+
+        // 2. If no active season, check for expired but not finalized season
+        if (!activeSeason) {
+            const expiredSeason = await db.prepare('SELECT * FROM arena_seasons WHERE is_finalized = 0 AND end_at <= ? ORDER BY end_at DESC LIMIT 1').bind(now).first<any>();
+            
+            if (expiredSeason) {
+                // Finalize Expired Season: Award Winners
+                const topPlayers = await db.prepare(`
+                    SELECT u.id, u.name, SUM(CASE WHEN h.is_hard_mode = 1 THEN 20 ELSE 10 END) as score
+                    FROM users u
+                    JOIN habits h ON h.user_id = u.id AND h.is_active = 1
+                    JOIN logs l ON l.habit_id = h.id AND l.completed_at >= ? AND l.completed_at <= ?
+                    WHERE u.opt_in_leaderboard = 1
+                    GROUP BY u.id
+                    ORDER BY score DESC
+                    LIMIT 3
+                `).bind(expiredSeason.start_at, expiredSeason.end_at).all<any>();
+
+                if (topPlayers.results && topPlayers.results.length > 0) {
+                    for (let i = 0; i < topPlayers.results.length; i++) {
+                        const winner = topPlayers.results[i];
+                        const winnerId = crypto.randomUUID();
+                        await db.prepare('INSERT INTO arena_winners (id, user_id, season_id, rank_name, position, created_at) VALUES (?, ?, ?, ?, ?, ?)')
+                            .bind(winnerId, winner.id, expiredSeason.id, 'Arena Champion', i + 1, now)
+                            .run();
+                    }
+                }
+
+                // Mark as finalized
+                await db.prepare('UPDATE arena_seasons SET is_finalized = 1 WHERE id = ?').bind(expiredSeason.id).run();
+            }
+
+            // Create New Season
+            const nextSeasonId = `SEASON-${Date.now()}`;
+            const monthName = new Intl.DateTimeFormat('pt-PT', { month: 'long', year: 'numeric' }).format(new Date());
+            const seasonDuration = 30 * 24 * 60 * 60 * 1000; // 30 days
+            
+            await db.prepare('INSERT INTO arena_seasons (id, name, start_at, end_at, is_finalized, created_at) VALUES (?, ?, ?, ?, ?, ?)')
+                .bind(nextSeasonId, `Arena ${monthName}`, now, now + seasonDuration, 0, now)
+                .run();
+            
+            activeSeason = await db.prepare('SELECT * FROM arena_seasons WHERE id = ?').bind(nextSeasonId).first<any>();
+        }
+
+        // 3. Calculate Leaderboard for the active season
+        // Points based on habit difficulty: Hard = 20, Normal = 10
         const query = `
-            SELECT u.id, u.name, u.username, COUNT(l.id) as score
+            SELECT u.id, u.name, u.username, SUM(CASE WHEN h.is_hard_mode = 1 THEN 20 ELSE 10 END) as score
             FROM users u
-            LEFT JOIN habits h ON h.user_id = u.id AND h.is_active = 1
-            LEFT JOIN logs l ON l.habit_id = h.id ${minTimestamp > 0 ? 'AND l.completed_at > ?' : ''}
+            JOIN habits h ON h.user_id = u.id AND h.is_active = 1
+            JOIN logs l ON l.habit_id = h.id AND l.completed_at >= ? AND l.completed_at <= ?
             WHERE u.opt_in_leaderboard = 1
             GROUP BY u.id, u.name, u.username
             ORDER BY score DESC
             LIMIT 50
         `;
 
-        const stmt = db.prepare(query);
-        const { results } = await (minTimestamp > 0 ? stmt.bind(minTimestamp).all() : stmt.all());
+        const { results } = await db.prepare(query).bind(activeSeason.start_at, activeSeason.end_at).all<any>();
         
-        return c.json({ leaderboard: results, period, seasonEndsAt: now + (15 * 24 * 60 * 60 * 1000) }); // Dummy season end
+        return c.json({ 
+            leaderboard: results, 
+            season: {
+                id: activeSeason.id,
+                name: activeSeason.name,
+                endsAt: activeSeason.end_at,
+                startsAt: activeSeason.start_at
+            }
+        });
+
     } catch (e: any) {
+        console.error('Leaderboard error:', e);
         return c.json({ error: 'Erro ao carregar arena: ' + e.message }, 500);
     }
 });

@@ -78,3 +78,15 @@ CREATE TABLE IF NOT EXISTS arena_winners (
 );
 
 CREATE INDEX IF NOT EXISTS idx_arena_winners_user ON arena_winners(user_id);
+
+-- Track seasons for automatic resets
+CREATE TABLE IF NOT EXISTS arena_seasons (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  start_at INTEGER NOT NULL,
+  end_at INTEGER NOT NULL,
+  is_finalized BOOLEAN NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_arena_seasons_status ON arena_seasons(is_finalized, end_at);

@@ -39,8 +39,8 @@ export default function LeaderboardPage() {
     const [error, setError] = useState<string | null>(null);
     const [showConsent, setShowConsent] = useState(false);
     const [showOptOut, setShowOptOut] = useState(false);
-    const [period, setPeriod] = useState<'weekly' | 'seasonal' | 'all'>('all');
-    const [seasonEndsAt, setSeasonEndsAt] = useState<number | null>(null);
+    const [period, setPeriod] = useState<'weekly' | 'seasonal' | 'all'>('seasonal');
+    const [season, setSeason] = useState<{id: string, name: string, endsAt: number} | null>(null);
 
     const fetchLeaderboard = useCallback(async () => {
         setLoading(true);
@@ -52,7 +52,7 @@ export default function LeaderboardPage() {
             const data = await res.json();
             if (!res.ok) throw new Error(`(${res.status}) ${data?.error || 'Erro desconhecido'}`);
             setLeaderboard(data.leaderboard || []);
-            if (data.seasonEndsAt) setSeasonEndsAt(data.seasonEndsAt);
+            if (data.season) setSeason(data.season);
         } catch (err: any) {
             console.error("[ARENA] Fetch failed:", err);
             setError(err.message || 'Erro ao carregar a arena.');
@@ -322,13 +322,13 @@ export default function LeaderboardPage() {
                                         );
                                     })}
 
-                                    {seasonEndsAt && (
+                                    {season && (
                                         <div className="pt-8 pb-12 text-center">
-                                            <p className="text-[10px] uppercase tracking-[0.3em] font-black text-white/20 mb-2">Próximo Reset Sazonal</p>
+                                            <p className="text-[10px] uppercase tracking-[0.3em] font-black text-white/20 mb-2">{season.name}</p>
                                             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/5">
                                                 <Clock size={12} className="text-white/40" />
                                                 <span className="text-xs font-medium text-white/40">
-                                                    {Math.ceil((seasonEndsAt - Date.now()) / (1000 * 60 * 60 * 24))} dias restantes
+                                                    {Math.ceil((season.endsAt - Date.now()) / (1000 * 60 * 60 * 24))} dias restantes
                                                 </span>
                                             </div>
                                         </div>

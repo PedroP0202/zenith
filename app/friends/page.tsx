@@ -20,7 +20,8 @@ export default function FriendsPage() {
         fetchFriendRequests, 
         sendFriendRequest, 
         handleFriendRequest,
-        removeFriend
+        removeFriend,
+        outgoingRequests
     } = useStore();
     const { t } = useTranslation();
     const router = useRouter();
@@ -144,7 +145,7 @@ export default function FriendsPage() {
                         className={`flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all relative z-10 ${tab === tabId ? 'text-black' : 'text-white/40 hover:text-white/60'}`}
                     >
                         {tabId === 'friends' ? t.social.friends : t.social.requests}
-                        {tabId === 'requests' && friendRequests.length > 0 && (
+                        {tabId === 'requests' && (friendRequests.length > 0 || outgoingRequests.length > 0) && (
                             <span className={`absolute top-2 right-4 w-1.5 h-1.5 rounded-full ${tab === 'requests' ? 'bg-red-500' : 'bg-[var(--zenith-active)] shadow-[0_0_8px_var(--zenith-active)]'}`} />
                         )}
                         {tab === tabId && (
@@ -198,45 +199,87 @@ export default function FriendsPage() {
                         ))
                     )
                 ) : (
-                    friendRequests.length === 0 ? (
-                        <div className="text-center py-20 opacity-20 flex flex-col items-center gap-4">
-                            <Zap size={48} />
-                            <p className="text-sm font-bold uppercase tracking-widest">{t.social.emptyRequests}</p>
+                    <div className="space-y-8">
+                        {/* Incoming Requests */}
+                        <div className="space-y-4">
+                            <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/20 px-2">Pedidos de Amizade</h2>
+                            {friendRequests.length === 0 ? (
+                                <div className="text-center py-10 opacity-20 flex flex-col items-center gap-3">
+                                    <Zap size={32} />
+                                    <p className="text-[10px] font-bold uppercase tracking-widest">{t.social.emptyRequests}</p>
+                                </div>
+                            ) : (
+                                friendRequests.map((req, i) => (
+                                    <motion.div 
+                                        key={req.id}
+                                        layout
+                                        initial={{ opacity: 0, scale: 0.95 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        transition={{ duration: 0.3, delay: i * 0.05 }}
+                                        className="p-4 rounded-[2rem] bg-white/[0.03] backdrop-blur-xl border border-white/5 flex items-center justify-between"
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <UserOrb seed={req.username} size={40} className="shadow-lg" />
+                                            <div className="flex flex-col">
+                                                <span className="font-bold text-base leading-tight">{req.name}</span>
+                                                <span className="text-[10px] text-white/40 font-mono">@{req.username}</span>
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <button 
+                                                onClick={() => handleFriendRequest(req.id, 'reject')}
+                                                className="h-10 w-10 flex items-center justify-center bg-white/5 rounded-2xl hover:bg-red-500/20 text-white/20 hover:text-red-500 transition-all"
+                                            >
+                                                <X size={18} />
+                                            </button>
+                                            <button 
+                                                onClick={() => handleFriendRequest(req.id, 'accept')}
+                                                className="h-10 w-10 flex items-center justify-center bg-[var(--zenith-active)] text-black rounded-2xl shadow-glow-active active:scale-95 transition-all"
+                                            >
+                                                <Check size={18} />
+                                            </button>
+                                        </div>
+                                    </motion.div>
+                                ))
+                            )}
                         </div>
-                    ) : (
-                        friendRequests.map((req, i) => (
-                            <motion.div 
-                                key={req.id}
-                                layout
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                transition={{ duration: 0.3, delay: i * 0.05 }}
-                                className="p-4 rounded-[2rem] bg-white/[0.03] backdrop-blur-xl border border-white/5 flex items-center justify-between"
-                            >
-                                <div className="flex items-center gap-3">
-                                    <UserOrb seed={req.username} size={40} className="shadow-lg" />
-                                    <div className="flex flex-col">
-                                        <span className="font-bold text-base leading-tight">{req.name}</span>
-                                        <span className="text-[10px] text-white/40 font-mono">@{req.username}</span>
-                                    </div>
+
+                        {/* Outgoing Requests */}
+                        <div className="space-y-4">
+                            <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/20 px-2">Pedidos Enviados</h2>
+                            {outgoingRequests.length === 0 ? (
+                                <div className="text-center py-10 opacity-20 flex flex-col items-center gap-3">
+                                    <UserPlus size={32} />
+                                    <p className="text-[10px] font-bold uppercase tracking-widest">Nenhum pedido enviado</p>
                                 </div>
-                                <div className="flex gap-2">
-                                    <button 
-                                        onClick={() => handleFriendRequest(req.id, 'reject')}
-                                        className="h-10 w-10 flex items-center justify-center bg-white/5 rounded-2xl hover:bg-red-500/20 text-white/20 hover:text-red-500 transition-all"
+                            ) : (
+                                outgoingRequests.map((req, i) => (
+                                    <motion.div 
+                                        key={req.id}
+                                        layout
+                                        initial={{ opacity: 0, scale: 0.95 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        transition={{ duration: 0.3, delay: i * 0.05 }}
+                                        className="p-4 rounded-[2rem] bg-white/[0.03] backdrop-blur-xl border border-white/5 flex items-center justify-between"
                                     >
-                                        <X size={18} />
-                                    </button>
-                                    <button 
-                                        onClick={() => handleFriendRequest(req.id, 'accept')}
-                                        className="h-10 w-10 flex items-center justify-center bg-[var(--zenith-active)] text-black rounded-2xl shadow-glow-active active:scale-95 transition-all"
-                                    >
-                                        <Check size={18} />
-                                    </button>
-                                </div>
-                            </motion.div>
-                        ))
-                    )
+                                        <div className="flex items-center gap-3">
+                                            <UserOrb seed={req.username} size={40} className="shadow-lg" />
+                                            <div className="flex flex-col">
+                                                <span className="font-bold text-base leading-tight">{req.name}</span>
+                                                <span className="text-[10px] text-white/40 font-mono">@{req.username}</span>
+                                            </div>
+                                        </div>
+                                        <button 
+                                            onClick={() => handleFriendRequest(req.id, 'cancel')}
+                                            className="h-10 px-4 bg-white/5 hover:bg-red-500/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-red-500 transition-all border border-white/5 hover:border-red-500/20"
+                                        >
+                                            Cancelar
+                                        </button>
+                                    </motion.div>
+                                ))
+                            )}
+                        </div>
+                    </div>
                 )}
             </div>
 

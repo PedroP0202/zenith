@@ -698,15 +698,26 @@ app.get('/friends/requests', async (c) => {
     const userId = payload.id;
     const db = c.env.DB;
     try {
-        // List only incoming requests
-        const { results } = await db.prepare(`
+        // List incoming requests
+        const incoming = await db.prepare(`
             SELECT f.id, f.user_id as from_id, u.name, u.username, f.created_at
             FROM friendships f
             JOIN users u ON u.id = f.user_id
             WHERE f.friend_id = ? AND f.status = 'pending'
         `).bind(userId).all();
+
+        // List outgoing requests
+        const outgoing = await db.prepare(`
+            SELECT f.id, f.friend_id as to_id, u.name, u.username, f.created_at
+            FROM friendships f
+            JOIN users u ON u.id = f.friend_id
+            WHERE f.user_id = ? AND f.status = 'pending'
+        `).bind(userId).all();
         
-        return c.json({ requests: results });
+        return c.json({ 
+            incoming: incoming.results, 
+            outgoing: outgoing.results 
+        });
     } catch (e: any) {
         return c.json({ error: 'Erro ao listar pedidos: ' + e.message }, 500);
     }
@@ -747,11 +758,14 @@ app.patch('/friends/request/:id', async (c) => {
             
             if (res.meta.changes === 0) return c.json({ error: 'Pedido não encontrado ou já processado.' }, 404);
 
-            // Also create the reverse friendship for easy mutual querying if needed, 
-            // but we can also just use a smarter SELECT for accepted friends.
-            // For Zenith, we'll keep it simple: ONE row means A and B are friends.
             return c.json({ success: true, message: 'Pedido aceite.' });
+        } else if (action === 'cancel') {
+            // Requester cancels their own request
+            const res = await db.prepare('DELETE FROM friendships WHERE id = ? AND user_id = ? AND status = \'pending\'').bind(requestId, userId).run();
+            if (res.meta.changes === 0) return c.json({ error: 'Pedido não encontrado ou não tens permissão para cancelar.' }, 404);
+            return c.json({ success: true, message: 'Pedido cancelado.' });
         } else {
+            // Receiver rejects an incoming request
             await db.prepare('DELETE FROM friendships WHERE id = ? AND friend_id = ?').bind(requestId, userId).run();
             return c.json({ success: true, message: 'Pedido rejeitado.' });
         }

@@ -49,6 +49,8 @@ interface AppState {
     friends: any[];
     /** List of incoming friend requests */
     friendRequests: any[];
+    /** List of outgoing friend requests */
+    outgoingRequests: any[];
     /** Loading state for social actions */
     friendsLoading: boolean;
     /** User's total experience points */
@@ -167,12 +169,12 @@ interface AppState {
 
     /** Fetches the accepted friends list from the cloud. */
     fetchFriends: () => Promise<void>;
-    /** Fetches incoming friend requests from the cloud. */
+    /** Fetches incoming and outgoing friend requests from the cloud. */
     fetchFriendRequests: () => Promise<void>;
     /** Sends a friend request to another user. */
     sendFriendRequest: (friendId: string) => Promise<{ success: boolean; error?: string }>;
-    /** Accepts or rejects a pending friend request. */
-    handleFriendRequest: (requestId: string, action: 'accept' | 'reject') => Promise<void>;
+    /** Accepts, rejects, or cancels a friend request. */
+    handleFriendRequest: (requestId: string, action: 'accept' | 'reject' | 'cancel') => Promise<void>;
     /** Removes an accepted friend from the social system */
     removeFriend: (friendId: string) => Promise<{ success: boolean; error?: string }>;
 
@@ -240,6 +242,7 @@ export const useStore = create<AppState>()(
             optInLeaderboard: false,
             friends: [],
             friendRequests: [],
+            outgoingRequests: [],
             friendsLoading: false,
             username: null,
             totalXP: 0,
@@ -647,7 +650,12 @@ export const useStore = create<AppState>()(
                         headers: { 'Authorization': `Bearer ${jwt}` }
                     });
                     const data = await res.json();
-                    if (res.ok) set({ friendRequests: data.requests || [] });
+                    if (res.ok) {
+                        set({ 
+                            friendRequests: data.incoming || [],
+                            outgoingRequests: data.outgoing || []
+                        });
+                    }
                 } catch (e) {
                     console.error("[STORE] Failed to fetch requests:", e);
                 }
@@ -673,7 +681,7 @@ export const useStore = create<AppState>()(
                 }
             },
 
-            handleFriendRequest: async (requestId: string, action: 'accept' | 'reject') => {
+            handleFriendRequest: async (requestId: string, action: 'accept' | 'reject' | 'cancel') => {
                 const { jwt } = get();
                 if (!jwt) return;
                 try {

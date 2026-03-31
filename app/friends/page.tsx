@@ -3,12 +3,14 @@
 import { useStore } from "@/store/useStore";
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, Search, UserPlus, Check, X, Users, Zap, Loader2, UserMinus } from "lucide-react";
+import { ChevronLeft, Search, UserPlus, Check, X, Users, Zap, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "@/hooks/useTranslation";
 import { API_URL } from "@/utils/constants";
 import Link from "next/link";
 import UserOrb from "@/components/UserOrb";
+
+type Tab = 'friends' | 'requests';
 
 export default function FriendsPage() {
     const { 
@@ -29,7 +31,7 @@ export default function FriendsPage() {
     const [searchQuery, setSearchQuery] = useState("");
     const [searchResults, setSearchResults] = useState<any[]>([]);
     const [searching, setSearching] = useState(false);
-    const [tab, setTab] = useState<'friends' | 'requests'>('friends');
+    const [tab, setTab] = useState<Tab>('friends');
 
     useEffect(() => {
         setMounted(true);
@@ -77,6 +79,15 @@ export default function FriendsPage() {
     };
 
     if (!mounted) return null;
+
+    const tabs: { id: Tab; label: string; badge?: number }[] = [
+        { id: 'friends', label: t.social.friends, badge: friends.length },
+        { 
+            id: 'requests', 
+            label: t.social.requests, 
+            badge: friendRequests.length + outgoingRequests.length 
+        },
+    ];
 
     return (
         <main className="min-h-screen bg-black text-white p-6 pb-24 font-sans max-w-md mx-auto relative overflow-x-hidden">
@@ -137,18 +148,25 @@ export default function FriendsPage() {
             </div>
 
             {/* Tabs */}
-            <div className="flex bg-white/5 p-1.5 rounded-2xl mb-8 relative">
-                {['friends', 'requests'].map((tabId) => (
+            <div className="flex bg-white/5 p-1.5 rounded-2xl mb-8 relative gap-1">
+                {tabs.map((tabItem) => (
                     <button 
-                        key={tabId}
-                        onClick={() => setTab(tabId as any)}
-                        className={`flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all relative z-10 ${tab === tabId ? 'text-black' : 'text-white/40 hover:text-white/60'}`}
+                        key={tabItem.id}
+                        onClick={() => setTab(tabItem.id)}
+                        className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all relative z-10 ${tab === tabItem.id ? 'text-black' : 'text-white/40 hover:text-white/60'}`}
                     >
-                        {tabId === 'friends' ? t.social.friends : t.social.requests}
-                        {tabId === 'requests' && (friendRequests.length > 0 || outgoingRequests.length > 0) && (
-                            <span className={`absolute top-2 right-4 w-1.5 h-1.5 rounded-full ${tab === 'requests' ? 'bg-red-500' : 'bg-[var(--zenith-active)] shadow-[0_0_8px_var(--zenith-active)]'}`} />
+                        {tabItem.label}
+                        {/* Badge dot */}
+                        {tabItem.badge !== undefined && tabItem.badge > 0 && (
+                            <span className={`absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full text-[8px] font-black flex items-center justify-center ${
+                                tab === tabItem.id 
+                                    ? 'bg-black/20 text-black' 
+                                    : 'bg-[var(--zenith-active)] text-black'
+                            }`}>
+                                {tabItem.badge}
+                            </span>
                         )}
-                        {tab === tabId && (
+                        {tab === tabItem.id && (
                             <motion.div
                                 layoutId="active-tab"
                                 className="absolute inset-0 bg-white rounded-xl -z-10 shadow-lg"
@@ -161,7 +179,8 @@ export default function FriendsPage() {
 
             {/* Content List */}
             <div className="space-y-4">
-                {tab === 'friends' ? (
+                {/* ── FRIENDS TAB ── */}
+                {tab === 'friends' && (
                     friends.length === 0 ? (
                         <div className="text-center py-20 opacity-20 flex flex-col items-center gap-4">
                             <Users size={48} />
@@ -198,7 +217,10 @@ export default function FriendsPage() {
                             </motion.div>
                         ))
                     )
-                ) : (
+                )}
+
+                {/* ── REQUESTS TAB ── */}
+                {tab === 'requests' && (
                     <div className="space-y-8">
                         {/* Incoming Requests */}
                         <div className="space-y-4">
@@ -282,7 +304,6 @@ export default function FriendsPage() {
                     </div>
                 )}
             </div>
-
         </main>
     );
 }

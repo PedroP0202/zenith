@@ -622,13 +622,23 @@ app.get('/users/search', async (c) => {
 
     const db = c.env.DB;
     try {
-        // Search by username or name, excluding current user and sensitive fields
+        // Search by username or name, excluding:
+        // - the current user themselves
+        // - users blocked by the current user
+        // - users who have blocked the current user
         const { results } = await db.prepare(`
             SELECT id, name, username 
             FROM users 
-            WHERE (username LIKE ? OR name LIKE ?) AND id != ?
+            WHERE (username LIKE ? OR name LIKE ?) 
+              AND id != ?
+              AND id NOT IN (
+                SELECT friend_id FROM friendships WHERE user_id = ? AND status = 'blocked'
+              )
+              AND id NOT IN (
+                SELECT user_id FROM friendships WHERE friend_id = ? AND status = 'blocked'
+              )
             LIMIT 10
-        `).bind(`%${query}%`, `%${query}%`, userId).all();
+        `).bind(`%${query}%`, `%${query}%`, userId, userId, userId).all();
         
         return c.json({ results });
     } catch (e: any) {
@@ -1002,6 +1012,66 @@ app.post('/friends/block', async (c) => {
     }
 });
 
+// --- GET /friends/blocked: List all blocked users ---
+app.get('/friends/blocked', async (c) => {
+    const authHeader = c.req.header('Authorization');
+    if (!authHeader) return c.json({ error: 'Não autorizado' }, 401);
+
+    const token = authHeader.replace('Bearer ', '');
+    const secret = c.env.JWT_SECRET || 'zenith-local-dev-secret';
+    let payload;
+    try { payload = await verify(token, secret, 'HS256'); } catch { return c.json({ error: 'Token inválido' }, 401); }
+
+    const db = c.env.DB;
+    const userId = payload.id;
+
+    try {
+        // Only show users that THIS user blocked (user_id = userId, status = blocked)
+        const { results } = await db.prepare(`
+            SELECT f.id as friendship_id, u.id, u.name, u.username
+            FROM friendships f
+            JOIN users u ON u.id = f.friend_id
+            WHERE f.user_id = ? AND f.status = 'blocked'
+        `).bind(userId).all();
+
+        return c.json({ blocked: results });
+    } catch (e: any) {
+        return c.json({ error: 'Erro ao listar bloqueados: ' + e.message }, 500);
+    }
+});
+
+// --- POST /friends/unblock: Unblock a user (deletes the blocked friendship row) ---
+app.post('/friends/unblock', async (c) => {
+    const authHeader = c.req.header('Authorization');
+    if (!authHeader) return c.json({ error: 'Não autorizado' }, 401);
+
+    const token = authHeader.replace('Bearer ', '');
+    const secret = c.env.JWT_SECRET || 'zenith-local-dev-secret';
+    let payload;
+    try { payload = await verify(token, secret, 'HS256'); } catch { return c.json({ error: 'Token inválido' }, 401); }
+
+    const { unblockedUserId } = await c.req.json().catch(() => ({}));
+    if (!unblockedUserId) return c.json({ error: 'unblockedUserId é obrigatório.' }, 400);
+
+    const db = c.env.DB;
+    const userId = payload.id;
+
+    try {
+        // The blocker is always user_id when blocking, so we only delete where user_id = the requester
+        const res = await db.prepare(`
+            DELETE FROM friendships 
+            WHERE user_id = ? AND friend_id = ? AND status = 'blocked'
+        `).bind(userId, unblockedUserId).run();
+
+        if (res.meta.changes === 0) {
+            return c.json({ error: 'Utilizador não encontrado na lista de bloqueados.' }, 404);
+        }
+
+        return c.json({ success: true, message: 'Utilizador desbloqueado.' });
+    } catch (e: any) {
+        return c.json({ error: 'Erro ao desbloquear utilizador: ' + e.message }, 500);
+    }
+});
 
 
 app.get('/friends/compare/:username', async (c) => {

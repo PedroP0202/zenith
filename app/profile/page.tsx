@@ -3,7 +3,7 @@
 import { useStore } from "@/store/useStore";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Settings as SettingsIcon, Bell, ChevronLeft, User as UserIcon, Cloud, Globe, Lock, Eye, EyeOff, Mail, Trophy, ChevronDown, ChevronUp, Flame, Target, Calendar, Users } from "lucide-react";
+import { Settings as SettingsIcon, Bell, ChevronLeft, User as UserIcon, Cloud, Globe, Lock, Eye, EyeOff, Mail, Trophy, ChevronDown, ChevronUp, Flame, Target, Calendar, Users, ShieldOff, Loader2 } from "lucide-react";
 import { scheduleAllNotifications, cancelAllNotifications, requestNotificationPermissions, sendTestNotification } from "@/utils/notifications";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -60,12 +60,46 @@ export default function ProfilePage() {
     const [usernameMessage, setUsernameMessage] = useState<{ text: string, type: 'success' | 'error' | 'info' } | null>(null);
     const [rewards, setRewards] = useState<any[]>([]);
     const [isLoadingRewards, setIsLoadingRewards] = useState(false);
+    const [blockedUsers, setBlockedUsers] = useState<any[]>([]);
+    const [unblockingId, setUnblockingId] = useState<string | null>(null);
 
     useEffect(() => {
         setMounted(true);
         setNameInput(userName);
         setUsernameInput(username || "");
+        if (jwt) fetchBlockedUsers();
     }, [userName, username]);
+
+    const fetchBlockedUsers = async () => {
+        if (!jwt) return;
+        try {
+            const res = await fetch(`${API_URL}/friends/blocked`, {
+                headers: { 'Authorization': `Bearer ${jwt}` }
+            });
+            const data = await res.json();
+            if (res.ok) setBlockedUsers(data.blocked || []);
+        } catch (e) {
+            console.error("Failed to fetch blocked users:", e);
+        }
+    };
+
+    const handleUnblock = async (userId: string) => {
+        setUnblockingId(userId);
+        try {
+            const res = await fetch(`${API_URL}/friends/unblock`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${jwt}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ unblockedUserId: userId }),
+            });
+            if (res.ok) {
+                setBlockedUsers(prev => prev.filter(u => u.id !== userId));
+            }
+        } catch (e) {
+            console.error("Failed to unblock user:", e);
+        } finally {
+            setUnblockingId(null);
+        }
+    };
 
     const [isCheckingUsername, setIsCheckingUsername] = useState(false);
     const [isUsernameAvailable, setIsUsernameAvailable] = useState<boolean | null>(null);
@@ -791,6 +825,50 @@ export default function ProfilePage() {
                                     {(t.settings as any).support.contactUs}
                                 </a>
                             </div>
+
+                            {/* Blocked Users Section */}
+                            <section>
+                                <h2 className="text-xs uppercase tracking-widest text-white/40 mb-3 ml-2 font-bold flex items-center gap-2">
+                                    <ShieldOff className="w-3.5 h-3.5" />
+                                    Utilizadores Bloqueados
+                                </h2>
+                                <div className="bg-white/[0.03] rounded-3xl border border-white/5 overflow-hidden">
+                                    {blockedUsers.length === 0 ? (
+                                        <div className="flex items-center gap-4 p-5 text-white/20">
+                                            <ShieldOff className="w-5 h-5 shrink-0" />
+                                            <span className="text-sm font-medium">Nenhum utilizador bloqueado.</span>
+                                        </div>
+                                    ) : (
+                                        blockedUsers.map((user, i) => (
+                                            <div
+                                                key={user.id}
+                                                className={`flex items-center justify-between px-5 py-4 ${
+                                                    i < blockedUsers.length - 1 ? 'border-b border-white/5' : ''
+                                                }`}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white/30 font-bold text-sm">
+                                                        {user.name?.[0]?.toUpperCase() || '?'}
+                                                    </div>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-sm font-semibold text-white/60">{user.name}</span>
+                                                        <span className="text-[10px] text-white/30 font-mono">@{user.username}</span>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    onClick={() => handleUnblock(user.id)}
+                                                    disabled={unblockingId === user.id}
+                                                    className="h-9 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border active:scale-95 disabled:opacity-40 bg-white/5 hover:bg-[var(--zenith-active)]/10 text-white/40 hover:text-[var(--zenith-active)] border-white/5 hover:border-[var(--zenith-active)]/30 flex items-center gap-1.5"
+                                                >
+                                                    {unblockingId === user.id ? (
+                                                        <Loader2 size={12} className="animate-spin" />
+                                                    ) : 'Desbloquear'}
+                                                </button>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            </section>
 
                         </motion.div>
                     )}

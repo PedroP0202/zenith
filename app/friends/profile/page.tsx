@@ -374,7 +374,7 @@ function FriendProfileContent() {
             const logDate = new Date(log.completedAt);
             logDate.setHours(12, 0, 0, 0);
             const daysDiff = Math.floor((endOfToday - logDate.getTime()) / (1000 * 60 * 60 * 24));
-            const arrayIndex = 7 - daysDiff;
+            const arrayIndex = 6 - daysDiff;
             if (arrayIndex >= 0 && arrayIndex <= 6) activeWeekdays[arrayIndex]++;
         });
         return { weeklyCompletions: weeklyLogs.length, activeWeekdays };
@@ -628,40 +628,70 @@ function FriendProfileContent() {
                             </div>
                         </div>
 
-                        <div className="bg-white/[0.04] border border-white/5 rounded-[2rem] p-5">
-                            <div className="flex items-end justify-between h-28 gap-1.5">
-                                {dynamicLabels.map((label, i) => {
-                                    const friendVal = friendData.stats.activeWeekdays[i] || 0;
-                                    const myVal = myStats.activeWeekdays[i] || 0;
-                                    const maxVal = Math.max(...friendData.stats.activeWeekdays, ...myStats.activeWeekdays, 1);
-                                    const friendH = Math.max(4, (friendVal / maxVal) * 100);
-                                    const myH = Math.max(4, (myVal / maxVal) * 100);
-                                    const isToday = i === 6;
+                        {/* Chart or empty state */}
+                        {(() => {
+                            const friendWeekdays: number[] = Array.isArray(friendData.stats?.activeWeekdays) 
+                                ? friendData.stats.activeWeekdays 
+                                : [0, 0, 0, 0, 0, 0, 0];
+                            const myWeekdays = myStats.activeWeekdays;
+                            const hasAnyData = friendWeekdays.some(v => v > 0) || myWeekdays.some(v => v > 0);
 
-                                    return (
-                                        <div key={i} className="flex-1 flex flex-col items-center gap-2">
-                                            <div className="w-full flex items-end justify-center gap-[3px] h-full">
-                                                <motion.div
-                                                    initial={{ height: 0 }}
-                                                    animate={{ height: `${friendH}%` }}
-                                                    transition={{ delay: i * 0.04, duration: 0.5, ease: 'easeOut' }}
-                                                    className="w-full max-w-[10px] bg-white/[0.08] rounded-full"
-                                                />
-                                                <motion.div
-                                                    initial={{ height: 0 }}
-                                                    animate={{ height: `${myH}%` }}
-                                                    transition={{ delay: i * 0.04 + 0.05, duration: 0.5, ease: 'easeOut' }}
-                                                    className="w-full max-w-[10px] bg-gradient-to-t from-[var(--zenith-active)]/50 to-[var(--zenith-active)] rounded-full shadow-[0_2px_12px_var(--zenith-active)]"
-                                                />
-                                            </div>
-                                            <span className={`text-[8px] font-black uppercase tracking-wide ${isToday ? 'text-[var(--zenith-active)]' : 'text-white/25'}`}>
-                                                {label}
-                                            </span>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
+                            if (!hasAnyData) {
+                                return (
+                                    <div className="bg-white/[0.04] border border-white/5 rounded-[2rem] p-8 flex flex-col items-center gap-3 text-center">
+                                        <Activity size={24} className="text-white/15" />
+                                        <p className="text-[10px] font-bold text-white/20 uppercase tracking-widest">
+                                            {language === 'pt' ? 'Sem dados esta semana' : 'No data this week'}
+                                        </p>
+                                        <p className="text-[9px] text-white/15">
+                                            {language === 'pt' 
+                                                ? 'Os dados aparecem após sincronização' 
+                                                : 'Data appears after cloud sync'}
+                                        </p>
+                                    </div>
+                                );
+                            }
+
+                            const maxVal = Math.max(...friendWeekdays, ...myWeekdays, 1);
+
+                            return (
+                                <div className="bg-white/[0.04] border border-white/5 rounded-[2rem] p-5">
+                                    <div className="flex items-end justify-between h-28 gap-1.5">
+                                        {dynamicLabels.map((label, i) => {
+                                            const friendVal = friendWeekdays[i] || 0;
+                                            const myVal = myWeekdays[i] || 0;
+                                            const friendH = friendVal > 0 ? Math.max(8, (friendVal / maxVal) * 100) : 4;
+                                            const myH = myVal > 0 ? Math.max(8, (myVal / maxVal) * 100) : 4;
+                                            const isToday = i === 6;
+
+                                            return (
+                                                <div key={i} className="flex-1 flex flex-col items-center gap-2">
+                                                    <div className="w-full flex items-end justify-center gap-[3px] h-full">
+                                                        <motion.div
+                                                            initial={{ height: 0 }}
+                                                            animate={{ height: `${friendH}%` }}
+                                                            transition={{ delay: i * 0.04, duration: 0.5, ease: 'easeOut' }}
+                                                            className={`w-full max-w-[10px] rounded-full ${friendVal > 0 ? 'bg-white/[0.15]' : 'bg-white/[0.04]'}`}
+                                                        />
+                                                        <motion.div
+                                                            initial={{ height: 0 }}
+                                                            animate={{ height: `${myH}%` }}
+                                                            transition={{ delay: i * 0.04 + 0.05, duration: 0.5, ease: 'easeOut' }}
+                                                            className={`w-full max-w-[10px] rounded-full ${myVal > 0 
+                                                                ? 'bg-gradient-to-t from-[var(--zenith-active)]/50 to-[var(--zenith-active)] shadow-[0_2px_12px_var(--zenith-active)]' 
+                                                                : 'bg-[var(--zenith-active)]/10'}`}
+                                                        />
+                                                    </div>
+                                                    <span className={`text-[8px] font-black uppercase tracking-wide ${isToday ? 'text-[var(--zenith-active)]' : 'text-white/25'}`}>
+                                                        {label}
+                                                    </span>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            );
+                        })()}
                     </section>
 
                     {/* ── Trophy Wall ── */}

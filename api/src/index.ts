@@ -626,6 +626,7 @@ app.get('/users/search', async (c) => {
         // - the current user themselves
         // - users blocked by the current user
         // - users who have blocked the current user
+        // - users who are already accepted friends
         const { results } = await db.prepare(`
             SELECT id, name, username 
             FROM users 
@@ -637,8 +638,20 @@ app.get('/users/search', async (c) => {
               AND id NOT IN (
                 SELECT user_id FROM friendships WHERE friend_id = ? AND status = 'blocked'
               )
+              AND id NOT IN (
+                SELECT friend_id FROM friendships WHERE user_id = ? AND status = 'accepted'
+              )
+              AND id NOT IN (
+                SELECT user_id FROM friendships WHERE friend_id = ? AND status = 'accepted'
+              )
+              AND id NOT IN (
+                SELECT friend_id FROM friendships WHERE user_id = ? AND status = 'pending'
+              )
+              AND id NOT IN (
+                SELECT user_id FROM friendships WHERE friend_id = ? AND status = 'pending'
+              )
             LIMIT 10
-        `).bind(`%${query}%`, `%${query}%`, userId, userId, userId).all();
+        `).bind(`%${query}%`, `%${query}%`, userId, userId, userId, userId, userId, userId, userId).all();
         
         return c.json({ results });
     } catch (e: any) {
@@ -1201,9 +1214,9 @@ app.get('/users/:username/profile', async (c) => {
                 const logTime = new Date(row.log_date + "T12:00:00Z").getTime();
                 const daysDiff = Math.floor((endOfToday - logTime) / (1000 * 60 * 60 * 24));
                 
-                // daysDiff: 1 = today (since endOfToday is tomorrow midnight)
-                // daysDiff: 7 = 6 days ago
-                const arrayIndex = 7 - daysDiff; // 7-1 = 6 (today), 7-7 = 0 (6 days ago)
+                // daysDiff: 0 = today (since endOfToday is tomorrow midnight)
+                // daysDiff: 6 = 6 days ago
+                const arrayIndex = 6 - daysDiff; // 6-0 = 6 (today), 6-6 = 0 (6 days ago)
                 
                 if (arrayIndex >= 0 && arrayIndex <= 6) {
                     activeWeekdays[arrayIndex] += count;

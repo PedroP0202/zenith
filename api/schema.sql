@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS users (
     is_verified BOOLEAN NOT NULL DEFAULT 0,
     opt_in_leaderboard BOOLEAN NOT NULL DEFAULT 0,
     total_xp INTEGER DEFAULT 0,
+    arena_points INTEGER DEFAULT 0,
     level INTEGER DEFAULT 1,
     username TEXT UNIQUE,
     last_login_reward_date TEXT,

@@ -9,3 +9,6 @@ ALTER TABLE users ADD COLUMN level INTEGER DEFAULT 1;
 
 -- 3. Add last_login_reward_date (Controlo de recompensas diárias)
 ALTER TABLE users ADD COLUMN last_login_reward_date TEXT;
+
+-- 4. Add arena_points (Pontos competitivos mensais da arena)
+ALTER TABLE users ADD COLUMN arena_points INTEGER DEFAULT 0;

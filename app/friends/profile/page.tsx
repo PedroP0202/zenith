@@ -12,9 +12,11 @@ import {
     Target,
     Users,
     Activity,
-    User as UserIcon,
     UserMinus,
-    MoreVertical
+    MoreVertical,
+    AlertTriangle,
+    ShieldAlert,
+    BarChart3
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -38,6 +40,9 @@ function FriendProfileContent() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [mounted, setMounted] = useState(false);
+    const [isNudging, setIsNudging] = useState(false);
+    const [showOptions, setShowOptions] = useState(false);
+    const [nudgeMessage, setNudgeMessage] = useState<string | null>(null);
 
     const DAY_LABELS = language === 'pt' ? DAY_LABELS_PT : DAY_LABELS_EN;
 
@@ -76,6 +81,32 @@ function FriendProfileContent() {
             setError("Não foi possível estabelecer ligação com o servidor Zenith. Verifica a tua internet.");
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const handleNudge = () => {
+        if (isNudging) return;
+        setIsNudging(true);
+        setNudgeMessage(`Enviaste um incentivo a @${friendData.user.username}! ⚡️`);
+        
+        // Mocking API call for now
+        setTimeout(() => {
+            setIsNudging(false);
+            setTimeout(() => setNudgeMessage(null), 3000);
+        }, 1000);
+    };
+
+    const handleAction = (type: string) => {
+        setShowOptions(false);
+        if (type === 'block') {
+            setNudgeMessage(`Utilizador @${friendData.user.username} bloqueado.`);
+            setTimeout(() => setNudgeMessage(null), 3000);
+        } else if (type === 'report') {
+            setNudgeMessage("Denúncia enviada com sucesso. Obrigado.");
+            setTimeout(() => setNudgeMessage(null), 3000);
+        } else if (type === 'stats') {
+            setNudgeMessage("Brevemente: Estatísticas comparativas avançadas.");
+            setTimeout(() => setNudgeMessage(null), 3000);
         }
     };
 
@@ -199,14 +230,53 @@ function FriendProfileContent() {
                     <ChevronLeft size={20} />
                 </button>
                 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 relative">
                     <button 
+                        onClick={() => setShowOptions(!showOptions)}
                         className="p-3 text-white/20 hover:text-white/60 transition-colors"
                         title={language === 'pt' ? 'Opções' : 'Options'}
                     >
                         <MoreVertical size={18} />
                     </button>
-                    {/* Username moved to Intro Section for Instagram feel */}
+
+                    <AnimatePresence>
+                        {showOptions && (
+                            <>
+                                <div 
+                                    className="fixed inset-0 z-40" 
+                                    onClick={() => setShowOptions(false)} 
+                                />
+                                <motion.div 
+                                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                    className="absolute right-0 top-full mt-2 w-48 bg-zinc-900 border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50 p-1.5"
+                                >
+                                    <button 
+                                        onClick={() => handleAction('stats')}
+                                        className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-white/60 hover:text-white hover:bg-white/5 rounded-xl transition-colors"
+                                    >
+                                        <BarChart3 size={14} />
+                                        {language === 'pt' ? 'Estatísticas' : 'Detailed Stats'}
+                                    </button>
+                                    <button 
+                                        onClick={() => handleAction('report')}
+                                        className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-white/60 hover:text-white hover:bg-white/5 rounded-xl transition-colors"
+                                    >
+                                        <AlertTriangle size={14} />
+                                        {language === 'pt' ? 'Denunciar' : 'Report'}
+                                    </button>
+                                    <button 
+                                        onClick={() => handleAction('block')}
+                                        className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-red-400/60 hover:text-red-400 hover:bg-red-400/5 rounded-xl transition-colors"
+                                    >
+                                        <ShieldAlert size={14} />
+                                        {language === 'pt' ? 'Bloquear' : 'Block'}
+                                    </button>
+                                </motion.div>
+                            </>
+                        )}
+                    </AnimatePresence>
                 </div>
             </header>
 
@@ -250,16 +320,48 @@ function FriendProfileContent() {
                         <ChevronLeft size={16} className="rotate-[-90deg] text-white/40 group-hover:hidden" />
                         <UserMinus size={16} className="text-red-500 hidden group-hover:block" />
                     </button>
-                    <button className="h-[52px] w-[52px] flex items-center justify-center bg-[var(--zenith-active)] rounded-2xl shadow-[0_4px_20px_var(--zenith-active)] active:scale-95 hover:scale-105 transition-all">
-                        <Zap size={20} className="text-black" />
+                    <button 
+                        onClick={handleNudge}
+                        disabled={isNudging}
+                        className={`h-[52px] w-[52px] flex items-center justify-center rounded-2xl transition-all ${isNudging ? 'bg-zinc-800 scale-95' : 'bg-[var(--zenith-active)] shadow-[0_4px_20px_var(--zenith-active)] active:scale-95 hover:scale-105'}`}
+                    >
+                        <motion.div
+                            animate={isNudging ? { scale: [1, 1.5, 1], rotate: [0, 20, -20, 0] } : {}}
+                            transition={{ duration: 0.3 }}
+                        >
+                            <Zap size={20} className={isNudging ? "text-white/20" : "text-black"} />
+                        </motion.div>
                     </button>
                 </div>
+
+                {/* Nudge Feedback Toast */}
+                <AnimatePresence>
+                    {nudgeMessage && (
+                        <motion.div 
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 20 }}
+                            className="fixed bottom-24 left-1/2 -translate-x-1/2 px-6 py-3 bg-zinc-900 border border-white/10 rounded-2xl shadow-2xl z-[100] flex items-center gap-3"
+                        >
+                            <div className="p-1.5 bg-[var(--zenith-active)]/10 rounded-lg">
+                                <Zap size={14} className="text-[var(--zenith-active)]" />
+                            </div>
+                            <span className="text-xs font-bold text-white/80 whitespace-nowrap">{nudgeMessage}</span>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </section>
 
             <div className="space-y-10">
                 {/* Comparison Stats Cards */}
                 <section className="grid grid-cols-2 gap-3">
-                    <div className="bg-white/5 border border-white/5 rounded-3xl p-5 flex flex-col gap-4 relative overflow-hidden group">
+                    <button 
+                        onClick={() => {
+                            setNudgeMessage(`${friendData.user.totalXp} XP acumulado desde a criação da conta.`);
+                            setTimeout(() => setNudgeMessage(null), 3000);
+                        }}
+                        className="bg-white/5 border border-white/5 rounded-3xl p-5 flex flex-col gap-4 relative overflow-hidden group text-left active:scale-95 transition-all hover:bg-white/10"
+                    >
                         <div className="absolute -top-4 -right-4 w-12 h-12 bg-white/5 rounded-full blur-xl group-hover:scale-150 transition-transform duration-500" />
                         <div className="flex items-center justify-between">
                             <Zap size={16} className="text-[var(--zenith-active)]" />
@@ -281,9 +383,15 @@ function FriendProfileContent() {
                                 />
                             </div>
                         </div>
-                    </div>
+                    </button>
 
-                    <div className="bg-white/5 border border-white/5 rounded-3xl p-5 flex flex-col gap-4 relative overflow-hidden group">
+                    <button 
+                        onClick={() => {
+                            setNudgeMessage(`Hits concluídos nos últimos 7 dias (incluindo hoje).`);
+                            setTimeout(() => setNudgeMessage(null), 3000);
+                        }}
+                        className="bg-white/5 border border-white/5 rounded-3xl p-5 flex flex-col gap-4 relative overflow-hidden group text-left active:scale-95 transition-all hover:bg-white/10"
+                    >
                         <div className="absolute -top-4 -right-4 w-12 h-12 bg-white/5 rounded-full blur-xl group-hover:scale-150 transition-transform duration-500" />
                         <div className="flex items-center justify-between">
                             <Activity size={16} className="text-white/40" />
@@ -305,7 +413,7 @@ function FriendProfileContent() {
                                 />
                             </div>
                         </div>
-                    </div>
+                    </button>
                 </section>
 
             {/* 7-Day Comparative Chart */}

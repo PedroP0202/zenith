@@ -925,30 +925,44 @@ app.get('/users/:username/profile', async (c) => {
         // Get Stats: Total Completions
         const logsCount = await db.prepare('SELECT COUNT(*) as total FROM logs WHERE habit_id IN (SELECT id FROM habits WHERE user_id = ?)').bind(user.id as any).first();
 
-        // Get Weekly Stats (Current Week starting Sunday)
+        // Get Weekly Stats (Last 7 Days exactly, ending today)
         const now = new Date();
-        const sunday = new Date(now);
-        sunday.setHours(0, 0, 0, 0);
-        sunday.setDate(now.getDate() - now.getDay());
-        const startOfWeek = sunday.getTime();
+        now.setHours(0, 0, 0, 0); // Today at midnight
+        now.setDate(now.getDate() + 1); // Midnight of tomorrow (exclusive boundary)
+        const endOfToday = now.getTime();
 
+        const sevenDaysAgo = new Date(now);
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        const startOf7Days = sevenDaysAgo.getTime();
+
+        // Group by YYYY-MM-DD
         const weekdayStats = await db.prepare(`
-            SELECT strftime('%w', datetime(completed_at / 1000, 'unixepoch')) as dow, COUNT(*) as count 
+            SELECT date(completed_at / 1000, 'unixepoch') as log_date, COUNT(*) as count 
             FROM logs 
             WHERE habit_id IN (SELECT id FROM habits WHERE user_id = ?)
-            AND completed_at >= ?
-            GROUP BY dow
-        `).bind(user.id as any, startOfWeek).all();
+            AND completed_at >= ? AND completed_at < ?
+            GROUP BY log_date
+        `).bind(user.id as any, startOf7Days, endOfToday).all();
 
+        // activeWeekdays [day-6, day-5, day-4, day-3, day-2, day-1, today]
         const activeWeekdays = [0, 0, 0, 0, 0, 0, 0];
         let weeklyCompletions = 0;
+        
         if (weekdayStats.results) {
             weekdayStats.results.forEach((row: any) => {
-                const dayIndex = parseInt(row.dow);
                 const count = parseInt(row.count);
-                if (!isNaN(dayIndex) && dayIndex >= 0 && dayIndex < 7) {
-                    activeWeekdays[dayIndex] = count;
-                    weeklyCompletions += count;
+                weeklyCompletions += count;
+
+                // Determine which of the 7 days this log falls into
+                const logTime = new Date(row.log_date + "T12:00:00Z").getTime();
+                const daysDiff = Math.floor((endOfToday - logTime) / (1000 * 60 * 60 * 24));
+                
+                // daysDiff: 1 = today (since endOfToday is tomorrow midnight)
+                // daysDiff: 7 = 6 days ago
+                const arrayIndex = 7 - daysDiff; // 7-1 = 6 (today), 7-7 = 0 (6 days ago)
+                
+                if (arrayIndex >= 0 && arrayIndex <= 6) {
+                    activeWeekdays[arrayIndex] += count;
                 }
             });
         }

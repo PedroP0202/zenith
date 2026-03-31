@@ -79,23 +79,31 @@ function FriendProfileContent() {
         }
     };
 
-    // Calculate My Stats for Comparison (Current Week)
+    // Calculate My Stats for Comparison (Last 7 Days)
     const myStats = useMemo(() => {
-        // Current week start (most recent Sunday)
         const now = new Date();
-        const sunday = new Date(now);
-        sunday.setHours(0, 0, 0, 0);
-        sunday.setDate(now.getDate() - now.getDay());
-        const startOfWeek = sunday.getTime();
+        now.setHours(0, 0, 0, 0);
+        now.setDate(now.getDate() + 1);
+        const endOfToday = now.getTime();
 
-        const weeklyLogs = logs.filter(l => l.completedAt >= startOfWeek);
+        const sevenDaysAgo = new Date(now);
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        const startOf7Days = sevenDaysAgo.getTime();
+
+        const weeklyLogs = logs.filter(l => l.completedAt >= startOf7Days && l.completedAt < endOfToday);
         const weeklyCompletions = weeklyLogs.length;
 
-        // Calculate my weekly distribution
+        // activeWeekdays [day-6, day-5, day-4, day-3, day-2, day-1, today]
         const activeWeekdays = [0, 0, 0, 0, 0, 0, 0];
         weeklyLogs.forEach(log => {
-            const dow = new Date(log.completedAt).getDay();
-            activeWeekdays[dow]++;
+            const logDate = new Date(log.completedAt);
+            logDate.setHours(12, 0, 0, 0); // To avoid exact midnight timezone bugs
+            const daysDiff = Math.floor((endOfToday - logDate.getTime()) / (1000 * 60 * 60 * 24));
+            const arrayIndex = 7 - daysDiff;
+            
+            if (arrayIndex >= 0 && arrayIndex <= 6) {
+                activeWeekdays[arrayIndex]++;
+            }
         });
 
         const totalCompletions = logs.length;
@@ -106,6 +114,23 @@ function FriendProfileContent() {
             activeWeekdays
         };
     }, [habits, logs]);
+
+    // Generate dynamic labels for the past 7 days ending in Today
+    const dynamicLabels = useMemo(() => {
+        const labels = [];
+        for (let i = 6; i >= 0; i--) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            const dow = d.getDay(); // 0 = Sunday
+            
+            if (i === 0) {
+                labels.push(language === 'pt' ? 'Hoje' : 'Today');
+            } else {
+                labels.push(DAY_LABELS[dow]);
+            }
+        }
+        return labels;
+    }, [language, DAY_LABELS]);
 
     if (!mounted) return null;
 
@@ -166,7 +191,7 @@ function FriendProfileContent() {
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[300px] bg-[var(--zenith-active)]/5 blur-[120px] pointer-events-none" />
 
             {/* Header */}
-            <header className="flex items-center justify-between mb-8 relative z-10">
+            <header className="flex items-center justify-between mb-2 relative z-10">
                 <button 
                     onClick={() => router.back()}
                     className="p-3 bg-white/5 rounded-full hover:bg-white/10 transition-colors"
@@ -176,26 +201,16 @@ function FriendProfileContent() {
                 
                 <div className="flex items-center gap-3">
                     <button 
-                        onClick={async () => {
-                            if (confirm(t.social.confirmRemove || `Tens a certeza que queres remover @${friendData.user.username}?`)) {
-                                const res = await removeFriend(friendData.user.id);
-                                if (res.success) router.replace('/friends');
-                            }
-                        }}
-                        className="p-3 bg-red-500/10 text-red-500 rounded-full hover:bg-red-500/20 active:scale-95 transition-all"
-                        title="Remover Amigo"
+                        className="p-3 text-white/20 hover:text-white/60 transition-colors"
+                        title={language === 'pt' ? 'Opções' : 'Options'}
                     >
-                        <UserMinus size={18} />
+                        <MoreVertical size={18} />
                     </button>
-                    <div className="flex flex-col items-end">
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">Nexus Profile</span>
-                        <span className="text-sm font-bold text-[var(--zenith-active)]">@{friendData.user.username}</span>
-                    </div>
+                    {/* Username moved to Intro Section for Instagram feel */}
                 </div>
             </header>
 
-            {/* Profile Intro */}
-            <section className="flex flex-col items-center text-center mb-10 relative z-10">
+            <section className="flex flex-col items-center text-center mb-8 relative z-10">
                 <div className="relative mb-6">
                     {/* Glow behind orb */}
                     <div className="absolute inset-0 bg-white/20 blur-[40px] rounded-full" />
@@ -206,14 +221,38 @@ function FriendProfileContent() {
                         className="shadow-[0_0_60px_rgba(255,255,255,0.1)] border border-white/10" 
                     />
                 </div>
-                <h1 className="text-3xl font-black tracking-tight mb-2">{friendData.user.name}</h1>
-                <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-[var(--zenith-active)]/10 border border-[var(--zenith-active)]/20">
+                <h1 className="text-3xl font-black tracking-tight leading-none mb-1">{friendData.user.name}</h1>
+                <span className="text-sm font-bold text-[var(--zenith-active)] mb-4">@{friendData.user.username}</span>
+
+                <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-md">
                     <div className="w-1.5 h-1.5 rounded-full bg-[var(--zenith-active)] shadow-[0_0_8px_var(--zenith-active)]" />
-                    <span className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--zenith-active)]">
+                    <span className="text-[11px] font-black uppercase tracking-[0.2em] text-white/80">
                         {friendRank.name}
                     </span>
                     <span className="text-[11px] font-bold text-[var(--zenith-active)]/50">•</span>
-                    <span className="text-[11px] font-black text-[var(--zenith-active)]">Nível {friendData.user.level}</span>
+                    <span className="text-[11px] font-black text-white/40">Lvl {friendData.user.level}</span>
+                </div>
+
+                {/* Primary Social Actions */}
+                <div className="flex items-center gap-3 w-full max-w-[280px] mt-6">
+                    <button 
+                        onClick={async () => {
+                            if (confirm(t.social.confirmRemove || `Tens a certeza que queres remover @${friendData.user.username}?`)) {
+                                const res = await removeFriend(friendData.user.id);
+                                if (res.success) router.replace('/friends');
+                            }
+                        }}
+                        className="flex-1 py-3.5 px-6 bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl flex items-center justify-center gap-2 hover:bg-red-500/10 hover:border-red-500/30 transition-all group shadow-sm active:scale-95"
+                    >
+                        <span className="text-sm font-bold text-white group-hover:text-red-500 transition-colors">
+                            {language === 'pt' ? 'Amigos' : 'Friends'}
+                        </span>
+                        <ChevronLeft size={16} className="rotate-[-90deg] text-white/40 group-hover:hidden" />
+                        <UserMinus size={16} className="text-red-500 hidden group-hover:block" />
+                    </button>
+                    <button className="h-[52px] w-[52px] flex items-center justify-center bg-[var(--zenith-active)] rounded-2xl shadow-[0_4px_20px_var(--zenith-active)] active:scale-95 hover:scale-105 transition-all">
+                        <Zap size={20} className="text-black" />
+                    </button>
                 </div>
             </section>
 
@@ -248,7 +287,7 @@ function FriendProfileContent() {
                         <div className="absolute -top-4 -right-4 w-12 h-12 bg-white/5 rounded-full blur-xl group-hover:scale-150 transition-transform duration-500" />
                         <div className="flex items-center justify-between">
                             <Activity size={16} className="text-white/40" />
-                            <span className="text-[10px] font-black text-white/20 uppercase tracking-widest">{language === 'pt' ? 'Atividade Semanal' : 'Weekly Activity'}</span>
+                            <span className="text-[10px] font-black text-white/20 uppercase tracking-widest">{language === 'pt' ? 'Últimos 7 Dias' : 'Last 7 Days'}</span>
                         </div>
                         <div className="flex flex-col">
                             <div className="flex items-baseline gap-1">
@@ -269,28 +308,35 @@ function FriendProfileContent() {
                     </div>
                 </section>
 
-                {/* Weekday Comparative Chart */}
+            {/* 7-Day Comparative Chart */}
                 <section className="space-y-4">
                     <div className="flex items-center justify-between px-2">
                         <div className="flex flex-col">
-                            <h2 className="text-xs uppercase tracking-[0.2em] text-white/40 font-black">Performance Semanal</h2>
-                            <span className="text-[10px] text-[var(--zenith-active)] font-bold">Resumo: {myStats.weeklyCompletions >= friendData.stats.weeklyCompletions ? 'Estás na frente!' : 'Estás a ficar para trás'}</span>
+                            <h2 className="text-xs uppercase tracking-[0.2em] text-white/40 font-black">Performance</h2>
+                            <span className="text-[10px] text-[var(--zenith-active)] font-bold mt-1">
+                                {myStats.weeklyCompletions > friendData.stats.weeklyCompletions 
+                                    ? (language === 'pt' ? 'Estás na liderança (7d)' : 'You are leading (7d)') 
+                                    : myStats.weeklyCompletions < friendData.stats.weeklyCompletions
+                                        ? (language === 'pt' ? 'A ficar para trás (7d)' : 'Falling behind (7d)')
+                                        : (language === 'pt' ? 'Atividade empatada (7d)' : 'Tied activity (7d)')
+                                }
+                            </span>
                         </div>
                         <div className="flex gap-4">
                             <div className="flex items-center gap-1.5">
-                                <div className="w-1.5 h-1.5 rounded-full bg-[var(--zenith-active)]" />
-                                <span className="text-[9px] font-bold text-white/30">ELE</span>
+                                <div className="w-1.5 h-1.5 rounded-full bg-[var(--zenith-active)] shadow-[0_0_8px_var(--zenith-active)]" />
+                                <span className="text-[9px] font-bold text-white">TU</span>
                             </div>
                             <div className="flex items-center gap-1.5">
-                                <div className="w-1.5 h-1.5 border border-white/30 rounded-full" />
-                                <span className="text-[9px] font-bold text-white/30">TU</span>
+                                <div className="w-1.5 h-1.5 rounded-full bg-white/20 backdrop-blur-sm" />
+                                <span className="text-[9px] font-bold text-white/30">ELE</span>
                             </div>
                         </div>
                     </div>
 
                     <div className="bg-white/5 border border-white/5 rounded-[2.5rem] p-6">
-                        <div className="flex items-end justify-between h-32 gap-3 mb-4">
-                            {DAY_LABELS.map((label, i) => {
+                        <div className="flex items-end justify-between h-36 gap-2 mb-2">
+                            {dynamicLabels.map((label, i) => {
                                 const friendVal = friendData.stats.activeWeekdays[i] || 0;
                                 const myVal = myStats.activeWeekdays[i] || 0;
                                 const maxVal = Math.max(...friendData.stats.activeWeekdays, ...myStats.activeWeekdays, 1);
@@ -300,21 +346,26 @@ function FriendProfileContent() {
 
                                 return (
                                     <div key={i} className="flex-1 flex flex-col items-center gap-3">
-                                        <div className="w-full flex items-end justify-center gap-[6px] h-full">
-                                            {/* Friend Bar */}
+                                        <div className="w-full flex items-end justify-center gap-[4px] h-full group relative">
+                                            {/* Tooltip on hover (desktop mainly, but good practice) */}
+                                            <div className="absolute -top-6 bg-black text-white text-[9px] px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">
+                                                Tu: {myVal} | Ele: {friendVal}
+                                            </div>
+
+                                            {/* Friend Bar (Glassmorphism Behind) */}
                                             <motion.div 
                                                 initial={{ height: 0 }}
                                                 animate={{ height: `${Math.max(4, friendHeight)}%` }}
-                                                className="w-full max-w-[14px] bg-gradient-to-t from-[var(--zenith-active)]/40 to-[var(--zenith-active)] rounded-full"
+                                                className="w-full max-w-[12px] bg-white/[0.08] backdrop-blur-sm rounded-full relative z-0"
                                             />
-                                            {/* My Bar (Wireframe/Subtle) */}
+                                            {/* My Bar (Glowing Active Foreground) */}
                                             <motion.div 
                                                 initial={{ height: 0 }}
                                                 animate={{ height: `${Math.max(4, myHeight)}%` }}
-                                                className="w-full max-w-[14px] bg-white/[0.05] border border-white/10 rounded-full"
+                                                className="w-full max-w-[12px] bg-gradient-to-t from-[var(--zenith-active)]/40 to-[var(--zenith-active)] shadow-[0_4px_16px_var(--zenith-active)] rounded-full relative z-10"
                                             />
                                         </div>
-                                        <span className="text-[10px] font-bold text-white/20">{label}</span>
+                                        <span className={`text-[9px] font-black uppercase tracking-wider ${i === 6 ? 'text-[var(--zenith-active)]' : 'text-white/30'}`}>{label}</span>
                                     </div>
                                 );
                             })}

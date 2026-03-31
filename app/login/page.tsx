@@ -13,7 +13,7 @@ import { Capacitor } from '@capacitor/core';
 import Logo from '@/components/Logo';
 export default function LoginPage() {
     const router = useRouter();
-    const { setJwt, syncWithCloud, clearUserData, setUserName, setLanguage, setUsername } = useStore();
+    const { setJwt, syncWithCloud, clearUserData, restoreUserSession } = useStore();
 
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -66,23 +66,21 @@ export default function LoginPage() {
 
             if (!res.ok) throw new Error(data.error || 'Erro ao entrar.');
 
-            // Clear local data BEFORE setting JWT to ensure no mixing and fresh restoration
+            // Clear local habit/log data. Then atomically restore all session data from API response.
+            // This prevents the race condition where XP would be reset to 0 and then
+            // re-uploaded to the server before syncWithCloud could restore the real value.
             clearUserData();
             setJwt(data.token);
+            restoreUserSession({
+                name: data.user?.name,
+                username: data.user?.username,
+                language: data.user?.language,
+                total_xp: data.user?.total_xp,
+                level: data.user?.level,
+                lastLoginRewardDate: data.user?.lastLoginRewardDate,
+            });
 
-            // Sync the user name from the database
-            if (data.user?.name) {
-                setUserName(data.user.name);
-            }
-            if (data.user?.username) {
-                setUsername(data.user.username);
-            }
-            // Sync the user language from the database
-            if (data.user?.language) {
-                setLanguage(data.user.language as any);
-            }
-
-            // Sync in the background so it doesn't block the UI transition
+            // Sync habits/logs in the background (this will also re-confirm XP from server)
             syncWithCloud().catch(console.error);
 
             // Navigate immediately for that instant premium feel
@@ -117,9 +115,14 @@ export default function LoginPage() {
 
                 clearUserData();
                 setJwt(data.token);
-                if (data.user?.name) setUserName(data.user.name);
-                if (data.user?.username) setUsername(data.user.username);
-                if (data.user?.language) setLanguage(data.user.language as any);
+                restoreUserSession({
+                    name: data.user?.name,
+                    username: data.user?.username,
+                    language: data.user?.language,
+                    total_xp: data.user?.total_xp,
+                    level: data.user?.level,
+                    lastLoginRewardDate: data.user?.lastLoginRewardDate,
+                });
                 syncWithCloud().catch(console.error);
                 router.replace('/');
 
@@ -166,9 +169,14 @@ export default function LoginPage() {
 
             clearUserData();
             setJwt(data.token);
-            if (data.user?.name) setUserName(data.user.name);
-            if (data.user?.username) setUsername(data.user.username);
-            if (data.user?.language) setLanguage(data.user.language as any); // Added this line
+            restoreUserSession({
+                name: data.user?.name,
+                username: data.user?.username,
+                language: data.user?.language,
+                total_xp: data.user?.total_xp,
+                level: data.user?.level,
+                lastLoginRewardDate: data.user?.lastLoginRewardDate,
+            });
             syncWithCloud().catch(console.error);
             router.replace('/');
         } catch (err: any) {
@@ -220,9 +228,14 @@ export default function LoginPage() {
 
             clearUserData();
             setJwt(data.token);
-            if (data.user?.name) setUserName(data.user.name);
-            if (data.user?.username) setUsername(data.user.username);
-            if (data.user?.language) setLanguage(data.user.language as any);
+            restoreUserSession({
+                name: data.user?.name,
+                username: data.user?.username,
+                language: data.user?.language,
+                total_xp: data.user?.total_xp,
+                level: data.user?.level,
+                lastLoginRewardDate: data.user?.lastLoginRewardDate,
+            });
             syncWithCloud().catch(console.error);
             router.replace('/');
         } catch (err: any) {

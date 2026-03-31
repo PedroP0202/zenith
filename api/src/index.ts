@@ -541,7 +541,7 @@ app.patch('/auth/profile', async (c) => {
 
     try {
         const body = await c.req.json().catch(() => ({}));
-        const { name, language, optInLeaderboard, username, total_xp, level } = body;
+        const { name, language, optInLeaderboard, username, lastLoginRewardDate, arenaPoints } = body;
 
         const updates: string[] = [];
         const binds: any[] = [];
@@ -562,10 +562,11 @@ app.patch('/auth/profile', async (c) => {
             binds.push(cleanUsername);
         }
 
-        if (total_xp !== undefined) { updates.push('total_xp = ?'); binds.push(total_xp); }
-        if (level !== undefined) { updates.push('level = ?'); binds.push(level); }
-        if (body.arenaPoints !== undefined) { updates.push('arena_points = ?'); binds.push(body.arenaPoints); }
-        if (body.lastLoginRewardDate !== undefined) { updates.push('last_login_reward_date = ?'); binds.push(body.lastLoginRewardDate); }
+        // NOTE: total_xp and level are NOT accepted from the client.
+        // They are authoritatively calculated in /sync/pull from actual logs.
+        // arenaPoints IS client-controlled (they track arena participation separately)
+        if (arenaPoints !== undefined) { updates.push('arena_points = ?'); binds.push(arenaPoints); }
+        if (lastLoginRewardDate !== undefined) { updates.push('last_login_reward_date = ?'); binds.push(lastLoginRewardDate); }
 
         let result = null;
         if (updates.length > 0) {
@@ -1426,7 +1427,6 @@ app.get('/sync/pull', async (c) => {
     `).bind(user.id, lastSyncedAt).all();
 
         // 2. Get updated logs for this user's habits
-        // D1 nested queries can be tricky, so we join on habits
         const { results: logsRaw } = await db.prepare(`
       SELECT l.* FROM logs l
       JOIN habits h ON l.habit_id = h.id
@@ -1451,15 +1451,34 @@ app.get('/sync/pull', async (c) => {
             completedAt: r.completed_at,
         }));
 
-        const userProfile = await db.prepare('SELECT total_xp, level, arena_points, last_login_reward_date FROM users WHERE id = ?').bind(user.id).first() as any;
+        // 3. AUTHORITATIVE: Recalculate total_xp and level directly from logs in DB.
+        // This is the single source of truth - the client NEVER writes XP, only the server calculates it.
+        const xpResult = await db.prepare(`
+            SELECT 
+                COALESCE(SUM(CASE WHEN h.is_hard_mode = 1 THEN 20 ELSE 10 END), 0) as total_xp
+            FROM logs l
+            JOIN habits h ON l.habit_id = h.id
+            WHERE h.user_id = ?
+        `).bind(user.id).first() as any;
+
+        const correctXp = xpResult?.total_xp || 0;
+        const correctLevel = Math.max(1, Math.floor(correctXp / 100) + 1);
+
+        // Also get arena_points and lastLoginRewardDate (these remain client-controlled)
+        const userProfile = await db.prepare('SELECT arena_points, last_login_reward_date FROM users WHERE id = ?').bind(user.id).first() as any;
+
+        // Update DB with canonical XP/Level (heals any corruption)
+        await db.prepare('UPDATE users SET total_xp = ?, level = ? WHERE id = ?')
+            .bind(correctXp, correctLevel, user.id)
+            .run();
 
         return c.json({ 
             habits, 
-            logs, 
+            logs,
             timestamp: Date.now(),
             user: {
-                total_xp: userProfile?.total_xp || 0,
-                level: userProfile?.level || 1,
+                total_xp: correctXp,
+                level: correctLevel,
                 arena_points: userProfile?.arena_points || 0,
                 lastLoginRewardDate: userProfile?.last_login_reward_date || null
             }

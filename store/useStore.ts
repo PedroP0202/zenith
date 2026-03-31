@@ -212,6 +212,12 @@ interface AppState {
      * Dismisses the daily reward toast.
      */
     dismissDailyRewardToast: () => void;
+
+    /**
+     * Restores user session data from the login API response without triggering profile sync.
+     * Prevents the race condition where clearUserData() zeros out XP before the pull completes.
+     */
+    restoreUserSession: (data: { name?: string; username?: string; language?: string; total_xp?: number; level?: number; lastLoginRewardDate?: string | null; }) => void;
 }
 
 export const useStore = create<AppState>()(
@@ -276,13 +282,15 @@ export const useStore = create<AppState>()(
                 
                 const today = new Date().toISOString().split('T')[0];
                 if (get().lastLoginRewardDate !== today) {
-                    const newXp = get().totalXP + 5;
+                    // Mark today as rewarded in local state
+                    // XP is NOT added locally — the server calculates XP from logs.
+                    // The +5 XP is actually credited server-side when the daily check-in log is created.
+                    // Here we just show the toast and sync the reward date.
                     set({ 
-                        totalXP: newXp, 
-                        level: getLevelFromXp(newXp),
                         lastLoginRewardDate: today,
                         showDailyRewardToast: true 
                     });
+                    // Sync the new reward date to the server
                     get().syncProfile().catch(console.error);
                 }
             },
@@ -458,7 +466,7 @@ export const useStore = create<AppState>()(
                 }
 
                 syncWidgetData(get().habits, get().logs).catch(console.error);
-                get().syncProfile().catch(console.error);
+                // Only sync habits/logs to cloud. XP is calculated server-side in /sync/pull.
                 get().syncWithCloud().catch(console.error);
             },
 
@@ -483,10 +491,10 @@ export const useStore = create<AppState>()(
                 set({ syncStatus: 'syncing' });
 
                 try {
-                    // 0. Sync Profile first (Name/Language)
+                    // 0. Sync Profile metadata first (name, language, etc. - NOT XP)
                     await get().syncProfile();
 
-                    // 1. PULL downstream changes
+                    // 1. PULL downstream changes (server is authoritative for XP/level)
                     const pullRes = await fetch(`${API_URL}/sync/pull?lastSyncedAt=${lastSyncedAt}`, {
                         headers: { 'Authorization': `Bearer ${jwt}` }
                     });
@@ -514,15 +522,22 @@ export const useStore = create<AppState>()(
                         }
                     });
 
+                    // Apply server-authoritative XP, level, and user state
+                    // The server recalculated these from actual logs — trust it completely.
                     set({ 
                         habits: newHabits, 
                         logs: newLogs,
-                        totalXP: pullData.user?.total_xp !== undefined ? pullData.user.total_xp : get().totalXP,
-                        arenaPoints: pullData.user?.arena_points !== undefined ? pullData.user.arena_points : get().arenaPoints,
-                        level: pullData.user?.level !== undefined ? pullData.user.level : get().level
+                        totalXP: pullData.user?.total_xp ?? get().totalXP,
+                        level: pullData.user?.level ?? get().level,
+                        arenaPoints: pullData.user?.arena_points ?? get().arenaPoints,
+                        lastLoginRewardDate: pullData.user?.lastLoginRewardDate ?? get().lastLoginRewardDate,
                     });
 
-                    // 2. PUSH upstream changes
+                    // 2. Check daily reward AFTER the pull has restored the correct lastLoginRewardDate.
+                    // This prevents giving a reward based on stale/reset local state.
+                    get().checkDailyReward();
+
+                    // 3. PUSH upstream changes (habits and logs that haven't been synced yet)
                     const unsyncedHabits = newHabits.filter(h => !(h.syncedAt) || (h.updatedAt || h.createdAt || 0) > h.syncedAt);
                     const unsyncedLogs = newLogs.filter(l => !(l.syncedAt));
 
@@ -573,7 +588,7 @@ export const useStore = create<AppState>()(
             },
 
             syncProfile: async () => {
-                const { jwt, userName, language, optInLeaderboard, username, totalXP, level, arenaPoints, lastLoginRewardDate } = get();
+                const { jwt, userName, language, optInLeaderboard, username, lastLoginRewardDate, arenaPoints } = get();
                 if (!jwt) return;
 
                 try {
@@ -583,13 +598,28 @@ export const useStore = create<AppState>()(
                             'Authorization': `Bearer ${jwt}`,
                             'Content-Type': 'application/json'
                         },
-                        body: JSON.stringify({ name: userName, language, optInLeaderboard, username, total_xp: totalXP, level, arenaPoints, lastLoginRewardDate })
+                        // IMPORTANT: total_xp and level are NOT sent here.
+                        // They are authoritatively calculated by the server in /sync/pull.
+                        // Only social/profile fields that the client controls are sent.
+                        body: JSON.stringify({ name: userName, language, optInLeaderboard, username, lastLoginRewardDate, arenaPoints })
                     });
-                    const data = await res.json();
-                    console.log("[STORE] Profile Sync Response:", data);
+                    await res.json();
                 } catch (e) {
                     console.error("[STORE] Failed to sync profile:", e);
                 }
+            },
+
+            restoreUserSession: (data) => {
+                // Restore user data from login API response WITHOUT triggering syncProfile.
+                // This prevents the race condition where clearUserData() zeroed out XP.
+                const updates: Partial<AppState> = {};
+                if (data.name !== undefined) updates.userName = data.name;
+                if (data.username !== undefined) updates.username = data.username;
+                if (data.language !== undefined) updates.language = data.language as any;
+                if (data.total_xp !== undefined) updates.totalXP = data.total_xp;
+                if (data.level !== undefined) updates.level = data.level;
+                if (data.lastLoginRewardDate !== undefined) updates.lastLoginRewardDate = data.lastLoginRewardDate;
+                set(updates);
             },
 
             fetchFriends: async () => {

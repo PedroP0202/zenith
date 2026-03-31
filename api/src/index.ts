@@ -1005,7 +1005,7 @@ app.get('/leaderboard', async (c) => {
 
     try {
         // 1. Get Current Active Season based on Calendar Month
-        // Find season that is not finalized, and covers the current time
+        // This ensures the season is within the current month start and end.
         let activeSeason = await db.prepare('SELECT * FROM arena_seasons WHERE is_finalized = 0 AND start_at <= ? AND end_at > ? ORDER BY end_at ASC LIMIT 1').bind(now, now).first<any>();
 
         // 2. If no active season, check for expired but not finalized season
@@ -1037,32 +1037,31 @@ app.get('/leaderboard', async (c) => {
                 await db.prepare('UPDATE users SET arena_points = 0').run();
             }
 
-            // Create New Season
-            const nextSeasonId = `SEASON-${Date.now()}`;
-            const monthName = new Intl.DateTimeFormat('pt-PT', { month: 'long', year: 'numeric' }).format(new Date());
-            const seasonDuration = 30 * 24 * 60 * 60 * 1000; // 30 days
+            // Create New Season aligned with the current calendar month
+            const currentDate = new Date();
+            const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1, 0, 0, 0, 0).getTime();
+            const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0, 23, 59, 59, 999).getTime();
+
+            const nextSeasonId = `SEASON-${startOfMonth}`;
+            const monthName = new Intl.DateTimeFormat('pt-PT', { month: 'long', year: 'numeric' }).format(currentDate);
             
-            await db.prepare('INSERT INTO arena_seasons (id, name, start_at, end_at, is_finalized, created_at) VALUES (?, ?, ?, ?, ?, ?)')
-                .bind(nextSeasonId, `Arena ${monthName}`, now, now + seasonDuration, 0, now)
+            await db.prepare('INSERT OR IGNORE INTO arena_seasons (id, name, start_at, end_at, is_finalized, created_at) VALUES (?, ?, ?, ?, ?, ?)')
+                .bind(nextSeasonId, `Arena ${monthName}`, startOfMonth, endOfMonth, 0, now)
                 .run();
             
             activeSeason = await db.prepare('SELECT * FROM arena_seasons WHERE id = ?').bind(nextSeasonId).first<any>();
         }
 
-        // 3. Calculate Leaderboard for the active season
-        // Points based on habit difficulty: Hard = 20, Normal = 10
+        // 3. Calculate Leaderboard using arena_points (Exclusive Arena Points)
         const query = `
-            SELECT u.id, u.name, u.username, SUM(CASE WHEN h.is_hard_mode = 1 THEN 20 ELSE 10 END) as score
+            SELECT u.id, u.name, u.username, u.arena_points as score
             FROM users u
-            JOIN habits h ON h.user_id = u.id AND h.is_active = 1
-            JOIN logs l ON l.habit_id = h.id AND l.completed_at >= ? AND l.completed_at <= ?
             WHERE u.opt_in_leaderboard = 1
-            GROUP BY u.id, u.name, u.username
-            ORDER BY score DESC
+            ORDER BY u.arena_points DESC
             LIMIT 50
         `;
 
-        const { results } = await db.prepare(query).bind(activeSeason.start_at, activeSeason.end_at).all<any>();
+        const { results } = await db.prepare(query).all<any>();
         
         return c.json({ 
             leaderboard: results, 

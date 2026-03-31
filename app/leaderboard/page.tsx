@@ -328,7 +328,12 @@ export default function LeaderboardPage() {
                                             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/5">
                                                 <Clock size={12} className="text-white/40" />
                                                 <span className="text-xs font-medium text-white/40">
-                                                    {Math.ceil((season.endsAt - Date.now()) / (1000 * 60 * 60 * 24))} dias restantes
+                                                    {(() => {
+                                                        const diff = season.endsAt - Date.now();
+                                                        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                                                        if (days <= 0) return 'Último dia!';
+                                                        return \`\${days} \${days === 1 ? 'dia restante' : 'dias restantes'}\`;
+                                                    })()}
                                                 </span>
                                             </div>
                                         </div>

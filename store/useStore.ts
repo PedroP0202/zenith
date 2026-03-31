@@ -39,6 +39,8 @@ interface AppState {
     syncStatus: 'idle' | 'syncing' | 'error';
     /** IDs of habits permanently deleted locally but not yet synced */
     deletedHabitIds: string[];
+    /** IDs of logs deleted locally but not yet synced */
+    deletedLogIds: string[];
     /** Whether the user has completed the onboarding flow */
     hasCompletedOnboarding: boolean;
     /** Whether the user has opted in to the global leaderboard */
@@ -227,6 +229,7 @@ export const useStore = create<AppState>()(
             lastSyncedAt: 0,
             syncStatus: 'idle',
             deletedHabitIds: [],
+            deletedLogIds: [],
             hasCompletedOnboarding: false,
             optInLeaderboard: false,
             friends: [],
@@ -295,6 +298,7 @@ export const useStore = create<AppState>()(
                     lastSyncedAt: 0,
                     syncStatus: 'idle',
                     deletedHabitIds: [],
+                    deletedLogIds: [],
                     hasCompletedOnboarding: false,
                     totalXP: 0,
                     arenaPoints: 0,
@@ -313,6 +317,7 @@ export const useStore = create<AppState>()(
                     lastSyncedAt: 0,
                     syncStatus: 'idle',
                     deletedHabitIds: [],
+                    deletedLogIds: [],
                     userName: 'Pedro',
                     language: currentLanguage,
                     hasCompletedOnboarding: false,
@@ -418,13 +423,18 @@ export const useStore = create<AppState>()(
                     const xpLost = habit?.isHardMode ? 20 : 10;
                     const newTotalXP = Math.max(0, get().totalXP - xpLost);
                     const newLevel = getLevelFromXp(newTotalXP);
+                    const newArenaPoints = get().optInLeaderboard ? Math.max(0, get().arenaPoints - xpLost) : 0;
+                    
+                    const deletedLogId = logs[existingLogIndex].id;
 
                     const newLogs = [...logs];
                     newLogs.splice(existingLogIndex, 1);
                     set({ 
                         logs: newLogs,
                         totalXP: newTotalXP,
-                        level: newLevel
+                        level: newLevel,
+                        arenaPoints: newArenaPoints,
+                        deletedLogIds: [...get().deletedLogIds, deletedLogId]
                     });
                 } else {
                     // Tick (add a log for that date)
@@ -448,6 +458,7 @@ export const useStore = create<AppState>()(
                 }
 
                 syncWidgetData(get().habits, get().logs).catch(console.error);
+                get().syncProfile().catch(console.error);
                 get().syncWithCloud().catch(console.error);
             },
 
@@ -466,7 +477,7 @@ export const useStore = create<AppState>()(
             },
 
             syncWithCloud: async () => {
-                const { jwt, lastSyncedAt, habits, logs, deletedHabitIds } = get();
+                const { jwt, lastSyncedAt, habits, logs, deletedHabitIds, deletedLogIds } = get();
                 if (!jwt) return;
 
                 set({ syncStatus: 'syncing' });
@@ -515,7 +526,7 @@ export const useStore = create<AppState>()(
                     const unsyncedHabits = newHabits.filter(h => !(h.syncedAt) || (h.updatedAt || h.createdAt || 0) > h.syncedAt);
                     const unsyncedLogs = newLogs.filter(l => !(l.syncedAt));
 
-                    if (unsyncedHabits.length > 0 || unsyncedLogs.length > 0 || deletedHabitIds.length > 0) {
+                    if (unsyncedHabits.length > 0 || unsyncedLogs.length > 0 || deletedHabitIds.length > 0 || deletedLogIds.length > 0) {
                         const pushRes = await fetch(`${API_URL}/sync/push`, {
                             method: 'POST',
                             headers: {
@@ -526,7 +537,8 @@ export const useStore = create<AppState>()(
                                 lastSyncedAt: Date.now(),
                                 habits: unsyncedHabits,
                                 logs: unsyncedLogs,
-                                deletedHabitIds
+                                deletedHabitIds,
+                                deletedLogIds
                             })
                         });
 
@@ -546,6 +558,7 @@ export const useStore = create<AppState>()(
                             habits: finalHabits,
                             logs: finalLogs,
                             deletedHabitIds: [], // Clear on success
+                            deletedLogIds: [], // Clear on success
                             lastSyncedAt: Date.now(),
                             syncStatus: 'idle'
                         });
@@ -560,7 +573,7 @@ export const useStore = create<AppState>()(
             },
 
             syncProfile: async () => {
-                const { jwt, userName, language, optInLeaderboard, username, totalXP, level } = get();
+                const { jwt, userName, language, optInLeaderboard, username, totalXP, level, arenaPoints, lastLoginRewardDate } = get();
                 if (!jwt) return;
 
                 try {
@@ -570,7 +583,7 @@ export const useStore = create<AppState>()(
                             'Authorization': `Bearer ${jwt}`,
                             'Content-Type': 'application/json'
                         },
-                        body: JSON.stringify({ name: userName, language, optInLeaderboard, username, total_xp: totalXP, level })
+                        body: JSON.stringify({ name: userName, language, optInLeaderboard, username, total_xp: totalXP, level, arenaPoints, lastLoginRewardDate })
                     });
                     const data = await res.json();
                     console.log("[STORE] Profile Sync Response:", data);

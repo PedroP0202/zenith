@@ -564,6 +564,7 @@ app.patch('/auth/profile', async (c) => {
 
         if (total_xp !== undefined) { updates.push('total_xp = ?'); binds.push(total_xp); }
         if (level !== undefined) { updates.push('level = ?'); binds.push(level); }
+        if (body.arenaPoints !== undefined) { updates.push('arena_points = ?'); binds.push(body.arenaPoints); }
         if (body.lastLoginRewardDate !== undefined) { updates.push('last_login_reward_date = ?'); binds.push(body.lastLoginRewardDate); }
 
         let result = null;
@@ -1350,33 +1351,19 @@ app.post('/sync/push', zValidator('json', pushSchema), async (c) => {
         }
     }
 
+    if (payload.deletedLogIds && payload.deletedLogIds.length > 0) {
+        for (const logId of payload.deletedLogIds) {
+            stmts.push(db.prepare(`
+                DELETE FROM logs 
+                WHERE id = ? 
+                AND habit_id IN (SELECT id FROM habits WHERE user_id = ?)
+            `).bind(logId, user.id));
+        }
+    }
+
     try {
         if (stmts.length > 0) {
-            const results = await db.batch(stmts);
-            
-            // Check if any logs were inserted to increment arena points
-            // Since D1 batch returns results in order, and we added logs at the end (before deletes):
-            // We can actually just sum up points by joining logs and habits directly in a separate query 
-            // after the batch.
-            let pointsGained = 0;
-            if (payload.logs.length > 0) {
-                const logsWithHabit = await db.prepare(`
-                    SELECT h.is_hard_mode 
-                    FROM logs l 
-                    JOIN habits h ON l.habit_id = h.id 
-                    WHERE l.id IN (${payload.logs.map(() => '?').join(',')}) AND h.user_id = ?
-                `).bind(...payload.logs.map((l: any) => l.id), user.id).all();
-
-                for (const row of logsWithHabit.results) {
-                    pointsGained += (row.is_hard_mode ? 20 : 10);
-                }
-
-                if (pointsGained > 0) {
-                     // Check if user is in Arena, if so add points
-                     await db.prepare('UPDATE users SET arena_points = arena_points + ? WHERE id = ? AND opt_in_leaderboard = 1')
-                        .bind(pointsGained, user.id).run();
-                }
-            }
+            await db.batch(stmts);
         }
         return c.json({ success: true, timestamp: now });
     } catch (err: any) {

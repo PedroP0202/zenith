@@ -51,6 +51,8 @@ interface AppState {
     friendsLoading: boolean;
     /** User's total experience points */
     totalXP: number;
+    /** User's exclusive Arena points */
+    arenaPoints: number;
     /** User's current level */
     level: number;
     /** The UTC date of the last collected daily reward (YYYY-MM-DD) */
@@ -169,6 +171,8 @@ interface AppState {
     sendFriendRequest: (friendId: string) => Promise<{ success: boolean; error?: string }>;
     /** Accepts or rejects a pending friend request. */
     handleFriendRequest: (requestId: string, action: 'accept' | 'reject') => Promise<void>;
+    /** Removes an accepted friend from the social system */
+    removeFriend: (friendId: string) => Promise<{ success: boolean; error?: string }>;
 
 
     /**
@@ -230,6 +234,7 @@ export const useStore = create<AppState>()(
             friendsLoading: false,
             username: null,
             totalXP: 0,
+            arenaPoints: 0,
             level: 1,
             lastLoginRewardDate: null,
             showDailyRewardToast: false,
@@ -292,6 +297,7 @@ export const useStore = create<AppState>()(
                     deletedHabitIds: [],
                     hasCompletedOnboarding: false,
                     totalXP: 0,
+                    arenaPoints: 0,
                     level: 1,
                     lastLoginRewardDate: null,
                     showDailyRewardToast: false
@@ -311,6 +317,7 @@ export const useStore = create<AppState>()(
                     language: currentLanguage,
                     hasCompletedOnboarding: false,
                     totalXP: 0,
+                    arenaPoints: 0,
                     level: 1,
                     lastLoginRewardDate: null,
                     showDailyRewardToast: false
@@ -425,6 +432,7 @@ export const useStore = create<AppState>()(
                     const xpGained = habit?.isHardMode ? 20 : 10;
                     const newTotalXP = get().totalXP + xpGained;
                     const newLevel = getLevelFromXp(newTotalXP);
+                    const newArenaPoints = get().optInLeaderboard ? get().arenaPoints + xpGained : 0;
 
                     const newLog: LogEntry = {
                         id: crypto.randomUUID(),
@@ -434,6 +442,7 @@ export const useStore = create<AppState>()(
                     set({ 
                         logs: [...logs, newLog],
                         totalXP: newTotalXP,
+                        arenaPoints: newArenaPoints,
                         level: newLevel
                     });
                 }
@@ -498,6 +507,7 @@ export const useStore = create<AppState>()(
                         habits: newHabits, 
                         logs: newLogs,
                         totalXP: pullData.user?.total_xp !== undefined ? pullData.user.total_xp : get().totalXP,
+                        arenaPoints: pullData.user?.arena_points !== undefined ? pullData.user.arena_points : get().arenaPoints,
                         level: pullData.user?.level !== undefined ? pullData.user.level : get().level
                     });
 
@@ -639,6 +649,25 @@ export const useStore = create<AppState>()(
                     }
                 } catch (e) {
                     console.error("[STORE] Failed to handle request:", e);
+                }
+            },
+
+            removeFriend: async (friendId: string) => {
+                const { jwt, friends } = get();
+                if (!jwt) return { success: false, error: 'Not authenticated' };
+                try {
+                    const res = await fetch(`${API_URL}/friends/${friendId}`, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': `Bearer ${jwt}` }
+                    });
+                    const data = await res.json();
+                    if (res.ok) {
+                        set({ friends: friends.filter(f => f.id !== friendId) });
+                        return { success: true };
+                    }
+                    return { success: false, error: data.error };
+                } catch (e) {
+                    return { success: false, error: 'Network error' };
                 }
             },
 

@@ -217,7 +217,7 @@ function FriendProfileContent() {
                         <div className="absolute -top-4 -right-4 w-12 h-12 bg-white/5 rounded-full blur-xl group-hover:scale-150 transition-transform duration-500" />
                         <div className="flex items-center justify-between">
                             <Target size={16} className="text-white/40" />
-                            <span className="text-[10px] font-black text-white/20 uppercase tracking-widest">Focus</span>
+                            <span className="text-[10px] font-black text-white/20 uppercase tracking-widest">{language === 'pt' ? 'Hábitos Concluídos' : 'Habits Completed'}</span>
                         </div>
                         <div className="flex flex-col">
                             <div className="flex items-baseline gap-1">
@@ -226,7 +226,7 @@ function FriendProfileContent() {
                             </div>
                             <div className="mt-2 flex items-center justify-between">
                                 <span className="text-[9px] font-black text-white/30 uppercase">Tu</span>
-                                <span className="text-[9px] font-bold text-white/60">{myStats.totalCompletions} Hits</span>
+                                <span className="text-[9px] font-bold text-white/60">{myStats.totalCompletions}</span>
                             </div>
                             <div className="mt-1 h-1 bg-white/5 rounded-full overflow-hidden">
                                 <div 

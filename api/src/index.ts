@@ -758,6 +758,41 @@ app.patch('/friends/request/:id', async (c) => {
     }
 });
 
+app.delete('/friends/:id', async (c) => {
+    const authHeader = c.req.header('Authorization');
+    if (!authHeader) return c.json({ error: 'Não autorizado' }, 401);
+
+    const friendIdToRemove = c.req.param('id');
+    const token = authHeader.replace('Bearer ', '');
+    const secret = c.env.JWT_SECRET || 'zenith-local-dev-secret';
+    
+    let payload;
+    try {
+        payload = await verify(token, secret, 'HS256');
+    } catch {
+        return c.json({ error: 'Token inválido' }, 401);
+    }
+
+    const userId = payload.id;
+    const db = c.env.DB;
+
+    try {
+        const result = await db.prepare(`
+            DELETE FROM friendships 
+            WHERE status = 'accepted' AND 
+            ((user_id = ? AND friend_id = ?) OR (user_id = ? AND friend_id = ?))
+        `).bind(userId, friendIdToRemove, friendIdToRemove, userId).run();
+
+        if (result.meta.changes === 0) {
+             return c.json({ error: 'Amizade não encontrada.' }, 404);
+        }
+
+        return c.json({ success: true, message: 'Amigo removido com sucesso.' });
+    } catch (e: any) {
+        return c.json({ error: 'Erro ao remover amigo: ' + e.message }, 500);
+    }
+});
+
 app.get('/friends', async (c) => {
     const authHeader = c.req.header('Authorization');
     if (!authHeader) return c.json({ error: 'Não autorizado' }, 401);
@@ -864,7 +899,7 @@ app.get('/users/:username/profile', async (c) => {
 
     try {
         // Find target user (Case-insensitive lookup)
-        const user = await db.prepare('SELECT id, name, username, level, total_xp FROM users WHERE LOWER(username) = LOWER(?)').bind(targetUsername).first() as any;
+        const user = await db.prepare('SELECT id, name, username, level, total_xp, arena_points FROM users WHERE LOWER(username) = LOWER(?)').bind(targetUsername).first() as any;
         if (!user) return c.json({ error: 'Utilizador não encontrado.' }, 404);
 
         // Check if requester is friends with target (or is the target themselves)
@@ -969,25 +1004,23 @@ app.get('/leaderboard', async (c) => {
     const now = Date.now();
 
     try {
-        // 1. Get Current Active Season
-        let activeSeason = await db.prepare('SELECT * FROM arena_seasons WHERE is_finalized = 0 AND end_at > ? ORDER BY end_at ASC LIMIT 1').bind(now).first<any>();
+        // 1. Get Current Active Season based on Calendar Month
+        // Find season that is not finalized, and covers the current time
+        let activeSeason = await db.prepare('SELECT * FROM arena_seasons WHERE is_finalized = 0 AND start_at <= ? AND end_at > ? ORDER BY end_at ASC LIMIT 1').bind(now, now).first<any>();
 
         // 2. If no active season, check for expired but not finalized season
         if (!activeSeason) {
             const expiredSeason = await db.prepare('SELECT * FROM arena_seasons WHERE is_finalized = 0 AND end_at <= ? ORDER BY end_at DESC LIMIT 1').bind(now).first<any>();
             
             if (expiredSeason) {
-                // Finalize Expired Season: Award Winners
+                // Finalize Expired Season: Award Winners based on arena_points
                 const topPlayers = await db.prepare(`
-                    SELECT u.id, u.name, SUM(CASE WHEN h.is_hard_mode = 1 THEN 20 ELSE 10 END) as score
+                    SELECT u.id, u.name, u.arena_points as score
                     FROM users u
-                    JOIN habits h ON h.user_id = u.id AND h.is_active = 1
-                    JOIN logs l ON l.habit_id = h.id AND l.completed_at >= ? AND l.completed_at <= ?
-                    WHERE u.opt_in_leaderboard = 1
-                    GROUP BY u.id
-                    ORDER BY score DESC
+                    WHERE u.opt_in_leaderboard = 1 AND u.arena_points > 0
+                    ORDER BY u.arena_points DESC
                     LIMIT 3
-                `).bind(expiredSeason.start_at, expiredSeason.end_at).all<any>();
+                `).all<any>();
 
                 if (topPlayers.results && topPlayers.results.length > 0) {
                     for (let i = 0; i < topPlayers.results.length; i++) {
@@ -999,8 +1032,9 @@ app.get('/leaderboard', async (c) => {
                     }
                 }
 
-                // Mark as finalized
+                // Mark as finalized and reset all users' arena points
                 await db.prepare('UPDATE arena_seasons SET is_finalized = 1 WHERE id = ?').bind(expiredSeason.id).run();
+                await db.prepare('UPDATE users SET arena_points = 0').run();
             }
 
             // Create New Season
@@ -1319,7 +1353,31 @@ app.post('/sync/push', zValidator('json', pushSchema), async (c) => {
 
     try {
         if (stmts.length > 0) {
-            await db.batch(stmts);
+            const results = await db.batch(stmts);
+            
+            // Check if any logs were inserted to increment arena points
+            // Since D1 batch returns results in order, and we added logs at the end (before deletes):
+            // We can actually just sum up points by joining logs and habits directly in a separate query 
+            // after the batch.
+            let pointsGained = 0;
+            if (payload.logs.length > 0) {
+                const logsWithHabit = await db.prepare(`
+                    SELECT h.is_hard_mode 
+                    FROM logs l 
+                    JOIN habits h ON l.habit_id = h.id 
+                    WHERE l.id IN (${payload.logs.map(() => '?').join(',')}) AND h.user_id = ?
+                `).bind(...payload.logs.map((l: any) => l.id), user.id).all();
+
+                for (const row of logsWithHabit.results) {
+                    pointsGained += (row.is_hard_mode ? 20 : 10);
+                }
+
+                if (pointsGained > 0) {
+                     // Check if user is in Arena, if so add points
+                     await db.prepare('UPDATE users SET arena_points = arena_points + ? WHERE id = ? AND opt_in_leaderboard = 1')
+                        .bind(pointsGained, user.id).run();
+                }
+            }
         }
         return c.json({ success: true, timestamp: now });
     } catch (err: any) {
@@ -1364,7 +1422,7 @@ app.get('/sync/pull', async (c) => {
             completedAt: r.completed_at,
         }));
 
-        const userProfile = await db.prepare('SELECT total_xp, level FROM users WHERE id = ?').bind(user.id).first() as any;
+        const userProfile = await db.prepare('SELECT total_xp, level, arena_points, last_login_reward_date FROM users WHERE id = ?').bind(user.id).first() as any;
 
         return c.json({ 
             habits, 
@@ -1373,6 +1431,7 @@ app.get('/sync/pull', async (c) => {
             user: {
                 total_xp: userProfile?.total_xp || 0,
                 level: userProfile?.level || 1,
+                arena_points: userProfile?.arena_points || 0,
                 lastLoginRewardDate: userProfile?.last_login_reward_date || null
             }
         });

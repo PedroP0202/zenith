@@ -141,7 +141,7 @@ export const en = {
         overview: "Overview",
         yourYear: "Your Year",
         consistency: "Consistency",
-        focusDays: "Focus Days",
+        focusDays: "Habits Completed",
         noData: "No data to show.",
         day: "Day",
         days: "Days",

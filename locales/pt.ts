@@ -141,7 +141,7 @@ export const pt = {
         overview: "Visão Geral",
         yourYear: "O Teu Ano",
         consistency: "Consistência",
-        focusDays: "Dias Foco",
+        focusDays: "Hábitos Concluídos",
         noData: "Sem dados para mostrar.",
         day: "Dia",
         days: "Dias",

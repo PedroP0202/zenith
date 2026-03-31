@@ -3,7 +3,7 @@
 import { useStore } from "@/store/useStore";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Settings as SettingsIcon, Bell, ChevronLeft, User as UserIcon, Cloud, Globe, Lock, Eye, EyeOff, Mail, Trophy, ChevronDown, ChevronUp, Flame, Target, Calendar } from "lucide-react";
+import { Settings as SettingsIcon, Bell, ChevronLeft, User as UserIcon, Cloud, Globe, Lock, Eye, EyeOff, Mail, Trophy, ChevronDown, ChevronUp, Flame, Target, Calendar, Users } from "lucide-react";
 import { scheduleAllNotifications, cancelAllNotifications, requestNotificationPermissions, sendTestNotification } from "@/utils/notifications";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -37,7 +37,8 @@ export default function ProfilePage() {
         username,
         setUsername,
         totalXP,
-        level
+        level,
+        friends
     } = useStore();
     const [mounted, setMounted] = useState(false);
 
@@ -452,7 +453,7 @@ export default function ProfilePage() {
                     initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.4, delay: 0.08, type: 'spring' }}
-                    className="grid grid-cols-3 gap-3"
+                    className="grid grid-cols-2 md:grid-cols-4 gap-3"
                 >
                     {[
                         {
@@ -471,6 +472,12 @@ export default function ProfilePage() {
                             icon: Target,
                             label: 'Check-ins',
                             value: totalCompletions,
+                            color: 'rgba(255,255,255,0.8)',
+                        },
+                        {
+                            icon: Users,
+                            label: 'Amigos',
+                            value: friends?.length || 0,
                             color: 'rgba(255,255,255,0.8)',
                         },
                     ].map((stat, i) => (
@@ -735,7 +742,11 @@ export default function ProfilePage() {
                                             </div>
                                         </div>
                                         <button
-                                            onClick={() => setOptInLeaderboard(false)}
+                                            onClick={() => {
+                                                if (confirm("Atenção: A Arena é muito competitiva. Sair agora irá APAGAR todos os teus pontos atuais ganho nesta Temporada. Tens a certeza?")) {
+                                                    setOptInLeaderboard(false);
+                                                }
+                                            }}
                                             className="text-[11px] font-bold text-red-400 bg-red-400/10 px-4 py-2 rounded-xl transition-colors hover:bg-red-400/20 active:scale-95 uppercase tracking-wider"
                                         >
                                             Sair

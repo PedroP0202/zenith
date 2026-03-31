@@ -3,7 +3,7 @@
 import { useStore } from "@/store/useStore";
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, Search, UserPlus, Check, X, Users, Zap, Loader2 } from "lucide-react";
+import { ChevronLeft, Search, UserPlus, Check, X, Users, Zap, Loader2, UserMinus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "@/hooks/useTranslation";
 import { API_URL } from "@/utils/constants";
@@ -18,7 +18,8 @@ export default function FriendsPage() {
         fetchFriends, 
         fetchFriendRequests, 
         sendFriendRequest, 
-        handleFriendRequest 
+        handleFriendRequest,
+        removeFriend
     } = useStore();
     const { t } = useTranslation();
     const router = useRouter();
@@ -175,16 +176,29 @@ export default function FriendsPage() {
                                         <span className="font-bold text-lg">{friend.name}</span>
                                         <div className="flex items-center gap-1.5">
                                             <Zap size={10} className="text-[var(--zenith-active)]" />
-                                            <span className="text-[10px] text-white/40 font-black uppercase tracking-tighter">{friend.score} Focos</span>
+                                            <span className="text-[10px] text-white/40 font-black uppercase tracking-tighter">{friend.score} Hábitos Concluídos</span>
                                         </div>
                                     </div>
                                 </div>
-                                <Link 
-                                    href={`/friends/profile?u=${friend.username}`}
-                                    className="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-white/60 transition-all active:scale-95 flex items-center gap-2"
-                                >
-                                    Ver Perfil
-                                </Link>
+                                <div className="flex gap-2">
+                                    <Link 
+                                        href={`/friends/profile?u=${friend.username}`}
+                                        className="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-white/60 transition-all active:scale-95 flex items-center gap-2 relative z-10"
+                                    >
+                                        Ver Perfil
+                                    </Link>
+                                    <button 
+                                        onClick={async (e) => {
+                                            e.preventDefault();
+                                            if (confirm(`Queres mesmo remover ${friend.name}?`)) {
+                                                await removeFriend(friend.id);
+                                            }
+                                        }}
+                                        className="p-2 bg-white/5 hover:bg-red-500/20 rounded-xl text-white/20 hover:text-red-500 transition-all active:scale-95 relative z-10"
+                                    >
+                                        <UserMinus size={16} />
+                                    </button>
+                                </div>
                             </motion.div>
                         ))
                     )

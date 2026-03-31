@@ -1077,6 +1077,23 @@ app.get('/leaderboard', async (c) => {
             activeSeason = await db.prepare('SELECT * FROM arena_seasons WHERE id = ?').bind(nextSeasonId).first<any>();
         }
 
+        const period = c.req.query('period') || 'seasonal';
+
+        if (period === 'historical') {
+            const historicalQuery = `
+                SELECT w.*, u.name, u.username, s.name as season_name
+                FROM arena_winners w
+                JOIN users u ON w.user_id = u.id
+                JOIN arena_seasons s ON w.season_id = s.id
+                ORDER BY s.end_at DESC, w.position ASC
+            `;
+            const { results: winners } = await db.prepare(historicalQuery).all<any>();
+            return c.json({ 
+                leaderboard: winners,
+                type: 'historical'
+            });
+        }
+
         // 3. Calculate Leaderboard using arena_points (Exclusive Arena Points)
         const query = `
             SELECT u.id, u.name, u.username, u.arena_points as score
@@ -1090,6 +1107,7 @@ app.get('/leaderboard', async (c) => {
         
         return c.json({ 
             leaderboard: results, 
+            type: 'seasonal',
             season: {
                 id: activeSeason.id,
                 name: activeSeason.name,

@@ -222,7 +222,7 @@ function FriendProfileContent() {
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[300px] bg-[var(--zenith-active)]/5 blur-[120px] pointer-events-none" />
 
             {/* Header */}
-            <header className="flex items-center justify-between mb-2 relative z-10">
+            <header className="flex items-center justify-between mb-2 relative z-30">
                 <button 
                     onClick={() => router.back()}
                     className="p-3 bg-white/5 rounded-full hover:bg-white/10 transition-colors"

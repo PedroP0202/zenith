@@ -11,7 +11,9 @@ interface LeaderboardEntry {
     id: string;
     name: string;
     username: string;
-    score: number;
+    score?: number;
+    position?: number;
+    season_name?: string;
 }
 
 const TIERS = [
@@ -39,7 +41,7 @@ export default function LeaderboardPage() {
     const [error, setError] = useState<string | null>(null);
     const [showConsent, setShowConsent] = useState(false);
     const [showOptOut, setShowOptOut] = useState(false);
-    const [period, setPeriod] = useState<'weekly' | 'seasonal' | 'all'>('seasonal');
+    const [period, setPeriod] = useState<'seasonal' | 'historical'>('seasonal');
     const [season, setSeason] = useState<{id: string, name: string, endsAt: number} | null>(null);
 
     const fetchLeaderboard = useCallback(async () => {
@@ -93,16 +95,15 @@ export default function LeaderboardPage() {
                 </header>
 
                 {optInLeaderboard && !showOptOut && (
-                    <div className="flex bg-white/5 rounded-2xl p-1 mb-8 gap-1 relative z-10">
+                    <div className="flex bg-white/5 rounded-2xl p-1 mb-8 gap-1 relative z-10 w-full">
                         {[
-                            { id: 'weekly', label: 'Semana', icon: Clock },
                             { id: 'seasonal', label: 'Temporada', icon: Calendar },
-                            { id: 'all', label: 'Global', icon: Globe }
+                            { id: 'historical', label: 'O Mural', icon: Trophy }
                         ].map((t) => (
                             <button
                                 key={t.id}
                                 onClick={() => setPeriod(t.id as any)}
-                                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[10px] uppercase tracking-widest font-black transition-all ${period === t.id ? 'bg-white text-black shadow-lg scale-[1.02]' : 'text-white/40 hover:text-white/60'}`}
+                                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] uppercase tracking-widest font-black transition-all ${period === t.id ? 'bg-white text-black shadow-lg scale-[1.02]' : 'text-white/40 hover:text-white/60'}`}
                             >
                                 <t.icon size={12} strokeWidth={3} />
                                 {t.label}
@@ -210,8 +211,8 @@ export default function LeaderboardPage() {
                                 </div>
                             ) : (
                                 <div className="space-y-4 pb-20">
-                                    {/* Personal Stats Header */}
-                                    {leaderboard.length > 0 && (
+                                    {/* Seasonal Header */}
+                                    {period === 'seasonal' && leaderboard.length > 0 && (
                                         <div className="mb-6 px-1">
                                             {(() => {
                                                 const myEntryIndex = leaderboard.findIndex(e => e.username === myUsername);
@@ -220,7 +221,7 @@ export default function LeaderboardPage() {
                                                 if (!myEntry) return null;
 
                                                 const nextEntry = myEntryIndex > 0 ? leaderboard[myEntryIndex - 1] : null;
-                                                const tier = getTier(myEntry.score);
+                                                const tier = getTier(myEntry.score || 0);
                                                 
                                                 return (
                                                     <div className="flex items-center justify-between p-6 rounded-[2.5rem] bg-gradient-to-br from-white/[0.08] to-transparent border border-white/10 shadow-2xl">
@@ -236,7 +237,7 @@ export default function LeaderboardPage() {
                                                             <div className="text-right">
                                                                 <p className="text-[10px] uppercase tracking-[0.2em] font-black text-white/30 mb-0.5">Próximo Rank</p>
                                                                 <p className="text-xs font-medium text-white/60">
-                                                                    Faltam <span className="text-white font-bold">{(nextEntry.score - myEntry.score) + 1}</span> para o {myEntryIndex}º lugar
+                                                                    Faltam <span className="text-white font-bold">{( (nextEntry.score || 0) - (myEntry.score || 0)) + 1}</span> para o {myEntryIndex}º lugar
                                                                 </p>
                                                             </div>
                                                         )}
@@ -246,50 +247,114 @@ export default function LeaderboardPage() {
                                         </div>
                                     )}
 
-                                    {leaderboard.map((entry, index) => {
-                                        const isMe = entry.username === myUsername;
-                                        const rank = index + 1;
-                                        const tier = getTier(entry.score);
-                                        const TierIcon = tier.icon;
-                                        
-                                        let rankBadge = <span className="font-mono text-lg opacity-30">{rank}</span>;
-                                        if (rank === 1) rankBadge = <Crown size={20} className="text-yellow-500 drop-shadow-[0_0_8px_rgba(234,179,8,0.8)]" />;
-                                        if (rank === 2) rankBadge = <div className="w-1.5 h-1.5 rounded-full bg-zinc-400" />;
-                                        if (rank === 3) rankBadge = <div className="w-1.5 h-1.5 rounded-full bg-orange-400" />;
-                                        
-                                        return (
-                                            <motion.div 
-                                                key={entry.id}
-                                                className={`flex items-center justify-between p-5 rounded-[2rem] transition-all border border-transparent ${tier.bg} ${isMe ? 'ring-2 ring-white/20 !bg-white/10 border-white/10' : ''} ${tier.glow}`}
-                                                initial={{ opacity: 0, x: -10 }}
-                                                animate={{ opacity: 1, x: 0 }}
-                                                transition={{ delay: Math.min(index * 0.05, 1) }}
-                                            >
-                                                <div className="flex items-center gap-4">
-                                                    <div className="w-8 flex justify-center">
-                                                        {rankBadge}
+                                    {period === 'seasonal' ? (
+                                        leaderboard.map((entry, index) => {
+                                            const isMe = entry.username === myUsername;
+                                            const rank = index + 1;
+                                            const tier = getTier(entry.score || 0);
+                                            const TierIcon = tier.icon;
+                                            
+                                            let rankBadge = <span className="font-mono text-lg opacity-30">{rank}</span>;
+                                            if (rank === 1) rankBadge = <Crown size={20} className="text-yellow-500 drop-shadow-[0_0_8px_rgba(234,179,8,0.8)]" />;
+                                            if (rank === 2) rankBadge = <div className="w-1.5 h-1.5 rounded-full bg-zinc-400" />;
+                                            if (rank === 3) rankBadge = <div className="w-1.5 h-1.5 rounded-full bg-orange-400" />;
+                                            
+                                            return (
+                                                <motion.div 
+                                                    key={entry.id}
+                                                    className={`flex items-center justify-between p-5 rounded-[2rem] transition-all border border-transparent ${tier.bg} ${isMe ? 'ring-2 ring-white/20 !bg-white/10 border-white/10' : ''} ${tier.glow}`}
+                                                    initial={{ opacity: 0, x: -10 }}
+                                                    animate={{ opacity: 1, x: 0 }}
+                                                    transition={{ delay: Math.min(index * 0.05, 1) }}
+                                                >
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="w-8 flex justify-center">
+                                                            {rankBadge}
+                                                        </div>
+                                                        <div className="flex flex-col">
+                                                            <span className={`text-sm font-black tracking-tight ${isMe ? 'text-white' : 'text-white/90'}`}>
+                                                                {entry.name}
+                                                            </span>
+                                                            <span className="text-[10px] text-white/30 font-mono">
+                                                                @{entry.username || 'user'}
+                                                            </span>
+                                                        </div>
                                                     </div>
-                                                    <div className="flex flex-col">
-                                                        <span className={`text-sm font-black tracking-tight ${isMe ? 'text-white' : 'text-white/90'}`}>
-                                                            {entry.name}
-                                                        </span>
-                                                        <span className="text-[10px] text-white/30 font-mono">
-                                                            @{entry.username || 'user'}
-                                                        </span>
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="flex flex-col items-end">
+                                                            <span className="text-sm font-black tracking-tight lowercase">{entry.score} <span className="text-[10px] opacity-30">pts</span></span>
+                                                            <span className={`text-[8px] uppercase tracking-widest font-black ${tier.color}`}>{tier.name}</span>
+                                                        </div>
+                                                        <div className={`p-2 rounded-full bg-white/5 ${tier.color}`}>
+                                                            <TierIcon size={14} className={tier.name === 'Zenith' ? 'animate-pulse' : ''} />
+                                                        </div>
                                                     </div>
-                                                </div>
-                                                <div className="flex items-center gap-3">
-                                                    <div className="flex flex-col items-end">
-                                                        <span className="text-sm font-black tracking-tight lowercase">{entry.score} <span className="text-[10px] opacity-30">pts</span></span>
-                                                        <span className={`text-[8px] uppercase tracking-widest font-black ${tier.color}`}>{tier.name}</span>
+                                                </motion.div>
+                                            );
+                                        })
+                                    ) : (
+                                        /* Historical Mural View */
+                                        <div className="space-y-8">
+                                            {(() => {
+                                                // Group winners by season_name
+                                                const seasons: Record<string, LeaderboardEntry[]> = {};
+                                                leaderboard.forEach(entry => {
+                                                    const sName = entry.season_name || 'Época Desconhecida';
+                                                    if (!seasons[sName]) seasons[sName] = [];
+                                                    seasons[sName].push(entry);
+                                                });
+
+                                                return Object.entries(seasons).map(([sName, winners], sIdx) => (
+                                                    <div key={sName} className="flex flex-col gap-4">
+                                                        <div className="flex items-center gap-3 px-2">
+                                                            <div className="h-px flex-1 bg-white/10" />
+                                                            <h3 className="text-[10px] uppercase tracking-[0.3em] font-black text-white/30 whitespace-nowrap">{sName}</h3>
+                                                            <div className="h-px flex-1 bg-white/10" />
+                                                        </div>
+                                                        
+                                                        <div className="grid grid-cols-1 gap-3">
+                                                            {winners.map((winner, wIdx) => {
+                                                                const pos = winner.position || 1;
+                                                                const isMe = winner.username === myUsername;
+                                                                
+                                                                const medals = [
+                                                                    { icon: Crown, color: 'text-yellow-500', bg: 'bg-yellow-500/10' },
+                                                                    { icon: Star, color: 'text-zinc-300', bg: 'bg-zinc-300/10' },
+                                                                    { icon: Target, color: 'text-orange-400', bg: 'bg-orange-400/10' }
+                                                                ];
+                                                                const Medal = medals[pos - 1]?.icon || Trophy;
+                                                                const medalColor = medals[pos - 1]?.color || 'text-white/40';
+                                                                const medalBg = medals[pos - 1]?.bg || 'bg-white/5';
+
+                                                                return (
+                                                                    <motion.div 
+                                                                        key={winner.id}
+                                                                        initial={{ opacity: 0, y: 10 }}
+                                                                        animate={{ opacity: 1, y: 0 }}
+                                                                        transition={{ delay: wIdx * 0.1 }}
+                                                                        className={`flex items-center justify-between p-4 rounded-3xl border ${isMe ? 'bg-white/10 border-white/20' : 'bg-white/[0.03] border-white/5'}`}
+                                                                    >
+                                                                        <div className="flex items-center gap-4">
+                                                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${medalBg} ${medalColor}`}>
+                                                                                <Medal size={20} strokeWidth={2.5} />
+                                                                            </div>
+                                                                            <div className="flex flex-col">
+                                                                                <span className="text-sm font-black">{winner.name}</span>
+                                                                                <span className="text-[10px] text-white/30 font-mono">@{winner.username}</span>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="px-4 py-1 rounded-full bg-white/5 border border-white/5 text-[9px] font-black uppercase tracking-widest text-white/40">
+                                                                            #{pos} Lugar
+                                                                        </div>
+                                                                    </motion.div>
+                                                                );
+                                                            })}
+                                                        </div>
                                                     </div>
-                                                    <div className={`p-2 rounded-full bg-white/5 ${tier.color}`}>
-                                                        <TierIcon size={14} className={tier.name === 'Zenith' ? 'animate-pulse' : ''} />
-                                                    </div>
-                                                </div>
-                                            </motion.div>
-                                        );
-                                    })}
+                                                ));
+                                            })()}
+                                        </div>
+                                    )}
 
                                     {season && (
                                         <div className="pt-8 pb-12 text-center">

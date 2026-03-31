@@ -1,6 +1,7 @@
 /**
  * Progression logic for Zenith.
- * Levels are logarithmic to represent increasing difficulty.
+ * Levels are LINEAR: each level requires exactly 100 XP.
+ * Formula: Level = floor(totalXP / 100) + 1
  * Ranks are space-themed to maintain a minimal, premium aesthetic.
  */
 
@@ -29,41 +30,38 @@ export const getRankForLevel = (level: number): RankInfo => {
     return [...RANKS].reverse().find(rank => level >= rank.minLevel) || RANKS[0];
 };
 
+/** XP per level — simple constant. Each level is exactly 100 XP. */
+const XP_PER_LEVEL = 100;
+
 /**
- * Calculates the total XP needed to reach a specific level.
- * Formula: 100 * (1.35 ^ (level - 1))
+ * Calculates the total XP needed to START a specific level.
+ * e.g. Level 1 starts at 0 XP, Level 2 at 100 XP, Level 3 at 200 XP...
  */
 export const getXPNeededForLevel = (level: number): number => {
     if (level <= 1) return 0;
-    return Math.floor(100 * Math.pow(1.35, level - 1));
+    return (level - 1) * XP_PER_LEVEL;
 };
 
 /**
  * Calculates the XP required specifically for the next level from the current one.
+ * Since it's linear, this is always XP_PER_LEVEL.
  */
-export const getXpToNextLevel = (currentLevel: number): number => {
-    return getXPNeededForLevel(currentLevel + 1) - getXPNeededForLevel(currentLevel);
+export const getXpToNextLevel = (_currentLevel: number): number => {
+    return XP_PER_LEVEL;
 };
 
 /**
  * Calculates current progress within the current level (0 to 1).
  */
 export const getLevelProgress = (totalXp: number, level: number): number => {
-    const xpForThisLevelStart = getXPNeededForLevel(level);
-    const xpForNextLevelStart = getXPNeededForLevel(level + 1);
-    const xpInThisLevel = totalXp - xpForThisLevelStart;
-    const totalXpRequiredInLevel = xpForNextLevelStart - xpForThisLevelStart;
-    
-    return Math.max(0, Math.min(1, xpInThisLevel / totalXpRequiredInLevel));
+    const xpInThisLevel = totalXp - getXPNeededForLevel(level);
+    return Math.max(0, Math.min(1, xpInThisLevel / XP_PER_LEVEL));
 };
 
 /**
  * Determines what the level should be for a given total XP.
+ * Linear: Level = floor(totalXP / 100) + 1
  */
 export const getLevelFromXp = (totalXp: number): number => {
-    let level = 1;
-    while (totalXp >= getXPNeededForLevel(level + 1)) {
-        level++;
-    }
-    return level;
+    return Math.max(1, Math.floor(totalXp / XP_PER_LEVEL) + 1);
 };

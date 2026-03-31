@@ -831,6 +831,165 @@ app.get('/friends', async (c) => {
     }
 });
 
+// --- POST /friends/nudge: Send a Zap/incentive to a friend ---
+app.post('/friends/nudge', async (c) => {
+    const authHeader = c.req.header('Authorization');
+    if (!authHeader) return c.json({ error: 'Não autorizado' }, 401);
+
+    const token = authHeader.replace('Bearer ', '');
+    const secret = c.env.JWT_SECRET || 'zenith-local-dev-secret';
+    let payload;
+    try { payload = await verify(token, secret, 'HS256'); } catch { return c.json({ error: 'Token inválido' }, 401); }
+
+    const { targetUserId } = await c.req.json().catch(() => ({}));
+    if (!targetUserId) return c.json({ error: 'targetUserId é obrigatório.' }, 400);
+
+    const db = c.env.DB;
+    const userId = payload.id;
+    const now = Date.now();
+
+    try {
+        // Verify friendship exists
+        const friendship = await db.prepare(`
+            SELECT id FROM friendships 
+            WHERE ((user_id = ? AND friend_id = ?) OR (user_id = ? AND friend_id = ?))
+            AND status = 'accepted'
+        `).bind(userId, targetUserId, targetUserId, userId).first();
+
+        if (!friendship) return c.json({ error: 'Só podes enviar incentivos a amigos.' }, 403);
+
+        // Rate limit: max 1 nudge per hour per pair
+        const recentNudge = await db.prepare(`
+            SELECT id FROM nudges 
+            WHERE from_user_id = ? AND to_user_id = ? AND created_at > ?
+        `).bind(userId, targetUserId, now - 3600000).first();
+        
+        if (recentNudge) return c.json({ error: 'Já enviaste um incentivo recentemente. Aguarda 1 hora.' }, 429);
+
+        // Save nudge
+        await db.prepare('INSERT INTO nudges (id, from_user_id, to_user_id, created_at) VALUES (?, ?, ?, ?)')
+            .bind(crypto.randomUUID(), userId, targetUserId, now).run();
+
+        // Get sender name for the notification
+        const sender = await db.prepare('SELECT name, username FROM users WHERE id = ?').bind(userId).first() as any;
+
+        return c.json({ 
+            success: true, 
+            message: `Incentivo enviado a ${targetUserId}!`,
+            senderName: sender?.name || 'Um amigo'
+        });
+    } catch (e: any) {
+        // If nudges table doesn't exist yet, just return success (graceful degradation)
+        if (e.message.includes('no such table')) {
+            return c.json({ success: true, message: 'Incentivo enviado!' });
+        }
+        return c.json({ error: 'Erro ao enviar incentivo: ' + e.message }, 500);
+    }
+});
+
+// --- GET /friends/nudges: Get incoming nudges for the current user ---
+app.get('/friends/nudges', async (c) => {
+    const authHeader = c.req.header('Authorization');
+    if (!authHeader) return c.json({ error: 'Não autorizado' }, 401);
+
+    const token = authHeader.replace('Bearer ', '');
+    const secret = c.env.JWT_SECRET || 'zenith-local-dev-secret';
+    let payload;
+    try { payload = await verify(token, secret, 'HS256'); } catch { return c.json({ error: 'Token inválido' }, 401); }
+
+    const db = c.env.DB;
+    const userId = payload.id;
+    const since = parseInt(c.req.query('since') || '0', 10);
+
+    try {
+        const { results } = await db.prepare(`
+            SELECT n.id, n.from_user_id, u.name as from_name, u.username as from_username, n.created_at
+            FROM nudges n
+            JOIN users u ON u.id = n.from_user_id
+            WHERE n.to_user_id = ? AND n.created_at > ?
+            ORDER BY n.created_at DESC LIMIT 10
+        `).bind(userId, since).all();
+        return c.json({ nudges: results });
+    } catch (e: any) {
+        if (e.message.includes('no such table')) return c.json({ nudges: [] });
+        return c.json({ error: 'Erro ao buscar incentivos: ' + e.message }, 500);
+    }
+});
+
+// --- POST /users/report: Report a user ---
+app.post('/users/report', async (c) => {
+    const authHeader = c.req.header('Authorization');
+    if (!authHeader) return c.json({ error: 'Não autorizado' }, 401);
+
+    const token = authHeader.replace('Bearer ', '');
+    const secret = c.env.JWT_SECRET || 'zenith-local-dev-secret';
+    let payload;
+    try { payload = await verify(token, secret, 'HS256'); } catch { return c.json({ error: 'Token inválido' }, 401); }
+
+    const { reportedUserId, reason } = await c.req.json().catch(() => ({}));
+    if (!reportedUserId) return c.json({ error: 'reportedUserId é obrigatório.' }, 400);
+
+    const db = c.env.DB;
+    const now = Date.now();
+
+    try {
+        await db.prepare(`
+            INSERT OR IGNORE INTO beta_feedbacks (id, user_name, platform, content, status, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+        `).bind(
+            crypto.randomUUID(),
+            `REPORT from ${payload.id}`,
+            'user_report',
+            `Reported user: ${reportedUserId}. Reason: ${reason || 'Not specified'}`,
+            'unread',
+            now
+        ).run();
+
+        return c.json({ success: true, message: 'Denúncia enviada com sucesso.' });
+    } catch (e: any) {
+        return c.json({ error: 'Erro ao enviar denúncia: ' + e.message }, 500);
+    }
+});
+
+// --- POST /friends/block: Block a user (removes friendship + blocks) ---
+app.post('/friends/block', async (c) => {
+    const authHeader = c.req.header('Authorization');
+    if (!authHeader) return c.json({ error: 'Não autorizado' }, 401);
+
+    const token = authHeader.replace('Bearer ', '');
+    const secret = c.env.JWT_SECRET || 'zenith-local-dev-secret';
+    let payload;
+    try { payload = await verify(token, secret, 'HS256'); } catch { return c.json({ error: 'Token inválido' }, 401); }
+
+    const { blockedUserId } = await c.req.json().catch(() => ({}));
+    if (!blockedUserId) return c.json({ error: 'blockedUserId é obrigatório.' }, 400);
+
+    const db = c.env.DB;
+    const userId = payload.id;
+    const now = Date.now();
+
+    try {
+        // Remove/update friendship to blocked status
+        await db.prepare(`
+            UPDATE friendships SET status = 'blocked', updated_at = ?
+            WHERE ((user_id = ? AND friend_id = ?) OR (user_id = ? AND friend_id = ?))
+        `).bind(now, userId, blockedUserId, blockedUserId, userId).run();
+
+        // Also delete any pending requests
+        await db.prepare(`
+            DELETE FROM friendships 
+            WHERE status = 'pending' AND 
+            ((user_id = ? AND friend_id = ?) OR (user_id = ? AND friend_id = ?))
+        `).bind(userId, blockedUserId, blockedUserId, userId).run();
+
+        return c.json({ success: true, message: 'Utilizador bloqueado.' });
+    } catch (e: any) {
+        return c.json({ error: 'Erro ao bloquear utilizador: ' + e.message }, 500);
+    }
+});
+
+
+
 app.get('/friends/compare/:username', async (c) => {
     const authHeader = c.req.header('Authorization');
     if (!authHeader) return c.json({ error: 'Não autorizado' }, 401);

@@ -49,7 +49,7 @@ export default function BottomNav() {
     if (pathname.includes('/habit/') || isAuthRoute) return null;
 
     return (
-        <nav className="fixed bottom-8 left-1/2 -translate-x-1/2 glass rounded-full px-4 py-3 flex items-center gap-6 sm:gap-8 z-50 shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/5">
+        <nav className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 glass rounded-full px-4 py-3 flex items-center gap-6 sm:gap-8 z-50 shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/5">
             {tabs.map((tab) => {
                 const isActive = pathname === tab.href;
                 const Icon = tab.icon;

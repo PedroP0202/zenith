@@ -89,9 +89,7 @@ export default function LeaderboardPage() {
                         <ChevronLeft size={24} />
                     </button>
                     <h1 className="text-xl font-black tracking-tight uppercase text-white/90">A Arena</h1>
-                    <button onClick={() => setShowOptOut(true)} className="p-2 text-white/20 hover:text-red-400 transition-colors">
-                        <Globe size={20} />
-                    </button>
+                    <div className="w-12 h-12" />
                 </header>
 
                 {optInLeaderboard && !showOptOut && (
@@ -187,36 +185,7 @@ export default function LeaderboardPage() {
                             </div>
                         </motion.div>
                     )}
-                    {optInLeaderboard && showOptOut && (
-                        <motion.div
-                            key="optout"
-                            className="flex-1 flex flex-col items-start justify-center px-4"
-                            initial={{ opacity: 0, x: 30 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -30 }}
-                            transition={{ duration: 0.4, type: 'spring' }}
-                        >
-                            <span className="text-4xl mb-8">🚪</span>
-                            <h2 className="text-2xl font-medium tracking-tight mb-3">Sair da Arena?</h2>
-                            <p className="text-white/40 text-sm leading-relaxed mb-10">
-                                Se saíres, o teu nome e pontuação deixarão de ser visíveis para outros utilizadores imediatamente. Podes reentrar quando quiseres, mas os teus dados escolhidos voltarão a ser públicos.
-                            </p>
-                            <div className="flex flex-col gap-3 w-full">
-                                <button
-                                    onClick={handleOptOut}
-                                    className="bg-red-500/10 text-red-400 border border-red-500/20 font-bold px-8 py-4 rounded-full transition-all active:scale-95 hover:bg-red-500/20"
-                                >
-                                    Confirmar Saída
-                                </button>
-                                <button
-                                    onClick={() => setShowOptOut(false)}
-                                    className="text-white/30 text-sm py-3 hover:text-white/60 transition-colors text-center"
-                                >
-                                    Ficar na Arena
-                                </button>
-                            </div>
-                        </motion.div>
-                    )}
+
 
                     {optInLeaderboard && !showOptOut && (
                         <motion.div
@@ -332,7 +301,7 @@ export default function LeaderboardPage() {
                                                         const diff = season.endsAt - Date.now();
                                                         const days = Math.floor(diff / (1000 * 60 * 60 * 24));
                                                         if (days <= 0) return 'Último dia!';
-                                                        return \`\${days} \${days === 1 ? 'dia restante' : 'dias restantes'}\`;
+                                                        return `${days} ${days === 1 ? 'dia restante' : 'dias restantes'}`;
                                                     })()}
                                                 </span>
                                             </div>

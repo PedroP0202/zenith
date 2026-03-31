@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "@/hooks/useTranslation";
 import { API_URL } from "@/utils/constants";
 import Link from "next/link";
+import UserOrb from "@/components/UserOrb";
 
 export default function FriendsPage() {
     const { 
@@ -135,22 +136,26 @@ export default function FriendsPage() {
             </div>
 
             {/* Tabs */}
-            <div className="flex bg-white/5 p-1 rounded-2xl mb-8">
-                <button 
-                    onClick={() => setTab('friends')}
-                    className={`flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${tab === 'friends' ? 'bg-white text-black shadow-lg' : 'text-white/40'}`}
-                >
-                    {t.social.friends}
-                </button>
-                <button 
-                    onClick={() => setTab('requests')}
-                    className={`flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all relative ${tab === 'requests' ? 'bg-white text-black shadow-lg' : 'text-white/40'}`}
-                >
-                    {t.social.requests}
-                    {friendRequests.length > 0 && (
-                        <span className={`absolute top-2 right-4 w-1.5 h-1.5 rounded-full ${tab === 'requests' ? 'bg-red-500' : 'bg-[var(--zenith-active)] shadow-[0_0_8px_var(--zenith-active)]'}`} />
-                    )}
-                </button>
+            <div className="flex bg-white/5 p-1.5 rounded-2xl mb-8 relative">
+                {['friends', 'requests'].map((tabId) => (
+                    <button 
+                        key={tabId}
+                        onClick={() => setTab(tabId as any)}
+                        className={`flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all relative z-10 ${tab === tabId ? 'text-black' : 'text-white/40 hover:text-white/60'}`}
+                    >
+                        {tabId === 'friends' ? t.social.friends : t.social.requests}
+                        {tabId === 'requests' && friendRequests.length > 0 && (
+                            <span className={`absolute top-2 right-4 w-1.5 h-1.5 rounded-full ${tab === 'requests' ? 'bg-red-500' : 'bg-[var(--zenith-active)] shadow-[0_0_8px_var(--zenith-active)]'}`} />
+                        )}
+                        {tab === tabId && (
+                            <motion.div
+                                layoutId="active-tab"
+                                className="absolute inset-0 bg-white rounded-xl -z-10 shadow-lg"
+                                transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                            />
+                        )}
+                    </button>
+                ))}
             </div>
 
             {/* Content List */}
@@ -162,30 +167,31 @@ export default function FriendsPage() {
                             <p className="text-sm font-bold uppercase tracking-widest">{t.social.emptyFriends}</p>
                         </div>
                     ) : (
-                        friends.map((friend) => (
+                        friends.map((friend, i) => (
                             <motion.div 
                                 key={friend.id}
                                 layout
-                                className="p-5 rounded-[2rem] bg-white/5 border border-white/5 flex items-center justify-between group"
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.4, delay: i * 0.05 }}
+                                className="p-4 rounded-[2rem] bg-white/[0.03] backdrop-blur-xl border border-white/5 flex items-center justify-between group hover:bg-white/[0.06] transition-colors"
                             >
                                 <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center font-black text-white/20 uppercase">
-                                        {friend.name.charAt(0)}
-                                    </div>
+                                    <UserOrb seed={friend.username} size={48} className="shadow-lg group-hover:scale-105 transition-transform" />
                                     <div className="flex flex-col">
-                                        <span className="font-bold text-lg">{friend.name}</span>
-                                        <div className="flex items-center gap-1.5">
+                                        <span className="font-bold text-lg leading-tight">{friend.name}</span>
+                                        <div className="flex items-center gap-1.5 mt-0.5">
                                             <Zap size={10} className="text-[var(--zenith-active)]" />
-                                            <span className="text-[10px] text-white/40 font-black uppercase tracking-tighter">{friend.score} Hábitos Concluídos</span>
+                                            <span className="text-[10px] text-white/40 font-black uppercase tracking-tighter">{friend.score || 0} Hábitos</span>
                                         </div>
                                     </div>
                                 </div>
                                 <div className="flex gap-2">
                                     <Link 
                                         href={`/friends/profile?u=${friend.username}`}
-                                        className="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-white/60 transition-all active:scale-95 flex items-center gap-2 relative z-10"
+                                        className="h-10 px-4 bg-white/5 hover:bg-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white/60 transition-all active:scale-95 flex items-center justify-center relative z-10"
                                     >
-                                        Ver Perfil
+                                        Perfil
                                     </Link>
                                     <button 
                                         onClick={async (e) => {
@@ -194,7 +200,7 @@ export default function FriendsPage() {
                                                 await removeFriend(friend.id);
                                             }
                                         }}
-                                        className="p-2 bg-white/5 hover:bg-red-500/20 rounded-xl text-white/20 hover:text-red-500 transition-all active:scale-95 relative z-10"
+                                        className="h-10 w-10 flex items-center justify-center bg-white/5 hover:bg-red-500/20 rounded-2xl text-white/20 hover:text-red-500 transition-all active:scale-95 relative z-10"
                                     >
                                         <UserMinus size={16} />
                                     </button>
@@ -209,26 +215,32 @@ export default function FriendsPage() {
                             <p className="text-sm font-bold uppercase tracking-widest">{t.social.emptyRequests}</p>
                         </div>
                     ) : (
-                        friendRequests.map((req) => (
+                        friendRequests.map((req, i) => (
                             <motion.div 
                                 key={req.id}
                                 layout
-                                className="p-5 rounded-[2rem] bg-white/5 border border-white/5 flex items-center justify-between"
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ duration: 0.3, delay: i * 0.05 }}
+                                className="p-4 rounded-[2rem] bg-white/[0.03] backdrop-blur-xl border border-white/5 flex items-center justify-between"
                             >
-                                <div className="flex flex-col">
-                                    <span className="font-bold text-lg">{req.name}</span>
-                                    <span className="text-[10px] text-white/40 font-mono">@{req.username}</span>
+                                <div className="flex items-center gap-3">
+                                    <UserOrb seed={req.username} size={40} className="shadow-lg" />
+                                    <div className="flex flex-col">
+                                        <span className="font-bold text-base leading-tight">{req.name}</span>
+                                        <span className="text-[10px] text-white/40 font-mono">@{req.username}</span>
+                                    </div>
                                 </div>
                                 <div className="flex gap-2">
                                     <button 
                                         onClick={() => handleFriendRequest(req.id, 'reject')}
-                                        className="p-3 bg-white/5 rounded-xl hover:bg-red-500/20 text-white/20 hover:text-red-500 transition-all"
+                                        className="h-10 w-10 flex items-center justify-center bg-white/5 rounded-2xl hover:bg-red-500/20 text-white/20 hover:text-red-500 transition-all"
                                     >
                                         <X size={18} />
                                     </button>
                                     <button 
                                         onClick={() => handleFriendRequest(req.id, 'accept')}
-                                        className="p-3 bg-[var(--zenith-active)] text-black rounded-xl shadow-glow-active active:scale-95 transition-all"
+                                        className="h-10 w-10 flex items-center justify-center bg-[var(--zenith-active)] text-black rounded-2xl shadow-glow-active active:scale-95 transition-all"
                                     >
                                         <Check size={18} />
                                     </button>

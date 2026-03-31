@@ -9,6 +9,7 @@ import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { SignInWithApple } from '@capacitor-community/apple-sign-in';
 import { API_URL, GOOGLE_CLIENT_ID, GOOGLE_IOS_CLIENT_ID } from "@/utils/constants";
 import { Capacitor } from '@capacitor/core';
+import Logo from '@/components/Logo';
 
 export default function RegisterPage() {
     const router = useRouter();
@@ -162,9 +163,9 @@ export default function RegisterPage() {
     };
 
     return (
-        <main className="min-h-[100dvh] bg-black text-white p-6 pb-28 pt-12 font-sans flex flex-col">
+        <main className="min-h-[100dvh] bg-black text-white px-6 sm:px-8 pt-[calc(3rem+env(safe-area-inset-top))] pb-[calc(7rem+env(safe-area-inset-bottom))] font-sans flex flex-col">
             {/* Header */}
-            <header className="flex items-center justify-between mb-16">
+            <header className="flex items-center justify-between mb-12 sm:mb-16">
                 <button
                     onClick={() => router.push('/login')}
                     className="p-3 -ml-3 text-white/60 hover:text-white transition-colors"
@@ -172,10 +173,7 @@ export default function RegisterPage() {
                 >
                     <ChevronLeft className="w-6 h-6" />
                 </button>
-                <div className="flex items-center gap-2">
-                    <Cloud className="w-5 h-5 text-[var(--zenith-active)]" />
-                    <span className="font-semibold tracking-wide">Zenith Cloud</span>
-                </div>
+                <Logo className="text-xl text-white" />
                 <div className="w-6" />
             </header>
 

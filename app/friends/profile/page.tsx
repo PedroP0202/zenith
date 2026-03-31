@@ -20,6 +20,7 @@ import { API_URL } from "@/utils/constants";
 import { getRankForLevel } from "@/utils/progression";
 import TrophyWall from "@/components/TrophyWall";
 import { getDailyActivityMap, getBestStreak } from "@/utils/streak";
+import UserOrb from "@/components/UserOrb";
 
 const DAY_LABELS_PT = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
 const DAY_LABELS_EN = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
@@ -172,8 +173,15 @@ function FriendProfileContent() {
 
             {/* Profile Intro */}
             <section className="flex flex-col items-center text-center mb-10 relative z-10">
-                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-white/10 to-transparent border border-white/10 flex items-center justify-center text-4xl font-black text-white/20 mb-6 shadow-2xl">
-                    {friendData.user.name.charAt(0)}
+                <div className="relative mb-6">
+                    {/* Glow behind orb */}
+                    <div className="absolute inset-0 bg-white/20 blur-[40px] rounded-full" />
+                    <UserOrb 
+                        seed={friendData.user.username} 
+                        size={100} 
+                        animate={true} 
+                        className="shadow-[0_0_60px_rgba(255,255,255,0.1)] border border-white/10" 
+                    />
                 </div>
                 <h1 className="text-3xl font-black tracking-tight mb-2">{friendData.user.name}</h1>
                 <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-[var(--zenith-active)]/10 border border-[var(--zenith-active)]/20">
@@ -266,18 +274,18 @@ function FriendProfileContent() {
 
                                 return (
                                     <div key={i} className="flex-1 flex flex-col items-center gap-3">
-                                        <div className="w-full flex items-end justify-center gap-1 h-full">
+                                        <div className="w-full flex items-end justify-center gap-[6px] h-full">
                                             {/* Friend Bar */}
                                             <motion.div 
                                                 initial={{ height: 0 }}
-                                                animate={{ height: `${friendHeight}%` }}
-                                                className="w-full max-w-[12px] bg-gradient-to-t from-[var(--zenith-active)]/40 to-[var(--zenith-active)] rounded-full"
+                                                animate={{ height: `${Math.max(4, friendHeight)}%` }}
+                                                className="w-full max-w-[14px] bg-gradient-to-t from-[var(--zenith-active)]/40 to-[var(--zenith-active)] rounded-full"
                                             />
                                             {/* My Bar (Wireframe/Subtle) */}
                                             <motion.div 
                                                 initial={{ height: 0 }}
-                                                animate={{ height: `${myHeight}%` }}
-                                                className="w-full max-w-[12px] bg-white/5 border border-white/10 rounded-full"
+                                                animate={{ height: `${Math.max(4, myHeight)}%` }}
+                                                className="w-full max-w-[14px] bg-white/[0.05] border border-white/10 rounded-full"
                                             />
                                         </div>
                                         <span className="text-[10px] font-bold text-white/20">{label}</span>

@@ -14,6 +14,7 @@ import BetaWelcomeModal from '../components/BetaWelcomeModal';
 import { useTranslation } from '../hooks/useTranslation';
 import Skeleton from '../components/Skeleton';
 import { getRankForLevel } from '../utils/progression';
+import Logo from '../components/Logo';
 
 export default function Home() {
     const { 
@@ -80,7 +81,7 @@ export default function Home() {
     };
 
     return (
-        <main className="min-h-[100dvh] bg-black text-white p-6 pb-24 font-sans flex flex-col items-center overflow-x-hidden relative">
+        <main className="min-h-[100dvh] bg-black text-white px-4 sm:px-6 py-6 pb-[calc(6rem+env(safe-area-inset-bottom))] font-sans flex flex-col items-center overflow-x-hidden relative">
             {mounted && (
                 <motion.div 
                     className="pointer-events-none fixed left-1/2 -translate-x-1/2 w-[120vw] md:w-[600px] h-[600px] rounded-full blur-[120px] z-0 transition-all duration-1000 ease-out"
@@ -102,13 +103,17 @@ export default function Home() {
                     transition={{ duration: 0.6, type: 'spring', bounce: 0.2 }}
                 >
                     <div className="flex flex-col">
-                        <span className="text-[12px] font-bold text-white/50 tracking-wider mb-2">
-                            {t.home.dailyBrief} • {dateStr}
-                        </span>
-                        <h1 className="text-[2.2rem] leading-tight font-medium tracking-tight text-white whitespace-nowrap">
+                        <div className="flex items-center gap-3 mb-3">
+                            <Logo className="text-xl text-white/50" />
+                            <div className="w-[1px] h-3 bg-white/20" />
+                            <span className="text-[11px] font-bold text-white/50 tracking-wider">
+                                {t.home.dailyBrief} • {dateStr}
+                            </span>
+                        </div>
+                        <h1 className="text-3xl sm:text-[2.2rem] leading-tight font-medium tracking-tight text-white whitespace-nowrap">
                             {greeting}
                         </h1>
-                        <h2 className="text-[2.2rem] leading-tight font-medium tracking-tight text-white/50 truncate max-w-full">
+                        <h2 className="text-3xl sm:text-[2.2rem] leading-tight font-medium tracking-tight text-white/50 truncate max-w-[250px] sm:max-w-full">
                             {userName}
                         </h2>
                         {mounted && (

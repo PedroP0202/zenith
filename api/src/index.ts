@@ -925,21 +925,30 @@ app.get('/users/:username/profile', async (c) => {
         // Get Stats: Total Completions
         const logsCount = await db.prepare('SELECT COUNT(*) as total FROM logs WHERE habit_id IN (SELECT id FROM habits WHERE user_id = ?)').bind(user.id as any).first();
 
-        // Get Active Weekdays (Day of Week distribution)
-        // Note: strftime('%w', ...) returns 0 (Sunday) to 6 (Saturday)
+        // Get Weekly Stats (Current Week starting Sunday)
+        const now = new Date();
+        const sunday = new Date(now);
+        sunday.setHours(0, 0, 0, 0);
+        sunday.setDate(now.getDate() - now.getDay());
+        const startOfWeek = sunday.getTime();
+
         const weekdayStats = await db.prepare(`
             SELECT strftime('%w', datetime(completed_at / 1000, 'unixepoch')) as dow, COUNT(*) as count 
             FROM logs 
             WHERE habit_id IN (SELECT id FROM habits WHERE user_id = ?)
+            AND completed_at >= ?
             GROUP BY dow
-        `).bind(user.id as any).all();
+        `).bind(user.id as any, startOfWeek).all();
 
         const activeWeekdays = [0, 0, 0, 0, 0, 0, 0];
+        let weeklyCompletions = 0;
         if (weekdayStats.results) {
             weekdayStats.results.forEach((row: any) => {
                 const dayIndex = parseInt(row.dow);
+                const count = parseInt(row.count);
                 if (!isNaN(dayIndex) && dayIndex >= 0 && dayIndex < 7) {
-                    activeWeekdays[dayIndex] = row.count;
+                    activeWeekdays[dayIndex] = count;
+                    weeklyCompletions += count;
                 }
             });
         }
@@ -971,6 +980,7 @@ app.get('/users/:username/profile', async (c) => {
             arenaHistory: arenaWinners,
             stats: {
                 totalCompletions,
+                weeklyCompletions,
                 activeWeekdays,
                 activeHabitsCount: habitIds.length
             },
@@ -1287,6 +1297,7 @@ const pushSchema = z.object({
     logs: z.array(logSchema),
     lastSyncedAt: z.number(),
     deletedHabitIds: z.array(z.string().uuid()).optional(),
+    deletedLogIds: z.array(z.string().uuid()).optional(),
 });
 
 app.post('/sync/push', zValidator('json', pushSchema), async (c) => {

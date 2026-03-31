@@ -12,7 +12,9 @@ import {
     Target,
     Users,
     Activity,
-    User as UserIcon
+    User as UserIcon,
+    UserMinus,
+    MoreVertical
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -29,7 +31,7 @@ function FriendProfileContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const username = searchParams.get('u');
-    const { jwt, habits, logs, level: myLevel, totalXP: myXP } = useStore();
+    const { jwt, habits, logs, level: myLevel, totalXP: myXP, removeFriend } = useStore();
     const { t, language } = useTranslation();
     
     const [friendData, setFriendData] = useState<any>(null);
@@ -77,24 +79,30 @@ function FriendProfileContent() {
         }
     };
 
-    // Calculate My Stats for Comparison
+    // Calculate My Stats for Comparison (Current Week)
     const myStats = useMemo(() => {
-        const totalCompletions = logs.length;
-        const currentBestStreak = habits.reduce((max, h) => {
-            const hLogs = logs.filter(l => l.habitId === h.id);
-            return Math.max(max, getBestStreak(hLogs, h.frequency));
-        }, 0);
+        // Current week start (most recent Sunday)
+        const now = new Date();
+        const sunday = new Date(now);
+        sunday.setHours(0, 0, 0, 0);
+        sunday.setDate(now.getDate() - now.getDay());
+        const startOfWeek = sunday.getTime();
 
-        // Calculate my active weekdays (Day of Week distribution)
+        const weeklyLogs = logs.filter(l => l.completedAt >= startOfWeek);
+        const weeklyCompletions = weeklyLogs.length;
+
+        // Calculate my weekly distribution
         const activeWeekdays = [0, 0, 0, 0, 0, 0, 0];
-        logs.forEach(log => {
+        weeklyLogs.forEach(log => {
             const dow = new Date(log.completedAt).getDay();
             activeWeekdays[dow]++;
         });
 
+        const totalCompletions = logs.length;
+
         return {
             totalCompletions,
-            bestStreak: currentBestStreak,
+            weeklyCompletions,
             activeWeekdays
         };
     }, [habits, logs]);
@@ -165,9 +173,24 @@ function FriendProfileContent() {
                 >
                     <ChevronLeft size={20} />
                 </button>
-                <div className="flex flex-col items-end">
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">Perfil Social</span>
-                    <span className="text-sm font-bold text-[var(--zenith-active)]">@{friendData.user.username}</span>
+                
+                <div className="flex items-center gap-3">
+                    <button 
+                        onClick={async () => {
+                            if (confirm(t.social.confirmRemove || `Tens a certeza que queres remover @${friendData.user.username}?`)) {
+                                const res = await removeFriend(friendData.user.id);
+                                if (res.success) router.replace('/friends');
+                            }
+                        }}
+                        className="p-3 bg-red-500/10 text-red-500 rounded-full hover:bg-red-500/20 active:scale-95 transition-all"
+                        title="Remover Amigo"
+                    >
+                        <UserMinus size={18} />
+                    </button>
+                    <div className="flex flex-col items-end">
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">Nexus Profile</span>
+                        <span className="text-sm font-bold text-[var(--zenith-active)]">@{friendData.user.username}</span>
+                    </div>
                 </div>
             </header>
 
@@ -224,22 +247,22 @@ function FriendProfileContent() {
                     <div className="bg-white/5 border border-white/5 rounded-3xl p-5 flex flex-col gap-4 relative overflow-hidden group">
                         <div className="absolute -top-4 -right-4 w-12 h-12 bg-white/5 rounded-full blur-xl group-hover:scale-150 transition-transform duration-500" />
                         <div className="flex items-center justify-between">
-                            <Target size={16} className="text-white/40" />
-                            <span className="text-[10px] font-black text-white/20 uppercase tracking-widest">{language === 'pt' ? 'Hábitos Concluídos' : 'Habits Completed'}</span>
+                            <Activity size={16} className="text-white/40" />
+                            <span className="text-[10px] font-black text-white/20 uppercase tracking-widest">{language === 'pt' ? 'Atividade Semanal' : 'Weekly Activity'}</span>
                         </div>
                         <div className="flex flex-col">
                             <div className="flex items-baseline gap-1">
-                                <span className="text-2xl font-black">{friendData.stats.totalCompletions}</span>
+                                <span className="text-2xl font-black">{friendData.stats.weeklyCompletions || 0}</span>
                                 <span className="text-[10px] font-bold text-white/20 uppercase">Hits</span>
                             </div>
                             <div className="mt-2 flex items-center justify-between">
                                 <span className="text-[9px] font-black text-white/30 uppercase">Tu</span>
-                                <span className="text-[9px] font-bold text-white/60">{myStats.totalCompletions}</span>
+                                <span className="text-[9px] font-bold text-white/60">{myStats.weeklyCompletions}</span>
                             </div>
                             <div className="mt-1 h-1 bg-white/5 rounded-full overflow-hidden">
                                 <div 
                                     className="h-full bg-white/30" 
-                                    style={{ width: `${Math.min(100, (myStats.totalCompletions / friendData.stats.totalCompletions) * 100)}%` }} 
+                                    style={{ width: `${Math.min(100, (myStats.weeklyCompletions / (friendData.stats.weeklyCompletions || 1)) * 100)}%` }} 
                                 />
                             </div>
                         </div>
@@ -249,7 +272,10 @@ function FriendProfileContent() {
                 {/* Weekday Comparative Chart */}
                 <section className="space-y-4">
                     <div className="flex items-center justify-between px-2">
-                        <h2 className="text-xs uppercase tracking-[0.2em] text-white/40 font-black">Distribuição Semanal</h2>
+                        <div className="flex flex-col">
+                            <h2 className="text-xs uppercase tracking-[0.2em] text-white/40 font-black">Performance Semanal</h2>
+                            <span className="text-[10px] text-[var(--zenith-active)] font-bold">Resumo: {myStats.weeklyCompletions >= friendData.stats.weeklyCompletions ? 'Estás na frente!' : 'Estás a ficar para trás'}</span>
+                        </div>
                         <div className="flex gap-4">
                             <div className="flex items-center gap-1.5">
                                 <div className="w-1.5 h-1.5 rounded-full bg-[var(--zenith-active)]" />

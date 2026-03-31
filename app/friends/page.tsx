@@ -189,21 +189,10 @@ export default function FriendsPage() {
                                 <div className="flex gap-2">
                                     <Link 
                                         href={`/friends/profile?u=${friend.username}`}
-                                        className="h-10 px-4 bg-white/5 hover:bg-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white/60 transition-all active:scale-95 flex items-center justify-center relative z-10"
+                                        className="h-10 px-6 bg-white/5 hover:bg-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white/60 transition-all active:scale-95 flex items-center justify-center relative z-10"
                                     >
                                         Perfil
                                     </Link>
-                                    <button 
-                                        onClick={async (e) => {
-                                            e.preventDefault();
-                                            if (confirm(`Queres mesmo remover ${friend.name}?`)) {
-                                                await removeFriend(friend.id);
-                                            }
-                                        }}
-                                        className="h-10 w-10 flex items-center justify-center bg-white/5 hover:bg-red-500/20 rounded-2xl text-white/20 hover:text-red-500 transition-all active:scale-95 relative z-10"
-                                    >
-                                        <UserMinus size={16} />
-                                    </button>
                                 </div>
                             </motion.div>
                         ))

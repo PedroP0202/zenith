@@ -216,6 +216,8 @@ export const pt = {
         searchResult: "Resultados da Pesquisa",
         requestSent: "Pedido enviado!",
         alreadyFriends: "Já são amigos",
-        pending: "Pendente"
+        pending: "Pendente",
+        confirmRemove: "Tens a certeza que queres remover este amigo?",
+        removeFriend: "Remover Amigo"
     }
 };

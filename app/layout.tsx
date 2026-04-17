@@ -12,6 +12,7 @@ import DailyRewardToast from '../components/DailyRewardToast';
 const outfit = Outfit({ subsets: ['latin'], variable: '--font-outfit' });
 
 export const metadata: Metadata = {
+    metadataBase: new URL('https://zenith-app.pages.dev'),
     title: 'Zenith',
     description: 'Forja a tua disciplina. Domina o teu tempo.',
     manifest: '/manifest.json',

@@ -82,7 +82,7 @@ app.post('/auth/google', async (c) => {
         const { email, name, sub: googleId } = googleUser;
         const db = c.env.DB;
 
-        let user = await db.prepare('SELECT id, name, email, language, username, total_xp, level, last_login_reward_date FROM users WHERE google_id = ? OR email = ?').bind(googleId, email).first() as any;
+        let user = await db.prepare('SELECT id, name, email, language, username, total_xp, level, last_login_reward_date, opt_in_leaderboard, arena_points FROM users WHERE google_id = ? OR email = ?').bind(googleId, email).first() as any;
 
         const now = Date.now();
         let userId;
@@ -107,7 +107,7 @@ app.post('/auth/google', async (c) => {
         const tokenSecret = secret || 'zenith-local-dev-secret';
         const token = await sign({ id: userId, name: user?.name || name, email, exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30 }, tokenSecret);
 
-        return c.json({ token, user: { id: userId, name: user?.name || name, email, language: userLanguage, username: currentUsername, total_xp: user?.total_xp || 0, level: user?.level || 1, lastLoginRewardDate: user?.last_login_reward_date || null } });
+        return c.json({ token, user: { id: userId, name: user?.name || name, email, language: userLanguage, username: currentUsername, optInLeaderboard: user?.opt_in_leaderboard === 1, total_xp: user?.total_xp || 0, level: user?.level || 1, arena_points: user?.arena_points || 0, lastLoginRewardDate: user?.last_login_reward_date || null } });
     } catch (e: any) {
         return c.json({ error: 'Erro de Autenticação Google: ' + e.message }, 500);
     }
@@ -129,7 +129,7 @@ app.post('/auth/google/web', async (c) => {
         const { email, name, sub: googleId } = googleUser;
         const db = c.env.DB;
 
-        let user = await db.prepare('SELECT id, name, email, language, username, total_xp, level, last_login_reward_date FROM users WHERE google_id = ? OR email = ?').bind(googleId, email).first() as any;
+        let user = await db.prepare('SELECT id, name, email, language, username, total_xp, level, last_login_reward_date, opt_in_leaderboard, arena_points FROM users WHERE google_id = ? OR email = ?').bind(googleId, email).first() as any;
 
         const now = Date.now();
         let userId;
@@ -154,7 +154,7 @@ app.post('/auth/google/web', async (c) => {
         const tokenSecret = secret || 'zenith-local-dev-secret';
         const token = await sign({ id: userId, name: user?.name || name, email, exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30 }, tokenSecret);
 
-        return c.json({ token, user: { id: userId, name: user?.name || name, email, language: userLanguage, username: currentUsername, total_xp: user?.total_xp || 0, level: user?.level || 1, lastLoginRewardDate: user?.last_login_reward_date || null } });
+        return c.json({ token, user: { id: userId, name: user?.name || name, email, language: userLanguage, username: currentUsername, optInLeaderboard: user?.opt_in_leaderboard === 1, total_xp: user?.total_xp || 0, level: user?.level || 1, arena_points: user?.arena_points || 0, lastLoginRewardDate: user?.last_login_reward_date || null } });
     } catch (e: any) {
         return c.json({ error: 'Erro de Autenticação Google (Web): ' + e.message }, 500);
     }
@@ -171,7 +171,7 @@ app.post('/auth/apple', async (c) => {
         }
 
         const db = c.env.DB;
-        let query = 'SELECT id, name, email, language, username, total_xp, level, last_login_reward_date FROM users WHERE apple_id = ?';
+        let query = 'SELECT id, name, email, language, username, total_xp, level, last_login_reward_date, opt_in_leaderboard, arena_points FROM users WHERE apple_id = ?';
         let bindParams = [appleId] as string[];
         if (email) {
             query += ' OR email = ?';
@@ -209,9 +209,9 @@ app.post('/auth/apple', async (c) => {
         console.log(`[ZENITH_AUTH] Apple Login success for ${finalEmail}`);
         // If it was a new user, we need to get the generated username. 
         // If it's an existing one, it's user.username.
-        const currentUsername = user?.username || (user ? null : undefined);
+        const currentUsername = user?.username || (await db.prepare('SELECT username FROM users WHERE id = ?').bind(userId).first() as any)?.username || null;
         
-        return c.json({ token, user: { id: userId, name: finalName, email: finalEmail, language: userLanguage, username: currentUsername, total_xp: user?.total_xp || 0, level: user?.level || 1, lastLoginRewardDate: user?.last_login_reward_date || null } });
+        return c.json({ token, user: { id: userId, name: finalName, email: finalEmail, language: userLanguage, username: currentUsername, optInLeaderboard: user?.opt_in_leaderboard === 1, total_xp: user?.total_xp || 0, level: user?.level || 1, arena_points: user?.arena_points || 0, lastLoginRewardDate: user?.last_login_reward_date || null } });
     } catch (e: any) {
         console.error('[ZENITH_AUTH] Apple Auth Error:', e.message);
         return c.json({ error: 'Erro de Autenticação Apple: ' + e.message }, 500);
@@ -443,7 +443,7 @@ app.post('/auth/register', zValidator('json', registerSchema.extend({ language: 
         const tokenSecret = secret || 'zenith-local-dev-secret';
         const token = await sign({ id, name: userName, email, exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30 }, tokenSecret);
 
-        return c.json({ token, user: { id, name: userName, email, language: userLanguage, username: finalUsername, total_xp: 0, level: 1, lastLoginRewardDate: null } });
+        return c.json({ token, user: { id, name: userName, email, language: userLanguage, username: finalUsername, optInLeaderboard: false, total_xp: 0, level: 1, arena_points: 0, lastLoginRewardDate: null } });
     } catch (error: any) {
         return c.json({ error: error.message }, 500);
     }
@@ -460,7 +460,7 @@ app.post('/auth/login', zValidator('json', loginSchema), async (c) => {
 
     const db = c.env.DB;
 
-    type UserRow = { id: string, name: string, email: string, password_hash: string, language: string, login_attempts: number, lockout_until: number, is_verified: number, opt_in_leaderboard: number, username: string, total_xp: number, level: number, last_login_reward_date: string | null };
+    type UserRow = { id: string, name: string, email: string, password_hash: string, language: string, login_attempts: number, lockout_until: number, is_verified: number, opt_in_leaderboard: number, username: string, total_xp: number, level: number, arena_points: number, last_login_reward_date: string | null };
     const user = await db.prepare('SELECT * FROM users WHERE email = ?').bind(email).first<UserRow>();
 
     if (!user) {
@@ -513,7 +513,7 @@ app.post('/auth/login', zValidator('json', loginSchema), async (c) => {
     const tokenSecret = secret || 'zenith-local-dev-secret';
     const token = await sign({ id: user.id, name: user.name, email: user.email, exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30 }, tokenSecret);
 
-    return c.json({ token, user: { id: user.id, name: user.name, email: user.email, language: user.language || 'pt', optInLeaderboard: user.opt_in_leaderboard === 1, username: user.username, total_xp: user.total_xp || 0, level: user.level || 1, lastLoginRewardDate: user.last_login_reward_date || null } });
+    return c.json({ token, user: { id: user.id, name: user.name, email: user.email, language: user.language || 'pt', optInLeaderboard: user.opt_in_leaderboard === 1, username: user.username, total_xp: user.total_xp || 0, level: user.level || 1, arena_points: user.arena_points || 0, lastLoginRewardDate: user.last_login_reward_date || null } });
 });
 
 // User Profile Sync Endpoint

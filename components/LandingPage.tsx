@@ -2,6 +2,7 @@
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { useRef, useEffect, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { 
     ChevronRight, 
     Trophy, 
@@ -125,9 +126,12 @@ export default function LandingPage() {
                 >
                     {/* Placeholder for the Generated Image */}
                     <div className="relative group">
-                        <img 
-                            src="/iphone_mockup_zenith_dashboard_1774820690954.png" 
-                            alt="Zenith Dashboard Mockup" 
+                        <Image
+                            src="/iphone_mockup_zenith_dashboard_1774820690954.png"
+                            alt="Zenith Dashboard Mockup"
+                            width={1600}
+                            height={1085}
+                            priority
                             className="w-full h-auto rounded-[3rem] shadow-2xl shadow-white/5 border border-white/5"
                         />
                         <div className="absolute inset-0 rounded-[3rem] bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />

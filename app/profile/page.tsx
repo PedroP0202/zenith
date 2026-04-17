@@ -13,6 +13,7 @@ import { deviceHaptics } from "@/utils/haptics";
 import TrophyWall from "@/components/TrophyWall";
 import { getBestStreak, getYearlyStats } from "@/utils/streak";
 import { getRankForLevel, getLevelProgress, getXPNeededForLevel, getXpToNextLevel } from "@/utils/progression";
+import { useCallback } from "react";
 
 export default function ProfilePage() {
     const router = useRouter();
@@ -63,14 +64,7 @@ export default function ProfilePage() {
     const [blockedUsers, setBlockedUsers] = useState<any[]>([]);
     const [unblockingId, setUnblockingId] = useState<string | null>(null);
 
-    useEffect(() => {
-        setMounted(true);
-        setNameInput(userName);
-        setUsernameInput(username || "");
-        if (jwt) fetchBlockedUsers();
-    }, [userName, username]);
-
-    const fetchBlockedUsers = async () => {
+    const fetchBlockedUsers = useCallback(async () => {
         if (!jwt) return;
         try {
             const res = await fetch(`${API_URL}/friends/blocked`, {
@@ -81,7 +75,19 @@ export default function ProfilePage() {
         } catch (e) {
             console.error("Failed to fetch blocked users:", e);
         }
-    };
+    }, [jwt]);
+
+    useEffect(() => {
+        setMounted(true);
+        setNameInput(userName);
+        setUsernameInput(username || "");
+    }, [userName, username]);
+
+    useEffect(() => {
+        if (jwt) {
+            fetchBlockedUsers();
+        }
+    }, [jwt, fetchBlockedUsers]);
 
     const handleUnblock = async (userId: string) => {
         setUnblockingId(userId);
@@ -131,15 +137,10 @@ export default function ProfilePage() {
             }
         }, 500);
 
+        return () => clearTimeout(debounceTimer);
     }, [usernameInput, username]);
 
-    useEffect(() => {
-        if (jwt) {
-            fetchRewards();
-        }
-    }, [jwt]);
-
-    const fetchRewards = async () => {
+    const fetchRewards = useCallback(async () => {
         setIsLoadingRewards(true);
         try {
             const res = await fetch(`${API_URL}/users/me/rewards`, {
@@ -154,7 +155,13 @@ export default function ProfilePage() {
         } finally {
             setIsLoadingRewards(false);
         }
-    };
+    }, [jwt]);
+
+    useEffect(() => {
+        if (jwt) {
+            fetchRewards();
+        }
+    }, [jwt, fetchRewards]);
 
     if (!mounted) return null;
 

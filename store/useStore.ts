@@ -124,7 +124,7 @@ interface AppState {
      * Updates the user's unique @handle.
      * @param username The new username.
      */
-    setUsername: (username: string) => void;
+    setUsername: (username: string) => Promise<void>;
 
     /**
      * Sets the user's preferred language.
@@ -219,7 +219,7 @@ interface AppState {
      * Restores user session data from the login API response without triggering profile sync.
      * Prevents the race condition where clearUserData() zeros out XP before the pull completes.
      */
-    restoreUserSession: (data: { name?: string; username?: string; language?: string; total_xp?: number; level?: number; lastLoginRewardDate?: string | null; }) => void;
+    restoreUserSession: (data: { name?: string; username?: string | null; language?: string; total_xp?: number; level?: number; lastLoginRewardDate?: string | null; optInLeaderboard?: boolean; arena_points?: number; }) => void;
 }
 
 export const useStore = create<AppState>()(
@@ -255,9 +255,15 @@ export const useStore = create<AppState>()(
                 set({ userName: name });
                 get().syncProfile().catch(console.error);
             },
-            setUsername: (username) => {
+            setUsername: async (username) => {
+                const previousUsername = get().username;
                 set({ username });
-                get().syncProfile().catch(console.error);
+                try {
+                    await get().syncProfile();
+                } catch (error) {
+                    set({ username: previousUsername });
+                    throw error;
+                }
             },
             setLanguage: (language) => {
                 set({ language });
@@ -306,11 +312,18 @@ export const useStore = create<AppState>()(
                 set({
                     habits: [],
                     logs: [],
+                    userName: 'Pedro',
+                    username: null,
                     lastSyncedAt: 0,
                     syncStatus: 'idle',
                     deletedHabitIds: [],
                     deletedLogIds: [],
                     hasCompletedOnboarding: false,
+                    optInLeaderboard: false,
+                    friends: [],
+                    friendRequests: [],
+                    outgoingRequests: [],
+                    friendsLoading: false,
                     totalXP: 0,
                     arenaPoints: 0,
                     level: 1,
@@ -330,8 +343,14 @@ export const useStore = create<AppState>()(
                     deletedHabitIds: [],
                     deletedLogIds: [],
                     userName: 'Pedro',
+                    username: null,
                     language: currentLanguage,
                     hasCompletedOnboarding: false,
+                    optInLeaderboard: false,
+                    friends: [],
+                    friendRequests: [],
+                    outgoingRequests: [],
+                    friendsLoading: false,
                     totalXP: 0,
                     arenaPoints: 0,
                     level: 1,
@@ -606,9 +625,13 @@ export const useStore = create<AppState>()(
                         // Only social/profile fields that the client controls are sent.
                         body: JSON.stringify({ name: userName, language, optInLeaderboard, username, lastLoginRewardDate, arenaPoints })
                     });
-                    await res.json();
+                    const data = await res.json().catch(() => ({}));
+                    if (!res.ok) {
+                        throw new Error(data.error || 'Falha ao sincronizar perfil.');
+                    }
                 } catch (e) {
                     console.error("[STORE] Failed to sync profile:", e);
+                    throw e;
                 }
             },
 
@@ -622,6 +645,8 @@ export const useStore = create<AppState>()(
                 if (data.total_xp !== undefined) updates.totalXP = data.total_xp;
                 if (data.level !== undefined) updates.level = data.level;
                 if (data.lastLoginRewardDate !== undefined) updates.lastLoginRewardDate = data.lastLoginRewardDate;
+                if (data.optInLeaderboard !== undefined) updates.optInLeaderboard = data.optInLeaderboard;
+                if (data.arena_points !== undefined) updates.arenaPoints = data.arena_points;
                 set(updates);
             },
 

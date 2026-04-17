@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, Suspense, useRef } from "react";
+import { useState, useEffect, useMemo, Suspense, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useStore } from "@/store/useStore";
 import { 
@@ -309,12 +309,7 @@ function FriendProfileContent() {
         setToast({ message, type });
     };
 
-    useEffect(() => {
-        setMounted(true);
-        if (jwt && username) fetchFriendProfile();
-    }, [jwt, username]);
-
-    const fetchFriendProfile = async () => {
+    const fetchFriendProfile = useCallback(async () => {
         setIsLoading(true);
         setError(null);
         try {
@@ -334,7 +329,12 @@ function FriendProfileContent() {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [jwt, username]);
+
+    useEffect(() => {
+        setMounted(true);
+        if (jwt && username) fetchFriendProfile();
+    }, [jwt, username, fetchFriendProfile]);
 
     const handleNudge = async () => {
         if (isNudging || !friendData) return;

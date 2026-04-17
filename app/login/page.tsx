@@ -78,6 +78,8 @@ export default function LoginPage() {
                 total_xp: data.user?.total_xp,
                 level: data.user?.level,
                 lastLoginRewardDate: data.user?.lastLoginRewardDate,
+                optInLeaderboard: data.user?.optInLeaderboard,
+                arena_points: data.user?.arena_points,
             });
 
             // Sync habits/logs in the background (this will also re-confirm XP from server)
@@ -122,6 +124,8 @@ export default function LoginPage() {
                     total_xp: data.user?.total_xp,
                     level: data.user?.level,
                     lastLoginRewardDate: data.user?.lastLoginRewardDate,
+                    optInLeaderboard: data.user?.optInLeaderboard,
+                    arena_points: data.user?.arena_points,
                 });
                 syncWithCloud().catch(console.error);
                 router.replace('/');
@@ -176,6 +180,8 @@ export default function LoginPage() {
                 total_xp: data.user?.total_xp,
                 level: data.user?.level,
                 lastLoginRewardDate: data.user?.lastLoginRewardDate,
+                optInLeaderboard: data.user?.optInLeaderboard,
+                arena_points: data.user?.arena_points,
             });
             syncWithCloud().catch(console.error);
             router.replace('/');
@@ -235,6 +241,8 @@ export default function LoginPage() {
                 total_xp: data.user?.total_xp,
                 level: data.user?.level,
                 lastLoginRewardDate: data.user?.lastLoginRewardDate,
+                optInLeaderboard: data.user?.optInLeaderboard,
+                arena_points: data.user?.arena_points,
             });
             syncWithCloud().catch(console.error);
             router.replace('/');
@@ -250,7 +258,7 @@ export default function LoginPage() {
             {/* Header */}
             <header className="flex items-center justify-between mb-12 sm:mb-16">
                 <button
-                    onClick={() => router.push('/settings')}
+                    onClick={() => router.push('/')}
                     className="p-3 -ml-3 text-white/60 hover:text-white transition-colors"
                     aria-label="Back"
                 >

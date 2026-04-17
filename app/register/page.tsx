@@ -13,7 +13,7 @@ import Logo from '@/components/Logo';
 
 export default function RegisterPage() {
     const router = useRouter();
-    const { setJwt, syncWithCloud, setUserName, setLanguage, clearUserData, setUsername } = useStore();
+    const { setJwt, syncWithCloud, clearUserData, restoreUserSession } = useStore();
 
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
@@ -84,10 +84,18 @@ export default function RegisterPage() {
 
             if (!res.ok) throw new Error(data.error || 'Código incorreto ou erro ao criar conta.');
 
+            clearUserData();
             setJwt(data.token);
-            setUserName(data.user?.name || name || 'User');
-            if (data.user?.username) setUsername(data.user.username);
-            if (data.user?.language) setLanguage(data.user.language as any);
+            restoreUserSession({
+                name: data.user?.name || name || 'User',
+                username: data.user?.username,
+                language: data.user?.language,
+                total_xp: data.user?.total_xp,
+                level: data.user?.level,
+                lastLoginRewardDate: data.user?.lastLoginRewardDate,
+                optInLeaderboard: data.user?.optInLeaderboard,
+                arena_points: data.user?.arena_points,
+            });
 
             syncWithCloud().catch(console.error);
             router.replace('/');
@@ -117,8 +125,16 @@ export default function RegisterPage() {
 
             clearUserData();
             setJwt(data.token);
-            if (data.user?.name) setUserName(data.user.name);
-            if (data.user?.language) setLanguage(data.user.language as any);
+            restoreUserSession({
+                name: data.user?.name,
+                username: data.user?.username,
+                language: data.user?.language,
+                total_xp: data.user?.total_xp,
+                level: data.user?.level,
+                lastLoginRewardDate: data.user?.lastLoginRewardDate,
+                optInLeaderboard: data.user?.optInLeaderboard,
+                arena_points: data.user?.arena_points,
+            });
             syncWithCloud().catch(console.error);
             router.replace('/');
         } catch (err: any) {
@@ -152,8 +168,16 @@ export default function RegisterPage() {
 
             clearUserData();
             setJwt(data.token);
-            if (data.user?.name) setUserName(data.user.name);
-            if (data.user?.language) setLanguage(data.user.language as any);
+            restoreUserSession({
+                name: data.user?.name,
+                username: data.user?.username,
+                language: data.user?.language,
+                total_xp: data.user?.total_xp,
+                level: data.user?.level,
+                lastLoginRewardDate: data.user?.lastLoginRewardDate,
+                optInLeaderboard: data.user?.optInLeaderboard,
+                arena_points: data.user?.arena_points,
+            });
             syncWithCloud().catch(console.error);
             router.replace('/');
         } catch (err: any) {

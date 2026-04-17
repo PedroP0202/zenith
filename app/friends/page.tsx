@@ -3,7 +3,7 @@
 import { useStore } from "@/store/useStore";
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, Search, UserPlus, Check, X, Users, Zap, Loader2 } from "lucide-react";
+import { ChevronLeft, Search, UserPlus, Check, X, Users, Zap, Loader2, Layers3 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "@/hooks/useTranslation";
 import { API_URL } from "@/utils/constants";
@@ -146,6 +146,25 @@ export default function FriendsPage() {
                     )}
                 </AnimatePresence>
             </div>
+
+            <Link
+                href="/groups"
+                className="mb-8 block rounded-[2rem] border border-white/10 bg-gradient-to-br from-white/[0.06] to-white/[0.02] p-5 hover:bg-white/[0.08] transition-colors"
+            >
+                <div className="flex items-start justify-between gap-4">
+                    <div>
+                        <div className="mb-2 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--zenith-active)]">
+                            <Layers3 size={14} />
+                            {t.social.groups}
+                        </div>
+                        <h2 className="text-lg font-black tracking-tight text-white">{t.social.groupsTitle}</h2>
+                        <p className="mt-1 text-sm text-white/45">{t.social.groupsDesc}</p>
+                    </div>
+                    <div className="rounded-2xl bg-white/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-white/70">
+                        {t.social.openGroup}
+                    </div>
+                </div>
+            </Link>
 
             {/* Tabs */}
             <div className="flex bg-white/5 p-1.5 rounded-2xl mb-8 relative gap-1">

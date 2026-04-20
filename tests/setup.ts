@@ -1,12 +1,19 @@
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 
+type TestCrypto = {
+  randomUUID?: () => `${string}-${string}-${string}-${string}-${string}`;
+};
+
 // Mock crypto.randomUUID if not available in environment
-if (!global.crypto) {
-  (global as any).crypto = {};
+const globalWithCrypto = globalThis as typeof globalThis & { crypto?: TestCrypto };
+if (!globalWithCrypto.crypto) {
+  globalWithCrypto.crypto = {};
 }
-if (!global.crypto.randomUUID) {
-  (global.crypto as any).randomUUID = vi.fn(() => '00000000-0000-0000-0000-000000000000' as `${string}-${string}-${string}-${string}-${string}`);
+if (!globalWithCrypto.crypto.randomUUID) {
+  globalWithCrypto.crypto.randomUUID = vi.fn(
+    () => '00000000-0000-0000-0000-000000000000' as `${string}-${string}-${string}-${string}-${string}`
+  );
 }
 
 // Mock fetch

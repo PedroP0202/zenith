@@ -20,7 +20,6 @@ interface WeatherChange {
 export async function generateAITips(weatherData: WeatherData, previousWeather?: WeatherData | null): Promise<string[]> {
   // Se não há chave do Gemini configurada com NEXT_PUBLIC_, retorna dicas básicas
   if (!GEMINI_API_KEY || GEMINI_API_KEY === 'your_gemini_api_key_here') {
-    console.log('Gemini API key not configured or missing NEXT_PUBLIC_ prefix, using basic tips');
     return generateBasicTips(weatherData);
   }
 

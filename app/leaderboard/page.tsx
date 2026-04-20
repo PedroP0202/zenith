@@ -1,11 +1,31 @@
 'use client';
 
 import { useStore } from '../../store/useStore';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, Trophy, Crown, Loader2, Play, ShieldCheck, Orbit, Cloud, Sparkles, Zap, Star, Flame, Target, MoveRight, Wind, Moon, Minus, Calendar, Globe, Clock } from 'lucide-react';
+import {
+    ChevronLeft,
+    Trophy,
+    Crown,
+    Loader2,
+    Play,
+    ShieldCheck,
+    Calendar,
+    Clock3,
+    BarChart3,
+    Users,
+    Search,
+    RefreshCw,
+    Medal,
+    ShieldAlert,
+    Star,
+    Sparkles,
+    Target,
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_URL } from '@/utils/constants';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface LeaderboardEntry {
     id: string;
@@ -13,55 +33,125 @@ interface LeaderboardEntry {
     username: string;
     score?: number;
     position?: number;
+    rank_name?: string;
     season_name?: string;
+    season_id?: string;
+    season_start_at?: number;
+    season_end_at?: number;
+    created_at?: number;
 }
 
+interface ArenaSeason {
+    id: string;
+    name: string;
+    startsAt: number;
+    endsAt: number;
+}
+
+interface ArenaMeta {
+    participantsCount?: number;
+    averageScore?: number;
+    topScore?: number;
+    seasonsCount?: number;
+    totalWinners?: number;
+}
+
+interface ArenaMeSummary {
+    userId: string;
+    name: string;
+    username: string;
+    score: number;
+    position: number;
+    percentile: number;
+    pointsToNext: number;
+    tier: string;
+    isInTop: boolean;
+}
+
+interface LeaderboardResponse {
+    leaderboard: LeaderboardEntry[];
+    type: 'seasonal' | 'historical';
+    season?: ArenaSeason | null;
+    meta?: ArenaMeta;
+    me?: ArenaMeSummary | null;
+}
+
+type LeaderboardPeriod = 'seasonal' | 'historical';
+
+type LeaderboardPeriodTab = {
+    id: LeaderboardPeriod;
+    label: string;
+    icon: LucideIcon;
+};
+
 const TIERS = [
-    { name: 'Zenith', min: 2500, color: 'text-white', glow: 'shadow-[0_0_20px_rgba(255,255,255,0.4)]', bg: 'bg-white/10 ring-1 ring-white/30', icon: Star },
-    { name: 'Avatar', min: 1500, color: 'text-purple-300', glow: 'shadow-[0_0_15px_rgba(216,180,254,0.3)]', bg: 'bg-purple-500/10 ring-1 ring-purple-500/20', icon: Crown },
-    { name: 'Soberano', min: 900, color: 'text-indigo-400', glow: '', bg: 'bg-indigo-500/10 ring-1 ring-indigo-500/20', icon: ShieldCheck },
-    { name: 'Astre', min: 550, color: 'text-blue-300', glow: '', bg: 'bg-blue-300/10 ring-1 ring-blue-300/20', icon: Sparkles },
-    { name: 'Pulsar', min: 350, color: 'text-cyan-400', glow: '', bg: 'bg-cyan-500/10 ring-1 ring-cyan-500/20', icon: Zap },
-    { name: 'Nova', min: 200, color: 'text-orange-400', glow: '', bg: 'bg-orange-500/10 ring-1 ring-orange-500/20', icon: Flame },
-    { name: 'Núcleo', min: 120, color: 'text-emerald-400', glow: '', bg: 'bg-emerald-500/10 ring-1 ring-emerald-500/20', icon: Target },
-    { name: 'Órbita', min: 70, color: 'text-zinc-300', glow: '', bg: 'bg-white/[0.05] ring-1 ring-white/10', icon: Orbit },
-    { name: 'Vetor', min: 40, color: 'text-zinc-400', glow: '', bg: 'bg-white/[0.03]', icon: MoveRight },
-    { name: 'Flux', min: 20, color: 'text-zinc-500', glow: '', bg: 'bg-white/[0.02]', icon: Wind },
-    { name: 'Vácuo', min: 5, color: 'text-zinc-600', glow: '', bg: 'bg-white/[0.01]', icon: Moon },
-    { name: 'Spark', min: 0, color: 'text-zinc-700', glow: '', bg: 'bg-transparent', icon: Minus },
+    { name: 'Zenith', min: 2500, color: 'text-white', pill: 'bg-white/15 border-white/25', icon: Star },
+    { name: 'Avatar', min: 1500, color: 'text-fuchsia-300', pill: 'bg-fuchsia-500/15 border-fuchsia-500/30', icon: Crown },
+    { name: 'Soberano', min: 900, color: 'text-indigo-300', pill: 'bg-indigo-500/15 border-indigo-500/30', icon: ShieldCheck },
+    { name: 'Astre', min: 550, color: 'text-blue-300', pill: 'bg-blue-500/15 border-blue-500/30', icon: Sparkles },
+    { name: 'Pulsar', min: 350, color: 'text-cyan-300', pill: 'bg-cyan-500/15 border-cyan-500/30', icon: Target },
+    { name: 'Nova', min: 200, color: 'text-orange-300', pill: 'bg-orange-500/15 border-orange-500/30', icon: Trophy },
+    { name: 'Núcleo', min: 120, color: 'text-emerald-300', pill: 'bg-emerald-500/15 border-emerald-500/30', icon: Medal },
+    { name: 'Órbita', min: 70, color: 'text-zinc-300', pill: 'bg-white/10 border-white/20', icon: Trophy },
+    { name: 'Vetor', min: 40, color: 'text-zinc-400', pill: 'bg-white/7 border-white/15', icon: Trophy },
+    { name: 'Flux', min: 20, color: 'text-zinc-500', pill: 'bg-white/6 border-white/12', icon: Trophy },
+    { name: 'Vácuo', min: 5, color: 'text-zinc-500', pill: 'bg-white/5 border-white/10', icon: Trophy },
+    { name: 'Spark', min: 0, color: 'text-zinc-500', pill: 'bg-white/5 border-white/10', icon: Trophy },
 ];
 
-const getTier = (score: number) => TIERS.find(t => score >= t.min) || TIERS[TIERS.length - 1];
+const getTier = (score: number) => TIERS.find((tier) => score >= tier.min) || TIERS[TIERS.length - 1];
+
+function formatNumber(value: number): string {
+    return Number.isFinite(value) ? value.toLocaleString('en-US') : '0';
+}
 
 export default function LeaderboardPage() {
-    const { optInLeaderboard, setOptInLeaderboard, jwt, userName, username: myUsername } = useStore();
+    const { optInLeaderboard, setOptInLeaderboard, jwt, username: myUsername } = useStore();
+    const { t } = useTranslation();
     const router = useRouter();
+
     const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [showConsent, setShowConsent] = useState(false);
-    const [showOptOut, setShowOptOut] = useState(false);
-    const [period, setPeriod] = useState<'seasonal' | 'historical'>('seasonal');
-    const [season, setSeason] = useState<{id: string, name: string, endsAt: number} | null>(null);
+    const [showOptOutConfirm, setShowOptOutConfirm] = useState(false);
+    const [period, setPeriod] = useState<LeaderboardPeriod>('seasonal');
+    const [season, setSeason] = useState<ArenaSeason | null>(null);
+    const [meta, setMeta] = useState<ArenaMeta>({});
+    const [me, setMe] = useState<ArenaMeSummary | null>(null);
+    const [searchQuery, setSearchQuery] = useState('');
+
+    const periodTabs: LeaderboardPeriodTab[] = [
+        { id: 'seasonal', label: t.arena.tabsSeasonal, icon: Calendar },
+        { id: 'historical', label: t.arena.tabsHistorical, icon: Trophy },
+    ];
 
     const fetchLeaderboard = useCallback(async () => {
+        if (!jwt || !optInLeaderboard) return;
+
         setLoading(true);
         setError(null);
         try {
             const res = await fetch(`${API_URL}/leaderboard?period=${period}`, {
-                headers: { 'Authorization': `Bearer ${jwt}` }
+                headers: { Authorization: `Bearer ${jwt}` },
             });
-            const data = await res.json();
-            if (!res.ok) throw new Error(`(${res.status}) ${data?.error || 'Erro desconhecido'}`);
-            setLeaderboard(data.leaderboard || []);
-            if (data.season) setSeason(data.season);
-        } catch (err: any) {
-            console.error("[ARENA] Fetch failed:", err);
-            setError(err.message || 'Erro ao carregar a arena.');
+            const data = (await res.json().catch(() => ({}))) as Partial<LeaderboardResponse> & { error?: string };
+            if (!res.ok) throw new Error(data.error || `(${res.status}) Failed to load arena.`);
+
+            setLeaderboard(Array.isArray(data.leaderboard) ? data.leaderboard : []);
+            setSeason(data.season || null);
+            setMeta(data.meta || {});
+            setMe(data.me || null);
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : t.common.error);
+            setLeaderboard([]);
+            setMeta({});
+            setSeason(null);
+            setMe(null);
         } finally {
             setLoading(false);
         }
-    }, [jwt, period]);
+    }, [jwt, optInLeaderboard, period, t.common.error]);
 
     useEffect(() => {
         if (optInLeaderboard && jwt) {
@@ -76,308 +166,482 @@ export default function LeaderboardPage() {
 
     const handleOptOut = () => {
         setOptInLeaderboard(false);
-        setShowOptOut(false);
+        setShowOptOutConfirm(false);
         setShowConsent(false);
+        setSearchQuery('');
+        setLeaderboard([]);
+        setMe(null);
     };
 
+    const rankById = useMemo(() => {
+        const map = new Map<string, number>();
+        leaderboard.forEach((entry, index) => {
+            map.set(entry.id, index + 1);
+        });
+        return map;
+    }, [leaderboard]);
+
+    const filteredLeaderboard = useMemo(() => {
+        const query = searchQuery.trim().toLowerCase();
+        if (!query) return leaderboard;
+        return leaderboard.filter((entry) => {
+            const name = entry.name?.toLowerCase() || '';
+            const handle = entry.username?.toLowerCase() || '';
+            return name.includes(query) || handle.includes(query);
+        });
+    }, [leaderboard, searchQuery]);
+
+    const historicalBySeason = useMemo(() => {
+        const grouped = new Map<string, LeaderboardEntry[]>();
+
+        filteredLeaderboard.forEach((entry) => {
+            const seasonName = entry.season_name || entry.season_id || 'Season';
+            if (!grouped.has(seasonName)) {
+                grouped.set(seasonName, []);
+            }
+            grouped.get(seasonName)?.push(entry);
+        });
+
+        return Array.from(grouped.entries());
+    }, [filteredLeaderboard]);
+
+    const seasonProgress = useMemo(() => {
+        if (!season || !season.startsAt || !season.endsAt || season.endsAt <= season.startsAt) return 0;
+        const raw = ((Date.now() - season.startsAt) / (season.endsAt - season.startsAt)) * 100;
+        return Math.min(100, Math.max(0, Math.round(raw)));
+    }, [season]);
+
+    const seasonCountdown = useMemo(() => {
+        if (!season) return '';
+        const diff = season.endsAt - Date.now();
+        if (diff <= 0) return t.arena.lastDay;
+        const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+        if (days === 1) return t.arena.oneDayLeft;
+        return `${days} ${t.arena.daysLeft}`;
+    }, [season, t.arena.daysLeft, t.arena.lastDay, t.arena.oneDayLeft]);
+
+    const meTier = useMemo(() => {
+        if (!me) return null;
+        return getTier(me.score);
+    }, [me]);
+
+    const seasonEmptyStateLabel = period === 'seasonal' ? t.arena.emptySeason : t.arena.emptyHistory;
+
     return (
-        <main className="min-h-[100dvh] bg-black text-white p-6 pb-24 font-sans flex flex-col items-center">
-            <div className="w-full max-w-md pt-8 flex flex-col h-full min-h-[85vh]">
-                <header className="flex justify-between items-center mb-10">
+        <main className="flex min-h-[100dvh] flex-col items-center bg-black px-5 pb-24 pt-6 text-white sm:px-6">
+            <div className="flex h-full min-h-[85vh] w-full max-w-md flex-col pt-6">
+                <header className="mb-6 flex items-center justify-between">
                     <button
                         onClick={() => router.back()}
-                        className="h-12 w-12 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 transition-colors -ml-3 active:scale-90"
+                        className="flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-white/5 transition-colors hover:bg-white/10 active:scale-90"
+                        aria-label="Back"
                     >
-                        <ChevronLeft size={24} />
+                        <ChevronLeft size={22} />
                     </button>
-                    <h1 className="text-xl font-black tracking-tight uppercase text-white/90">A Arena</h1>
-                    <div className="w-12 h-12" />
+                    <div className="text-center">
+                        <h1 className="text-xl font-black tracking-tight">{t.arena.title}</h1>
+                        <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/35">{t.arena.subtitle}</p>
+                    </div>
+                    <button
+                        onClick={() => (optInLeaderboard ? setShowOptOutConfirm(true) : setShowConsent(true))}
+                        className={`rounded-xl px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] ${
+                            optInLeaderboard
+                                ? 'border border-red-500/30 bg-red-500/10 text-red-200'
+                                : 'border border-white/15 bg-white/5 text-white/70'
+                        }`}
+                    >
+                        {optInLeaderboard ? t.arena.optOutConfirm : t.arena.joinCta}
+                    </button>
                 </header>
 
-                {optInLeaderboard && !showOptOut && (
-                    <div className="flex bg-white/5 rounded-2xl p-1 mb-8 gap-1 relative z-10 w-full">
-                        {[
-                            { id: 'seasonal', label: 'Temporada', icon: Calendar },
-                            { id: 'historical', label: 'O Mural', icon: Trophy }
-                        ].map((t) => (
+                {optInLeaderboard && (
+                    <div className="mb-6 space-y-3">
+                        <div className="flex w-full gap-1 rounded-2xl bg-white/5 p-1">
+                            {periodTabs.map((tab) => (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setPeriod(tab.id)}
+                                    className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-3 text-[10px] font-black uppercase tracking-[0.16em] transition-all ${
+                                        period === tab.id ? 'bg-white text-black shadow-lg' : 'text-white/45 hover:text-white/65'
+                                    }`}
+                                >
+                                    <tab.icon size={12} strokeWidth={2.5} />
+                                    {tab.label}
+                                </button>
+                            ))}
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            <div className="relative flex-1">
+                                <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
+                                <input
+                                    value={searchQuery}
+                                    onChange={(event) => setSearchQuery(event.target.value)}
+                                    placeholder={t.arena.searchPlaceholder}
+                                    className="w-full rounded-xl border border-white/10 bg-white/[0.03] py-2.5 pl-9 pr-3 text-sm outline-none transition-colors focus:border-white/25"
+                                />
+                            </div>
                             <button
-                                key={t.id}
-                                onClick={() => setPeriod(t.id as any)}
-                                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] uppercase tracking-widest font-black transition-all ${period === t.id ? 'bg-white text-black shadow-lg scale-[1.02]' : 'text-white/40 hover:text-white/60'}`}
+                                onClick={fetchLeaderboard}
+                                className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 transition-colors hover:bg-white/10"
+                                aria-label={t.arena.refresh}
                             >
-                                <t.icon size={12} strokeWidth={3} />
-                                {t.label}
+                                <RefreshCw size={14} />
                             </button>
-                        ))}
+                        </div>
                     </div>
                 )}
 
                 <AnimatePresence mode="wait">
                     {!optInLeaderboard && !showConsent && (
-                        <motion.div 
-                            key="gate"
-                            className="flex-1 flex flex-col items-center justify-center text-center px-4"
-                            initial={{ opacity: 0, scale: 0.95 }}
+                        <motion.div
+                            key="arena-gate"
+                            className="flex flex-1 flex-col items-center justify-center px-4 text-center"
+                            initial={{ opacity: 0, scale: 0.96 }}
                             animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 1.05 }}
-                            transition={{ duration: 0.5, type: 'spring' }}
+                            exit={{ opacity: 0, scale: 1.04 }}
+                            transition={{ duration: 0.4 }}
                         >
-                            <Trophy size={48} className="text-white/20 mb-6" strokeWidth={1} />
-                            <h2 className="text-3xl font-medium tracking-tight mb-4">Entrar na Arena</h2>
-                            <p className="text-white/40 mb-12 text-sm max-w-[280px] leading-relaxed">
-                                Compara a tua dedicação com outros e descobre quem atinge o Zenith. Ao entrar, o teu nome e pontuação global serão visíveis.
-                            </p>
+                            <div className="mb-6 rounded-3xl border border-white/12 bg-white/[0.03] p-5">
+                                <Trophy size={44} className="mx-auto text-[var(--zenith-active)]" strokeWidth={1.2} />
+                            </div>
+                            <h2 className="mb-4 text-3xl font-medium tracking-tight">{t.arena.enterTitle}</h2>
+                            <p className="mb-10 max-w-[290px] text-sm leading-relaxed text-white/45">{t.arena.enterDescription}</p>
                             <button
                                 onClick={() => setShowConsent(true)}
-                                className="bg-white text-black font-bold px-8 py-4 rounded-full flex items-center gap-3 transition-all hover:-translate-y-0.5 active:scale-95 shadow-glow-white hover:shadow-[0_0_25px_rgba(255,255,255,0.25)]"
+                                className="flex items-center gap-2 rounded-full bg-white px-7 py-4 text-sm font-black uppercase tracking-[0.14em] text-black transition-transform hover:-translate-y-0.5 active:scale-95"
                             >
-                                <Play size={18} fill="currentColor" />
-                                Juntar à Arena
+                                <Play size={16} fill="currentColor" />
+                                {t.arena.joinCta}
                             </button>
                         </motion.div>
                     )}
 
                     {!optInLeaderboard && showConsent && (
                         <motion.div
-                            key="consent"
-                            className="flex-1 flex flex-col items-start justify-center px-4"
-                            initial={{ opacity: 0, x: 30 }}
+                            key="arena-consent"
+                            className="flex flex-1 flex-col justify-center px-2"
+                            initial={{ opacity: 0, x: 24 }}
                             animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -30 }}
-                            transition={{ duration: 0.4, type: 'spring' }}
+                            exit={{ opacity: 0, x: -24 }}
+                            transition={{ duration: 0.3 }}
                         >
-                            <ShieldCheck size={32} className="text-white/40 mb-8" strokeWidth={1.5} />
-                            <h2 className="text-2xl font-medium tracking-tight mb-3">Antes de entrares</h2>
-                            <p className="text-white/40 text-sm leading-relaxed mb-10">
-                                Ao juntares-te à Arena, estás a concordar com o seguinte:
-                            </p>
-                            <ul className="space-y-4 mb-12 w-full">
-                                {[
-                                    { icon: '👤', text: 'O teu nome será visível para todos os utilizadores da Arena.' },
-                                    { icon: '🏆', text: 'A tua pontuação (número de hábitos completos) será pública.' },
-                                    { icon: '👁', text: 'Verás os nomes e pontuações de outros utilizadores que participem.' },
-                                    { icon: '🚪', text: 'Podes sair a qualquer momento. O teu perfil ficará imediatamente invisível.' },
-                                ].map((item, i) => (
-                                    <motion.li
-                                        key={i}
-                                        className="flex items-start gap-4 text-sm text-white/60"
-                                        initial={{ opacity: 0, y: 8 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ delay: 0.05 * i }}
-                                    >
-                                        <span className="w-7 shrink-0 text-center text-base mt-px">{item.icon}</span>
-                                        <span className="leading-relaxed">{item.text}</span>
-                                    </motion.li>
+                            <div className="mb-8 flex items-center gap-3">
+                                <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                                    <ShieldCheck size={22} className="text-white/70" />
+                                </div>
+                                <div>
+                                    <h2 className="text-2xl font-black tracking-tight">{t.arena.consentTitle}</h2>
+                                    <p className="text-sm text-white/45">{t.arena.consentDescription}</p>
+                                </div>
+                            </div>
+
+                            <div className="mb-8 space-y-3 rounded-3xl border border-white/10 bg-white/[0.03] p-5">
+                                {[t.arena.consentBullet1, t.arena.consentBullet2, t.arena.consentBullet3, t.arena.consentBullet4].map((item, index) => (
+                                    <div key={index} className="flex items-start gap-3 text-sm text-white/65">
+                                        <div className="mt-1 h-1.5 w-1.5 rounded-full bg-[var(--zenith-active)]" />
+                                        <span>{item}</span>
+                                    </div>
                                 ))}
-                            </ul>
-                            <div className="flex flex-col gap-3 w-full">
+                            </div>
+
+                            <div className="flex flex-col gap-3">
                                 <button
                                     onClick={handleOptIn}
-                                    className="bg-white text-black font-bold px-8 py-4 rounded-full flex items-center justify-center gap-3 transition-all active:scale-95"
+                                    className="rounded-2xl bg-white py-4 text-sm font-black uppercase tracking-[0.16em] text-black transition-transform active:scale-95"
                                 >
-                                    Concordo — Entrar
+                                    {t.arena.consentConfirm}
                                 </button>
                                 <button
                                     onClick={() => setShowConsent(false)}
-                                    className="text-white/30 text-sm py-3 hover:text-white/60 transition-colors text-center"
+                                    className="rounded-2xl border border-white/10 bg-white/[0.03] py-4 text-sm font-bold text-white/55 transition-colors hover:text-white/75"
                                 >
-                                    Cancelar
+                                    {t.arena.cancel}
                                 </button>
                             </div>
                         </motion.div>
                     )}
 
-
-                    {optInLeaderboard && !showOptOut && (
+                    {optInLeaderboard && (
                         <motion.div
-                            key="leaderboard"
-                            className="flex-1 flex flex-col"
-                            initial={{ opacity: 0, y: 20 }}
+                            key="arena-content"
+                            className="flex flex-1 flex-col"
+                            initial={{ opacity: 0, y: 16 }}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.5 }}
+                            transition={{ duration: 0.35 }}
                         >
                             {loading ? (
-                                <div className="flex-1 flex items-center justify-center">
-                                    <Loader2 className="w-8 h-8 text-white/20 animate-spin" />
+                                <div className="flex flex-1 items-center justify-center">
+                                    <Loader2 className="h-8 w-8 animate-spin text-white/25" />
                                 </div>
                             ) : error ? (
-                                <div className="flex-1 flex items-center justify-center flex-col gap-4 text-white/40">
-                                    <p>{error}</p>
-                                    <button onClick={fetchLeaderboard} className="text-sm underline">Tentar Novamente</button>
+                                <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
+                                    <p className="max-w-[280px] text-sm text-red-200">{error}</p>
+                                    <button
+                                        onClick={fetchLeaderboard}
+                                        className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-white/70"
+                                    >
+                                        {t.arena.retry}
+                                    </button>
                                 </div>
                             ) : leaderboard.length === 0 ? (
-                                <div className="flex-1 flex items-center justify-center text-white/40 text-sm">
-                                    A arena está vazia de momento.
+                                <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center text-white/45">
+                                    <Users size={30} />
+                                    <p className="max-w-[260px] text-sm">{seasonEmptyStateLabel}</p>
                                 </div>
                             ) : (
-                                <div className="space-y-4 pb-20">
-                                    {/* Seasonal Header */}
-                                    {period === 'seasonal' && leaderboard.length > 0 && (
-                                        <div className="mb-6 px-1">
-                                            {(() => {
-                                                const myEntryIndex = leaderboard.findIndex(e => e.username === myUsername);
-                                                const myEntry = myEntryIndex !== -1 ? leaderboard[myEntryIndex] : null;
-                                                
-                                                if (!myEntry) return null;
-
-                                                const nextEntry = myEntryIndex > 0 ? leaderboard[myEntryIndex - 1] : null;
-                                                const tier = getTier(myEntry.score || 0);
-                                                
-                                                return (
-                                                    <div className="flex items-center justify-between p-6 rounded-[2.5rem] bg-gradient-to-br from-white/[0.08] to-transparent border border-white/10 shadow-2xl">
-                                                        <div className="flex flex-col gap-1">
-                                                            <p className="text-[10px] uppercase tracking-[0.2em] font-black text-white/30 mb-0.5">O teu Cosmos</p>
-                                                            <div className="flex items-center gap-2">
-                                                                <span className={`text-base font-black ${tier.color}`}>{tier.name}</span>
-                                                                <div className="w-1 h-1 rounded-full bg-white/20" />
-                                                                <span className="text-xl font-black tracking-tight">{myEntry.score} pts</span>
-                                                            </div>
-                                                        </div>
-                                                        {nextEntry && (
-                                                            <div className="text-right">
-                                                                <p className="text-[10px] uppercase tracking-[0.2em] font-black text-white/30 mb-0.5">Próximo Rank</p>
-                                                                <p className="text-xs font-medium text-white/60">
-                                                                    Faltam <span className="text-white font-bold">{( (nextEntry.score || 0) - (myEntry.score || 0)) + 1}</span> para o {myEntryIndex}º lugar
-                                                                </p>
-                                                            </div>
+                                <div className="space-y-5 pb-20">
+                                    {period === 'seasonal' && (
+                                        <>
+                                            <section className="rounded-[2rem] border border-white/12 bg-gradient-to-br from-white/[0.08] to-white/[0.02] p-5">
+                                                <div className="mb-4 flex items-start justify-between gap-3">
+                                                    <div>
+                                                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/35">{t.arena.myPerformance}</p>
+                                                        {me ? (
+                                                            <h2 className="mt-1 text-2xl font-black leading-tight">
+                                                                #{me.position} · {formatNumber(me.score)}
+                                                            </h2>
+                                                        ) : (
+                                                            <h2 className="mt-1 text-xl font-black leading-tight text-white/70">{t.arena.notParticipating}</h2>
                                                         )}
                                                     </div>
-                                                );
-                                            })()}
-                                        </div>
+                                                    {meTier && (
+                                                        <div className={`rounded-2xl border px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] ${meTier.pill} ${meTier.color}`}>
+                                                            {me?.tier || meTier.name}
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                <div className="grid grid-cols-2 gap-2.5">
+                                                    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+                                                        <p className="text-[9px] font-black uppercase tracking-[0.14em] text-white/35">{t.arena.participants}</p>
+                                                        <p className="mt-2 text-2xl font-black">{formatNumber(meta.participantsCount || 0)}</p>
+                                                    </div>
+                                                    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+                                                        <p className="text-[9px] font-black uppercase tracking-[0.14em] text-white/35">{t.arena.topScore}</p>
+                                                        <p className="mt-2 text-2xl font-black">{formatNumber(meta.topScore || 0)}</p>
+                                                    </div>
+                                                    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+                                                        <p className="text-[9px] font-black uppercase tracking-[0.14em] text-white/35">{t.arena.averageScore}</p>
+                                                        <p className="mt-2 text-2xl font-black">{formatNumber(meta.averageScore || 0)}</p>
+                                                    </div>
+                                                    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+                                                        <p className="text-[9px] font-black uppercase tracking-[0.14em] text-white/35">{t.arena.myPercentile}</p>
+                                                        <p className="mt-2 text-2xl font-black text-[var(--zenith-active)]">{me ? `${me.percentile}%` : '--'}</p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="mt-4 rounded-2xl border border-white/10 bg-black/25 p-3 text-xs text-white/60">
+                                                    {me ? (
+                                                        me.pointsToNext > 0
+                                                            ? `${t.arena.pointsToNext}: ${formatNumber(me.pointsToNext)}`
+                                                            : t.arena.noNextTarget
+                                                    ) : (
+                                                        t.arena.notParticipating
+                                                    )}
+                                                </div>
+                                            </section>
+
+                                            {season && (
+                                                <section className="rounded-[2rem] border border-white/10 bg-white/[0.03] p-4">
+                                                    <div className="mb-3 flex items-center justify-between gap-3">
+                                                        <div>
+                                                            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/35">{season.name}</p>
+                                                            <p className="text-xs text-white/50">{t.arena.seasonEnds}</p>
+                                                        </div>
+                                                        <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-bold text-white/70">
+                                                            <Clock3 size={12} />
+                                                            {seasonCountdown}
+                                                        </div>
+                                                    </div>
+                                                    <div className="mb-2 h-2 overflow-hidden rounded-full bg-white/10">
+                                                        <div
+                                                            className="h-full rounded-full bg-[var(--zenith-active)] transition-[width] duration-500"
+                                                            style={{ width: `${seasonProgress}%` }}
+                                                        />
+                                                    </div>
+                                                    <p className="text-[11px] font-medium text-white/45">
+                                                        {t.arena.seasonProgress}: {seasonProgress}%
+                                                    </p>
+                                                </section>
+                                            )}
+                                        </>
                                     )}
 
-                                    {period === 'seasonal' ? (
-                                        leaderboard.map((entry, index) => {
-                                            const isMe = entry.username === myUsername;
-                                            const rank = index + 1;
-                                            const tier = getTier(entry.score || 0);
-                                            const TierIcon = tier.icon;
-                                            
-                                            let rankBadge = <span className="font-mono text-lg opacity-30">{rank}</span>;
-                                            if (rank === 1) rankBadge = <Crown size={20} className="text-yellow-500 drop-shadow-[0_0_8px_rgba(234,179,8,0.8)]" />;
-                                            if (rank === 2) rankBadge = <div className="w-1.5 h-1.5 rounded-full bg-zinc-400" />;
-                                            if (rank === 3) rankBadge = <div className="w-1.5 h-1.5 rounded-full bg-orange-400" />;
-                                            
-                                            return (
-                                                <motion.div 
-                                                    key={entry.id}
-                                                    className={`flex items-center justify-between p-5 rounded-[2rem] transition-all border border-transparent ${tier.bg} ${isMe ? 'ring-2 ring-white/20 !bg-white/10 border-white/10' : ''} ${tier.glow}`}
-                                                    initial={{ opacity: 0, x: -10 }}
-                                                    animate={{ opacity: 1, x: 0 }}
-                                                    transition={{ delay: Math.min(index * 0.05, 1) }}
-                                                >
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="w-8 flex justify-center">
-                                                            {rankBadge}
-                                                        </div>
-                                                        <div className="flex flex-col">
-                                                            <span className={`text-sm font-black tracking-tight ${isMe ? 'text-white' : 'text-white/90'}`}>
-                                                                {entry.name}
-                                                            </span>
-                                                            <span className="text-[10px] text-white/30 font-mono">
-                                                                @{entry.username || 'user'}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="flex flex-col items-end">
-                                                            <span className="text-sm font-black tracking-tight lowercase">{entry.score} <span className="text-[10px] opacity-30">pts</span></span>
-                                                            <span className={`text-[8px] uppercase tracking-widest font-black ${tier.color}`}>{tier.name}</span>
-                                                        </div>
-                                                        <div className={`p-2 rounded-full bg-white/5 ${tier.color}`}>
-                                                            <TierIcon size={14} className={tier.name === 'Zenith' ? 'animate-pulse' : ''} />
-                                                        </div>
-                                                    </div>
-                                                </motion.div>
-                                            );
-                                        })
-                                    ) : (
-                                        /* Historical Mural View */
-                                        <div className="space-y-8">
-                                            {(() => {
-                                                // Group winners by season_name
-                                                const seasons: Record<string, LeaderboardEntry[]> = {};
-                                                leaderboard.forEach(entry => {
-                                                    const sName = entry.season_name || 'Época Desconhecida';
-                                                    if (!seasons[sName]) seasons[sName] = [];
-                                                    seasons[sName].push(entry);
-                                                });
+                                    <section className="space-y-4">
+                                        <div className="flex items-center justify-between">
+                                            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/35">{period === 'seasonal' ? t.arena.rankingTitle : t.arena.championsWall}</h3>
+                                            <p className="text-[10px] font-black uppercase tracking-[0.14em] text-white/30">{filteredLeaderboard.length}</p>
+                                        </div>
 
-                                                return Object.entries(seasons).map(([sName, winners], sIdx) => (
-                                                    <div key={sName} className="flex flex-col gap-4">
-                                                        <div className="flex items-center gap-3 px-2">
+                                        {filteredLeaderboard.length === 0 && searchQuery ? (
+                                            <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-5 text-center text-xs text-white/50">
+                                                {t.arena.searchEmpty}
+                                            </div>
+                                        ) : period === 'seasonal' ? (
+                                            filteredLeaderboard.map((entry, index) => {
+                                                const score = Number(entry.score || 0);
+                                                const tier = getTier(score);
+                                                const rank = rankById.get(entry.id) || index + 1;
+                                                const isMe = !!(me?.userId && me.userId === entry.id) || (!!myUsername && myUsername === entry.username);
+                                                const TierIcon = tier.icon;
+
+                                                let rankBadge: React.ReactNode = <span className="font-mono text-base text-white/35">#{rank}</span>;
+                                                if (rank === 1) rankBadge = <Crown size={18} className="text-yellow-400 drop-shadow-[0_0_10px_rgba(250,204,21,0.7)]" />;
+                                                if (rank === 2) rankBadge = <Medal size={18} className="text-zinc-300" />;
+                                                if (rank === 3) rankBadge = <Star size={18} className="text-orange-300" />;
+
+                                                return (
+                                                    <motion.div
+                                                        key={entry.id}
+                                                        initial={{ opacity: 0, y: 10 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        transition={{ delay: Math.min(index * 0.025, 0.35) }}
+                                                        className={`rounded-[1.7rem] border p-4 ${
+                                                            isMe
+                                                                ? 'border-[var(--zenith-active)]/45 bg-[var(--zenith-active)]/10'
+                                                                : 'border-white/10 bg-gradient-to-br from-white/[0.06] to-white/[0.02]'
+                                                        }`}
+                                                    >
+                                                        <div className="flex items-center justify-between gap-3">
+                                                            <div className="flex min-w-0 items-center gap-3">
+                                                                <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-black/20">
+                                                                    {rankBadge}
+                                                                </div>
+                                                                <div className="min-w-0">
+                                                                    <p className="truncate text-sm font-black">{entry.name}</p>
+                                                                    <p className="truncate text-[10px] font-mono text-white/40">@{entry.username || 'user'}</p>
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="text-right">
+                                                                    <p className="text-sm font-black">
+                                                                        {formatNumber(score)} <span className="text-[10px] text-white/35">pts</span>
+                                                                    </p>
+                                                                    <p className={`text-[9px] font-black uppercase tracking-[0.14em] ${tier.color}`}>{tier.name}</p>
+                                                                </div>
+                                                                <div className={`rounded-xl border p-2 ${tier.pill}`}>
+                                                                    <TierIcon size={13} className={tier.color} />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </motion.div>
+                                                );
+                                            })
+                                        ) : (
+                                            <div className="space-y-7">
+                                                {historicalBySeason.map(([seasonName, winners]) => (
+                                                    <div key={seasonName} className="space-y-3">
+                                                        <div className="flex items-center gap-3 px-1">
                                                             <div className="h-px flex-1 bg-white/10" />
-                                                            <h3 className="text-[10px] uppercase tracking-[0.3em] font-black text-white/30 whitespace-nowrap">{sName}</h3>
+                                                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/45">{seasonName}</h4>
                                                             <div className="h-px flex-1 bg-white/10" />
                                                         </div>
-                                                        
-                                                        <div className="grid grid-cols-1 gap-3">
-                                                            {winners.map((winner, wIdx) => {
-                                                                const pos = winner.position || 1;
-                                                                const isMe = winner.username === myUsername;
-                                                                
-                                                                const medals = [
-                                                                    { icon: Crown, color: 'text-yellow-500', bg: 'bg-yellow-500/10' },
-                                                                    { icon: Star, color: 'text-zinc-300', bg: 'bg-zinc-300/10' },
-                                                                    { icon: Target, color: 'text-orange-400', bg: 'bg-orange-400/10' }
-                                                                ];
-                                                                const Medal = medals[pos - 1]?.icon || Trophy;
-                                                                const medalColor = medals[pos - 1]?.color || 'text-white/40';
-                                                                const medalBg = medals[pos - 1]?.bg || 'bg-white/5';
+
+                                                        <div className="space-y-2">
+                                                            {winners.map((winner) => {
+                                                                const pos = Number(winner.position || 0);
+                                                                const isMe = !!(me?.userId && me.userId === winner.id) || (!!myUsername && myUsername === winner.username);
 
                                                                 return (
-                                                                    <motion.div 
-                                                                        key={winner.id}
-                                                                        initial={{ opacity: 0, y: 10 }}
-                                                                        animate={{ opacity: 1, y: 0 }}
-                                                                        transition={{ delay: wIdx * 0.1 }}
-                                                                        className={`flex items-center justify-between p-4 rounded-3xl border ${isMe ? 'bg-white/10 border-white/20' : 'bg-white/[0.03] border-white/5'}`}
+                                                                    <div
+                                                                        key={`${winner.id}-${winner.season_id}-${winner.position}`}
+                                                                        className={`flex items-center justify-between rounded-2xl border p-4 ${
+                                                                            isMe
+                                                                                ? 'border-[var(--zenith-active)]/45 bg-[var(--zenith-active)]/10'
+                                                                                : 'border-white/10 bg-white/[0.03]'
+                                                                        }`}
                                                                     >
-                                                                        <div className="flex items-center gap-4">
-                                                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${medalBg} ${medalColor}`}>
-                                                                                <Medal size={20} strokeWidth={2.5} />
+                                                                        <div className="flex items-center gap-3">
+                                                                            <div className="rounded-xl border border-white/10 bg-white/5 p-2">
+                                                                                {pos === 1 ? (
+                                                                                    <Crown size={16} className="text-yellow-400" />
+                                                                                ) : pos === 2 ? (
+                                                                                    <Medal size={16} className="text-zinc-300" />
+                                                                                ) : (
+                                                                                    <Trophy size={16} className="text-orange-300" />
+                                                                                )}
                                                                             </div>
-                                                                            <div className="flex flex-col">
-                                                                                <span className="text-sm font-black">{winner.name}</span>
-                                                                                <span className="text-[10px] text-white/30 font-mono">@{winner.username}</span>
+                                                                            <div>
+                                                                                <p className="text-sm font-black">{winner.name}</p>
+                                                                                <p className="text-[10px] font-mono text-white/40">@{winner.username}</p>
                                                                             </div>
                                                                         </div>
-                                                                        <div className="px-4 py-1 rounded-full bg-white/5 border border-white/5 text-[9px] font-black uppercase tracking-widest text-white/40">
-                                                                            #{pos} Lugar
+                                                                        <div className="text-right">
+                                                                            <p className="text-[11px] font-black uppercase tracking-[0.16em] text-white/75">
+                                                                                {winner.rank_name || `#${pos}`}
+                                                                            </p>
+                                                                            <p className="text-[10px] text-white/35">
+                                                                                {t.arena.rankLabel}: #{pos || '--'}
+                                                                            </p>
                                                                         </div>
-                                                                    </motion.div>
+                                                                    </div>
                                                                 );
                                                             })}
                                                         </div>
                                                     </div>
-                                                ));
-                                            })()}
-                                        </div>
-                                    )}
-
-                                    {season && (
-                                        <div className="pt-8 pb-12 text-center">
-                                            <p className="text-[10px] uppercase tracking-[0.3em] font-black text-white/20 mb-2">{season.name}</p>
-                                            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/5">
-                                                <Clock size={12} className="text-white/40" />
-                                                <span className="text-xs font-medium text-white/40">
-                                                    {(() => {
-                                                        const diff = season.endsAt - Date.now();
-                                                        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-                                                        if (days <= 0) return 'Último dia!';
-                                                        return `${days} ${days === 1 ? 'dia restante' : 'dias restantes'}`;
-                                                    })()}
-                                                </span>
+                                                ))}
                                             </div>
-                                        </div>
-                                    )}
+                                        )}
+                                    </section>
+
+                                    <div className="pt-2 text-center">
+                                        <p className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-[11px] text-white/45">
+                                            <BarChart3 size={12} />
+                                            {t.arena.visibilityNote}
+                                        </p>
+                                    </div>
                                 </div>
                             )}
                         </motion.div>
                     )}
                 </AnimatePresence>
             </div>
+
+            <AnimatePresence>
+                {showOptOutConfirm && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[140] flex items-end justify-center bg-black/70 p-4 backdrop-blur-sm"
+                        onClick={() => setShowOptOutConfirm(false)}
+                    >
+                        <motion.div
+                            initial={{ y: 32, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            exit={{ y: 32, opacity: 0 }}
+                            transition={{ type: 'spring', damping: 24, stiffness: 260 }}
+                            className="w-full max-w-md rounded-[2rem] border border-red-500/25 bg-zinc-950 p-6"
+                            onClick={(event) => event.stopPropagation()}
+                        >
+                            <div className="mb-4 flex items-center gap-3">
+                                <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-2.5">
+                                    <ShieldAlert size={18} className="text-red-200" />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-black">{t.arena.optOutTitle}</h3>
+                                    <p className="text-xs text-white/50">{t.arena.optOutDescription}</p>
+                                </div>
+                            </div>
+                            <div className="grid gap-2">
+                                <button
+                                    onClick={handleOptOut}
+                                    className="rounded-xl bg-red-500 px-4 py-3 text-sm font-black uppercase tracking-[0.14em] text-white transition-transform active:scale-[0.98]"
+                                >
+                                    {t.arena.optOutConfirm}
+                                </button>
+                                <button
+                                    onClick={() => setShowOptOutConfirm(false)}
+                                    className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-bold text-white/75"
+                                >
+                                    {t.arena.optOutCancel}
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </main>
     );
 }

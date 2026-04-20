@@ -101,6 +101,33 @@ const getGroupMembership = async (db: D1Database, groupId: string, userId: strin
     `).bind(groupId, userId).first<{ id: string; role: string; owner_user_id: string }>();
 };
 
+const ARENA_TIERS = [
+    { name: 'Zenith', minScore: 2500 },
+    { name: 'Avatar', minScore: 1500 },
+    { name: 'Soberano', minScore: 900 },
+    { name: 'Astre', minScore: 550 },
+    { name: 'Pulsar', minScore: 350 },
+    { name: 'Nova', minScore: 200 },
+    { name: 'Núcleo', minScore: 120 },
+    { name: 'Órbita', minScore: 70 },
+    { name: 'Vetor', minScore: 40 },
+    { name: 'Flux', minScore: 20 },
+    { name: 'Vácuo', minScore: 5 },
+    { name: 'Spark', minScore: 0 },
+] as const;
+
+const getArenaTierFromScore = (score: number) => {
+    const normalizedScore = Number.isFinite(score) ? Math.max(0, Math.floor(score)) : 0;
+    return ARENA_TIERS.find((tier) => normalizedScore >= tier.minScore) || ARENA_TIERS[ARENA_TIERS.length - 1];
+};
+
+const getArenaPodiumRankName = (position: number) => {
+    if (position === 1) return 'Arena Champion';
+    if (position === 2) return 'Arena Vanguard';
+    if (position === 3) return 'Arena Sentinel';
+    return 'Arena Finalist';
+};
+
 // --- AUTHENTICATION ROUTES ---
 
 const registerSchema = z.object({
@@ -1539,7 +1566,20 @@ app.get('/users/:username/profile', async (c) => {
         }
 
         // Get Arena History
-        const { results: arenaWinners } = await db.prepare('SELECT season_id, rank_name, position FROM arena_winners WHERE user_id = ? ORDER BY created_at DESC').bind(user.id as any).all();
+        const { results: arenaWinners } = await db.prepare(`
+            SELECT
+                w.season_id,
+                w.rank_name,
+                w.position,
+                w.created_at,
+                s.name as season_name,
+                s.start_at as season_start_at,
+                s.end_at as season_end_at
+            FROM arena_winners w
+            LEFT JOIN arena_seasons s ON s.id = w.season_id
+            WHERE w.user_id = ?
+            ORDER BY w.created_at DESC
+        `).bind(user.id as any).all();
 
         // Get Habit Summary
         const habitsRes = await db.prepare('SELECT id, title, is_hard_mode, is_active FROM habits WHERE user_id = ?').bind(user.id as any).all();
@@ -1632,42 +1672,32 @@ app.get('/users/:username/profile', async (c) => {
 });
 
 app.get('/leaderboard', async (c) => {
-    const authHeader = c.req.header('Authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return c.json({ error: 'Não autorizado' }, 401);
-    }
-    const token = authHeader.split(' ')[1];
-    const secret = c.env.JWT_SECRET;
-    if (!secret && c.env.ENVIRONMENT === 'production') {
-        console.error('[AUTH] MISSING JWT_SECRET IN PRODUCTION!');
-        return c.json({ error: 'Erro de configuração do servidor.' }, 500);
-    }
-    const tokenSecret = secret || 'zenith-local-dev-secret';
-    try {
-        await verify(token, tokenSecret, 'HS256');
-    } catch {
-        return c.json({ error: 'Token inválido' }, 401);
-    }
+    const auth = await authenticateRequest(c);
+    if ('error' in auth) return auth.error;
 
+    const userId = String(auth.payload.id);
     const db = c.env.DB;
     const now = Date.now();
+    const period = c.req.query('period') === 'historical' ? 'historical' : 'seasonal';
 
     try {
-        // 1. Get Current Active Season based on Calendar Month
-        // This ensures the season is within the current month start and end.
-        let activeSeason = await db.prepare('SELECT * FROM arena_seasons WHERE is_finalized = 0 AND start_at <= ? AND end_at > ? ORDER BY end_at ASC LIMIT 1').bind(now, now).first<any>();
+        // 1) Find current active season.
+        let activeSeason = await db.prepare(
+            'SELECT * FROM arena_seasons WHERE is_finalized = 0 AND start_at <= ? AND end_at > ? ORDER BY end_at ASC LIMIT 1'
+        ).bind(now, now).first<any>();
 
-        // 2. If no active season, check for expired but not finalized season
+        // 2) If no active season exists, finalize the latest expired one and create current month season.
         if (!activeSeason) {
-            const expiredSeason = await db.prepare('SELECT * FROM arena_seasons WHERE is_finalized = 0 AND end_at <= ? ORDER BY end_at DESC LIMIT 1').bind(now).first<any>();
-            
+            const expiredSeason = await db.prepare(
+                'SELECT * FROM arena_seasons WHERE is_finalized = 0 AND end_at <= ? ORDER BY end_at DESC LIMIT 1'
+            ).bind(now).first<any>();
+
             if (expiredSeason) {
-                // Finalize Expired Season: Award Winners based on arena_points
                 const topPlayers = await db.prepare(`
-                    SELECT u.id, u.name, u.arena_points as score
+                    SELECT u.id, u.name, u.username, u.arena_points as score
                     FROM users u
                     WHERE u.opt_in_leaderboard = 1 AND u.arena_points > 0
-                    ORDER BY u.arena_points DESC
+                    ORDER BY u.arena_points DESC, u.total_xp DESC, u.created_at ASC, u.id ASC
                     LIMIT 3
                 `).all<any>();
 
@@ -1675,71 +1705,169 @@ app.get('/leaderboard', async (c) => {
                     for (let i = 0; i < topPlayers.results.length; i++) {
                         const winner = topPlayers.results[i];
                         const winnerId = crypto.randomUUID();
-                        await db.prepare('INSERT INTO arena_winners (id, user_id, season_id, rank_name, position, created_at) VALUES (?, ?, ?, ?, ?, ?)')
-                            .bind(winnerId, winner.id, expiredSeason.id, 'Arena Champion', i + 1, now)
+                        await db.prepare(
+                            'INSERT INTO arena_winners (id, user_id, season_id, rank_name, position, created_at) VALUES (?, ?, ?, ?, ?, ?)'
+                        )
+                            .bind(
+                                winnerId,
+                                winner.id,
+                                expiredSeason.id,
+                                getArenaPodiumRankName(i + 1),
+                                i + 1,
+                                now
+                            )
                             .run();
                     }
                 }
 
-                // Mark as finalized and reset all users' arena points
                 await db.prepare('UPDATE arena_seasons SET is_finalized = 1 WHERE id = ?').bind(expiredSeason.id).run();
                 await db.prepare('UPDATE users SET arena_points = 0').run();
             }
 
-            // Create New Season aligned with the current calendar month
             const currentDate = new Date();
             const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1, 0, 0, 0, 0).getTime();
             const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0, 23, 59, 59, 999).getTime();
 
             const nextSeasonId = `SEASON-${startOfMonth}`;
             const monthName = new Intl.DateTimeFormat('pt-PT', { month: 'long', year: 'numeric' }).format(currentDate);
-            
-            await db.prepare('INSERT OR IGNORE INTO arena_seasons (id, name, start_at, end_at, is_finalized, created_at) VALUES (?, ?, ?, ?, ?, ?)')
+
+            await db.prepare(
+                'INSERT OR IGNORE INTO arena_seasons (id, name, start_at, end_at, is_finalized, created_at) VALUES (?, ?, ?, ?, ?, ?)'
+            )
                 .bind(nextSeasonId, `Arena ${monthName}`, startOfMonth, endOfMonth, 0, now)
                 .run();
-            
+
             activeSeason = await db.prepare('SELECT * FROM arena_seasons WHERE id = ?').bind(nextSeasonId).first<any>();
         }
 
-        const period = c.req.query('period') || 'seasonal';
-
         if (period === 'historical') {
             const historicalQuery = `
-                SELECT w.*, u.name, u.username, s.name as season_name
+                SELECT
+                    w.id,
+                    w.user_id as userId,
+                    w.season_id as season_id,
+                    w.rank_name as rank_name,
+                    w.position,
+                    w.created_at as created_at,
+                    u.name,
+                    u.username,
+                    s.name as season_name,
+                    s.start_at as season_start_at,
+                    s.end_at as season_end_at
                 FROM arena_winners w
                 JOIN users u ON w.user_id = u.id
-                JOIN arena_seasons s ON w.season_id = s.id
-                ORDER BY s.end_at DESC, w.position ASC
+                LEFT JOIN arena_seasons s ON w.season_id = s.id
+                ORDER BY s.end_at DESC, w.position ASC, w.created_at DESC
             `;
             const { results: winners } = await db.prepare(historicalQuery).all<any>();
-            return c.json({ 
-                leaderboard: winners,
-                type: 'historical'
+
+            const uniqueSeasons = new Set((winners || []).map((winner: any) => String(winner.season_id || 'unknown')));
+
+            return c.json({
+                leaderboard: winners || [],
+                type: 'historical',
+                meta: {
+                    seasonsCount: uniqueSeasons.size,
+                    totalWinners: (winners || []).length,
+                },
             });
         }
 
-        // 3. Calculate Leaderboard using arena_points (Exclusive Arena Points)
-        const query = `
+        const seasonalRes = await db.prepare(`
             SELECT u.id, u.name, u.username, u.arena_points as score
             FROM users u
             WHERE u.opt_in_leaderboard = 1
-            ORDER BY u.arena_points DESC
-            LIMIT 50
-        `;
+            ORDER BY u.arena_points DESC, u.total_xp DESC, u.created_at ASC, u.id ASC
+            LIMIT 100
+        `).all<any>();
 
-        const { results } = await db.prepare(query).all<any>();
-        
-        return c.json({ 
-            leaderboard: results, 
+        const leaderboard = seasonalRes.results || [];
+
+        const participantsRow = await db.prepare(
+            'SELECT COUNT(*) as total FROM users WHERE opt_in_leaderboard = 1'
+        ).first<{ total: number }>();
+        const statsRow = await db.prepare(
+            'SELECT MAX(arena_points) as topScore, AVG(arena_points) as averageScore FROM users WHERE opt_in_leaderboard = 1'
+        ).first<{ topScore: number | null; averageScore: number | null }>();
+
+        const participantsCount = Number(participantsRow?.total || 0);
+        const topScore = Number(statsRow?.topScore || 0);
+        const averageScore = Number(statsRow?.averageScore || 0);
+
+        const meRow = await db.prepare(`
+            SELECT id, name, username, opt_in_leaderboard as optedIn, arena_points as score
+            FROM users
+            WHERE id = ?
+        `).bind(userId).first<{ id: string; name: string; username: string; optedIn: number; score: number }>();
+
+        let me: {
+            userId: string;
+            name: string;
+            username: string;
+            score: number;
+            position: number;
+            percentile: number;
+            pointsToNext: number;
+            tier: string;
+            isInTop: boolean;
+        } | null = null;
+
+        if (meRow && Number(meRow.optedIn) === 1) {
+            const myScore = Number(meRow.score || 0);
+
+            const aheadRow = await db.prepare(`
+                SELECT COUNT(*) as ahead
+                FROM users
+                WHERE opt_in_leaderboard = 1
+                  AND (arena_points > ? OR (arena_points = ? AND id < ?))
+            `).bind(myScore, myScore, userId).first<{ ahead: number }>();
+
+            const position = Number(aheadRow?.ahead || 0) + 1;
+
+            const nextHigherRow = await db.prepare(`
+                SELECT arena_points as score
+                FROM users
+                WHERE opt_in_leaderboard = 1 AND arena_points > ?
+                ORDER BY arena_points ASC
+                LIMIT 1
+            `).bind(myScore).first<{ score: number }>();
+
+            const pointsToNext = nextHigherRow ? Math.max(0, Number(nextHigherRow.score) - myScore + 1) : 0;
+            const percentile = participantsCount > 0
+                ? Math.max(1, Math.round(((participantsCount - position + 1) / participantsCount) * 100))
+                : 0;
+
+            me = {
+                userId: meRow.id,
+                name: meRow.name,
+                username: meRow.username,
+                score: myScore,
+                position,
+                percentile,
+                pointsToNext,
+                tier: getArenaTierFromScore(myScore).name,
+                isInTop: leaderboard.some((entry: any) => String(entry.id) === meRow.id),
+            };
+        }
+
+        return c.json({
+            leaderboard,
             type: 'seasonal',
-            season: {
-                id: activeSeason.id,
-                name: activeSeason.name,
-                endsAt: activeSeason.end_at,
-                startsAt: activeSeason.start_at
-            }
+            season: activeSeason
+                ? {
+                    id: activeSeason.id,
+                    name: activeSeason.name,
+                    endsAt: activeSeason.end_at,
+                    startsAt: activeSeason.start_at,
+                }
+                : null,
+            meta: {
+                participantsCount,
+                topScore,
+                averageScore: Math.round(averageScore),
+            },
+            me,
         });
-
     } catch (e: any) {
         console.error('Leaderboard error:', e);
         return c.json({ error: 'Erro ao carregar arena: ' + e.message }, 500);
@@ -2231,19 +2359,32 @@ app.post('/admin/feedbacks/:id/status', async (c) => {
 
 app.get('/users/me/rewards', async (c) => {
     try {
-        const authHeader = c.req.header('Authorization');
-        if (!authHeader) return c.json({ error: 'Não autorizado.' }, 401);
-        
-        const token = authHeader.split(' ')[1];
-        const payload = decode(token).payload as any;
-        const userId = payload.id;
+        const auth = await authenticateRequest(c);
+        if ('error' in auth) return auth.error;
+
+        const userId = String(auth.payload.id);
         const db = c.env.DB;
 
-        const rewards = await db.prepare('SELECT * FROM arena_winners WHERE user_id = ? ORDER BY created_at DESC')
+        const rewards = await db.prepare(`
+            SELECT
+                w.id,
+                w.user_id,
+                w.season_id,
+                w.rank_name,
+                w.position,
+                w.created_at,
+                s.name as season_name,
+                s.start_at as season_start_at,
+                s.end_at as season_end_at
+            FROM arena_winners w
+            LEFT JOIN arena_seasons s ON s.id = w.season_id
+            WHERE w.user_id = ?
+            ORDER BY w.created_at DESC
+        `)
             .bind(userId)
             .all();
 
-        return c.json(rewards.results);
+        return c.json(rewards.results || []);
     } catch (e: any) {
         return c.json({ error: 'Erro ao carregar recompensas: ' + e.message }, 500);
     }

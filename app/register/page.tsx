@@ -4,12 +4,31 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/store/useStore";
 import { motion } from "framer-motion";
-import { ChevronLeft, Cloud, Loader2, Eye, EyeOff, Check } from "lucide-react";
+import { ChevronLeft, Loader2, Eye, EyeOff, Check } from "lucide-react";
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { SignInWithApple } from '@capacitor-community/apple-sign-in';
+import { useGoogleLogin } from '@react-oauth/google';
 import { API_URL, GOOGLE_CLIENT_ID, GOOGLE_IOS_CLIENT_ID } from "@/utils/constants";
 import { Capacitor } from '@capacitor/core';
 import Logo from '@/components/Logo';
+
+function getErrorMessage(error: unknown, fallback = 'Operação cancelada.'): string {
+    if (error instanceof Error && error.message) return error.message;
+    if (typeof error === 'string' && error) return error;
+    if (typeof error === 'object' && error !== null && 'message' in error) {
+        const maybeMessage = (error as { message?: unknown }).message;
+        if (typeof maybeMessage === 'string' && maybeMessage) return maybeMessage;
+    }
+    return fallback;
+}
+
+function getOAuthErrorCode(error: unknown): string | null {
+    if (typeof error === 'object' && error !== null && 'error' in error) {
+        const maybeCode = (error as { error?: unknown }).error;
+        if (typeof maybeCode === 'string' && maybeCode) return maybeCode;
+    }
+    return null;
+}
 
 export default function RegisterPage() {
     const router = useRouter();
@@ -27,6 +46,47 @@ export default function RegisterPage() {
     const [sendingCode, setSendingCode] = useState(false);
     const [error, setError] = useState("");
     const [hp, setHp] = useState(""); // Honeypot
+
+    const loginWebGoogle = useGoogleLogin({
+        onSuccess: async (codeResponse) => {
+            setLoading(true);
+            setError("");
+            try {
+                const res = await fetch(`${API_URL}/auth/google/web`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accessToken: codeResponse.access_token })
+                });
+
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(data.error || 'Erro Google (Web).');
+
+                clearUserData();
+                setJwt(data.token);
+                restoreUserSession({
+                    name: data.user?.name || name || 'User',
+                    username: data.user?.username,
+                    language: data.user?.language,
+                    total_xp: data.user?.total_xp,
+                    level: data.user?.level,
+                    lastLoginRewardDate: data.user?.lastLoginRewardDate,
+                    optInLeaderboard: data.user?.optInLeaderboard,
+                    arena_points: data.user?.arena_points,
+                });
+                syncWithCloud().catch(console.error);
+                router.replace('/');
+            } catch (err: unknown) {
+                let errorMessage = getErrorMessage(err, 'Operação Cancelada (Web).');
+                const code = getOAuthErrorCode(err);
+                if (code) errorMessage += ` (${code})`;
+                setError('Google Login falhou: ' + errorMessage);
+                setLoading(false);
+            }
+        },
+        onError: () => {
+            setError('Falha ao iniciar Google Login.');
+        }
+    });
 
     const handleSendCode = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -63,8 +123,8 @@ export default function RegisterPage() {
 
             setStep('otp');
             setSendingCode(false);
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err: unknown) {
+            setError(getErrorMessage(err, 'Erro ao enviar código.'));
             setSendingCode(false);
         }
     };
@@ -99,18 +159,26 @@ export default function RegisterPage() {
 
             syncWithCloud().catch(console.error);
             router.replace('/');
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err: unknown) {
+            setError(getErrorMessage(err, 'Erro ao criar conta.'));
             setLoading(false);
         }
     };
 
     const handleGoogleLogin = async () => {
+        const platform = Capacitor.getPlatform();
+
+        if (platform === 'web') {
+            setError("");
+            loginWebGoogle();
+            return;
+        }
+
         setLoading(true);
         setError("");
         try {
             await GoogleAuth.initialize({
-                clientId: Capacitor.getPlatform() === 'ios' ? GOOGLE_IOS_CLIENT_ID : GOOGLE_CLIENT_ID,
+                clientId: platform === 'ios' ? GOOGLE_IOS_CLIENT_ID : GOOGLE_CLIENT_ID,
                 scopes: ['profile', 'email']
             });
             const googleUser = await GoogleAuth.signIn();
@@ -137,13 +205,25 @@ export default function RegisterPage() {
             });
             syncWithCloud().catch(console.error);
             router.replace('/');
-        } catch (err: any) {
-            setError('Google Login falhou: ' + (err.message || 'Operação Cancelada.'));
+        } catch (err: unknown) {
+            setError('Google Login falhou: ' + getErrorMessage(err, 'Operação Cancelada.'));
             setLoading(false);
         }
     };
 
     const handleAppleLogin = async () => {
+        const platform = Capacitor.getPlatform();
+
+        if (platform === 'web') {
+            const clientId = 'com.pedro.zenith';
+            const redirectUri = 'https://zenith-api.zenith-pedro.workers.dev/auth/apple/callback';
+            const state = window.location.origin;
+
+            const appleUrl = `https://appleid.apple.com/auth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code id_token&state=${encodeURIComponent(state)}&scope=name email&response_mode=form_post`;
+            window.location.href = appleUrl;
+            return;
+        }
+
         setLoading(true);
         setError("");
         try {
@@ -180,8 +260,8 @@ export default function RegisterPage() {
             });
             syncWithCloud().catch(console.error);
             router.replace('/');
-        } catch (err: any) {
-            setError('Apple Login falhou: ' + (err.message || 'Operação Cancelada.'));
+        } catch (err: unknown) {
+            setError('Apple Login falhou: ' + getErrorMessage(err, 'Operação Cancelada.'));
             setLoading(false);
         }
     };

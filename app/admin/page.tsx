@@ -17,6 +17,7 @@ type Feedback = {
     status: 'unread' | 'read' | 'resolved';
     created_at: number;
 };
+type FeedbackStatus = Feedback['status'];
 
 type Stats = {
     totalUsers: number;
@@ -62,17 +63,17 @@ export default function AdminPage() {
             setStats(statsData.stats || null);
             setRecentEvents(statsData.recentEvents || []);
             setIsAuthenticated(true);
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : 'Acesso negado.');
         } finally {
             setLoading(false);
         }
     };
 
-    const updateStatus = async (id: string, newStatus: string) => {
+    const updateStatus = async (id: string, newStatus: FeedbackStatus) => {
         try {
             // Optimistic update
-            setFeedbacks(prev => prev.map(f => f.id === id ? { ...f, status: newStatus as any } : f));
+            setFeedbacks(prev => prev.map(f => f.id === id ? { ...f, status: newStatus } : f));
 
             await fetch(`${API_URL}/admin/feedbacks/${id}/status`, {
                 method: 'POST',

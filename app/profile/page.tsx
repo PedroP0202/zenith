@@ -14,6 +14,7 @@ import TrophyWall from "@/components/TrophyWall";
 import { getBestStreak, getYearlyStats } from "@/utils/streak";
 import { getRankForLevel, getLevelProgress, getXPNeededForLevel, getXpToNextLevel } from "@/utils/progression";
 import { useCallback } from "react";
+import type { ArenaReward, BlockedUser } from "@/types";
 
 export default function ProfilePage() {
     const router = useRouter();
@@ -39,6 +40,7 @@ export default function ProfilePage() {
         setUsername,
         totalXP,
         level,
+        arenaPoints,
         friends
     } = useStore();
     const [mounted, setMounted] = useState(false);
@@ -59,9 +61,9 @@ export default function ProfilePage() {
     const [passwordError, setPasswordError] = useState("");
     const [isSavingUsername, setIsSavingUsername] = useState(false);
     const [usernameMessage, setUsernameMessage] = useState<{ text: string, type: 'success' | 'error' | 'info' } | null>(null);
-    const [rewards, setRewards] = useState<any[]>([]);
+    const [rewards, setRewards] = useState<ArenaReward[]>([]);
     const [isLoadingRewards, setIsLoadingRewards] = useState(false);
-    const [blockedUsers, setBlockedUsers] = useState<any[]>([]);
+    const [blockedUsers, setBlockedUsers] = useState<BlockedUser[]>([]);
     const [unblockingId, setUnblockingId] = useState<string | null>(null);
 
     const fetchBlockedUsers = useCallback(async () => {
@@ -70,7 +72,7 @@ export default function ProfilePage() {
             const res = await fetch(`${API_URL}/friends/blocked`, {
                 headers: { 'Authorization': `Bearer ${jwt}` }
             });
-            const data = await res.json();
+            const data = (await res.json().catch(() => ({}))) as { blocked?: BlockedUser[] };
             if (res.ok) setBlockedUsers(data.blocked || []);
         } catch (e) {
             console.error("Failed to fetch blocked users:", e);
@@ -147,8 +149,8 @@ export default function ProfilePage() {
                 headers: { 'Authorization': `Bearer ${jwt}` }
             });
             if (res.ok) {
-                const data = await res.json();
-                setRewards(data);
+                const data = (await res.json().catch(() => ([]))) as ArenaReward[];
+                setRewards(Array.isArray(data) ? data : []);
             }
         } catch (error) {
             console.error("Error fetching rewards:", error);
@@ -536,6 +538,46 @@ export default function ProfilePage() {
                     ))}
                 </motion.section>
 
+                {/* Arena Snapshot */}
+                <motion.section
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: 0.1, type: 'spring' }}
+                    className="rounded-[2rem] border border-white/10 bg-gradient-to-br from-white/[0.06] to-white/[0.02] p-5"
+                >
+                    <div className="mb-4 flex items-start justify-between gap-3">
+                        <div>
+                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--zenith-active)]">{t.arena.title}</p>
+                            <h2 className="text-lg font-black tracking-tight text-white">{t.arena.subtitle}</h2>
+                        </div>
+                        <button
+                            onClick={() => router.push('/leaderboard')}
+                            className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-white/70 transition-colors hover:bg-white/10"
+                        >
+                            {t.arena.title}
+                        </button>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2.5">
+                        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+                            <p className="text-[9px] font-black uppercase tracking-[0.14em] text-white/35">{t.arena.myTier}</p>
+                            <p className="mt-2 truncate text-base font-black">{optInLeaderboard ? currentRank.name : '--'}</p>
+                        </div>
+                        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+                            <p className="text-[9px] font-black uppercase tracking-[0.14em] text-white/35">{t.arena.myScore}</p>
+                            <p className="mt-2 truncate text-base font-black">{optInLeaderboard ? arenaPoints : 0}</p>
+                        </div>
+                        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+                            <p className="text-[9px] font-black uppercase tracking-[0.14em] text-white/35">{t.arena.championsWall}</p>
+                            <p className="mt-2 truncate text-base font-black">{rewards.length}</p>
+                        </div>
+                    </div>
+
+                    <div className="mt-4 rounded-2xl border border-white/10 bg-black/25 px-3 py-2 text-xs text-white/55">
+                        {optInLeaderboard ? t.arena.visibilityNote : t.arena.notParticipating}
+                    </div>
+                </motion.section>
+
                 {/* Trophy Wall */}
                 <motion.section
                     initial={{ opacity: 0, y: 16 }}
@@ -545,39 +587,57 @@ export default function ProfilePage() {
                     <TrophyWall />
                 </motion.section>
 
-                {/* Arena History - Condecorações */}
-                {rewards.length > 0 && (
+                {/* Arena History */}
+                {(isLoadingRewards || rewards.length > 0) && (
                     <motion.section
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
                         className="space-y-4"
                     >
                         <div className="flex items-center justify-between px-2">
-                            <h2 className="text-xs uppercase tracking-[0.2em] text-white/40 font-black">Histórico da Arena</h2>
-                            <span className="text-[10px] text-[var(--zenith-active)] font-bold">{rewards.length} {rewards.length === 1 ? 'Condecoração' : 'Condecorações'}</span>
+                            <h2 className="text-xs uppercase tracking-[0.2em] text-white/40 font-black">{t.arena.championsWall}</h2>
+                            {isLoadingRewards ? (
+                                <Loader2 size={14} className="animate-spin text-white/35" />
+                            ) : (
+                                <span className="text-[10px] text-[var(--zenith-active)] font-bold">
+                                    {rewards.length} {rewards.length === 1 ? (language === 'pt' ? 'Condecoração' : 'Award') : (language === 'pt' ? 'Condecorações' : 'Awards')}
+                                </span>
+                            )}
                         </div>
-                        
-                        <div className="grid grid-cols-2 gap-3">
-                            {rewards.map((reward) => (
-                                <div 
-                                    key={reward.id}
-                                    className="bg-white/[0.03] border border-white/5 rounded-3xl p-4 flex flex-col items-center text-center gap-2 backdrop-blur-sm"
-                                >
-                                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-white/10 to-transparent flex items-center justify-center mb-1 shadow-inner">
-                                        <Trophy size={20} className={reward.position <= 3 ? "text-yellow-400" : "text-white/40"} />
-                                    </div>
-                                    <div className="flex flex-col">
-                                        <span className="text-xs font-black uppercase tracking-widest text-white">{reward.rank_name}</span>
-                                        <span className="text-[10px] font-bold text-white/30 uppercase tracking-tighter mt-0.5">Época {reward.season_id}</span>
-                                    </div>
-                                    {reward.position && (
-                                        <div className="px-2 py-0.5 rounded-full bg-[var(--zenith-active)]/10 border border-[var(--zenith-active)]/20 text-[9px] font-black text-[var(--zenith-active)]">
-                                            #{reward.position} GLOBAL
+
+                        {isLoadingRewards ? (
+                            <div className="grid grid-cols-2 gap-3">
+                                {[0, 1, 2, 3].map((item) => (
+                                    <div key={item} className="h-28 animate-pulse rounded-3xl border border-white/5 bg-white/[0.03]" />
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-2 gap-3">
+                                {rewards.map((reward) => {
+                                    const seasonLabel = reward.season_name || `${language === 'pt' ? 'Época' : 'Season'} ${reward.season_id}`;
+
+                                    return (
+                                        <div
+                                            key={reward.id || `${reward.season_id}-${reward.rank_name}-${reward.position}`}
+                                            className="flex flex-col items-center gap-2 rounded-3xl border border-white/5 bg-white/[0.03] p-4 text-center backdrop-blur-sm"
+                                        >
+                                            <div className="mb-1 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-white/10 to-transparent shadow-inner">
+                                                <Trophy size={20} className={(reward.position || 0) <= 3 ? "text-yellow-400" : "text-white/40"} />
+                                            </div>
+                                            <div className="flex flex-col">
+                                                <span className="text-xs font-black uppercase tracking-widest text-white">{reward.rank_name}</span>
+                                                <span className="mt-0.5 text-[10px] font-bold uppercase tracking-tighter text-white/30">{seasonLabel}</span>
+                                            </div>
+                                            {reward.position ? (
+                                                <div className="rounded-full border border-[var(--zenith-active)]/20 bg-[var(--zenith-active)]/10 px-2 py-0.5 text-[9px] font-black text-[var(--zenith-active)]">
+                                                    #{reward.position} GLOBAL
+                                                </div>
+                                            ) : null}
                                         </div>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </motion.section>
                 )}
 
@@ -694,14 +754,14 @@ export default function ProfilePage() {
                             {/* Security Section */}
                             {jwt && (
                                 <section>
-                                    <h2 className="text-xs uppercase tracking-widest text-white/40 mb-3 ml-2 font-bold">{(t.settings as any).security.title}</h2>
+                                    <h2 className="text-xs uppercase tracking-widest text-white/40 mb-3 ml-2 font-bold">{t.settings.security.title}</h2>
                                     <div className="bg-white/[0.03] rounded-3xl p-5 border border-white/5 flex items-center justify-between">
                                         <div className="flex items-center gap-4">
                                             <div className="text-white/40">
                                                 <Lock className="w-5 h-5" />
                                             </div>
                                             <div>
-                                                <h3 className="text-base font-medium">{(t.settings as any).security.changePassword}</h3>
+                                                <h3 className="text-base font-medium">{t.settings.security.changePassword}</h3>
                                                 <p className="text-[10px] text-white/30 uppercase tracking-widest font-bold mt-1">Sincronizado</p>
                                             </div>
                                         </div>
@@ -769,32 +829,51 @@ export default function ProfilePage() {
                             </section>
 
                             {/* Arena Switch Section */}
-                            {optInLeaderboard && (
-                                <section>
-                                    <h2 className="text-xs uppercase tracking-widest text-white/40 mb-3 ml-2 font-bold">A Arena</h2>
-                                    <div className="bg-white/[0.03] rounded-3xl p-5 border border-white/5 flex items-center justify-between">
-                                        <div className="flex items-center gap-4">
-                                            <div className="text-white/40">
-                                                <Trophy className="w-5 h-5" />
-                                            </div>
-                                            <div>
-                                                <h3 className="text-base font-medium">Arena Global</h3>
-                                                <p className="text-xs text-white/50 mt-1 leading-relaxed max-w-[200px]">O teu nome e pontuação estão visíveis para outros.</p>
-                                            </div>
+                            <section>
+                                <h2 className="text-xs uppercase tracking-widest text-white/40 mb-3 ml-2 font-bold">{t.arena.title}</h2>
+                                <div className="bg-white/[0.03] rounded-3xl p-5 border border-white/5 flex items-center justify-between">
+                                    <div className="flex items-center gap-4">
+                                        <div className={`${optInLeaderboard ? 'text-[var(--zenith-active)]' : 'text-white/40'}`}>
+                                            <Trophy className="w-5 h-5" />
                                         </div>
-                                        <button
-                                            onClick={() => {
-                                                if (confirm("Atenção: A Arena é muito competitiva. Sair agora irá APAGAR todos os teus pontos atuais ganho nesta Temporada. Tens a certeza?")) {
-                                                    setOptInLeaderboard(false);
-                                                }
-                                            }}
-                                            className="text-[11px] font-bold text-red-400 bg-red-400/10 px-4 py-2 rounded-xl transition-colors hover:bg-red-400/20 active:scale-95 uppercase tracking-wider"
-                                        >
-                                            Sair
-                                        </button>
+                                        <div>
+                                            <h3 className="text-base font-medium">{t.arena.title}</h3>
+                                            <p className="text-xs text-white/50 mt-1 leading-relaxed max-w-[220px]">
+                                                {optInLeaderboard
+                                                    ? `${t.arena.visibilityNote} (${arenaPoints} pts)`
+                                                    : t.arena.notParticipating}
+                                            </p>
+                                        </div>
                                     </div>
-                                </section>
-                            )}
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={() => router.push('/leaderboard')}
+                                            className="text-[11px] font-bold text-white bg-white/10 px-3 py-2 rounded-xl transition-colors hover:bg-white/20 active:scale-95 uppercase tracking-wider"
+                                        >
+                                            {t.arena.title}
+                                        </button>
+                                        {optInLeaderboard ? (
+                                            <button
+                                                onClick={() => {
+                                                    if (confirm(`${t.arena.optOutTitle} ${t.arena.optOutDescription}`)) {
+                                                        setOptInLeaderboard(false);
+                                                    }
+                                                }}
+                                                className="text-[11px] font-bold text-red-400 bg-red-400/10 px-3 py-2 rounded-xl transition-colors hover:bg-red-400/20 active:scale-95 uppercase tracking-wider"
+                                            >
+                                                {t.arena.optOutConfirm}
+                                            </button>
+                                        ) : (
+                                            <button
+                                                onClick={() => setOptInLeaderboard(true)}
+                                                className="text-[11px] font-bold text-black bg-white px-3 py-2 rounded-xl transition-colors active:scale-95 uppercase tracking-wider"
+                                            >
+                                                {t.arena.joinCta}
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            </section>
 
                             {/* Danger Zone */}
                             <section>
@@ -829,7 +908,7 @@ export default function ProfilePage() {
                                     onClick={() => deviceHaptics.lightImpact()}
                                     className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em] hover:text-white/70 transition-colors"
                                 >
-                                    {(t.settings as any).support.contactUs}
+                                    {t.settings.support.contactUs}
                                 </a>
                             </div>
 
@@ -919,16 +998,16 @@ export default function ProfilePage() {
                     setPasswordError("");
                 }}
                 onConfirm={handleChangePassword}
-                title={(t.settings as any).security.changePassword}
+                title={t.settings.security.changePassword}
                 description="Altera a tua chave de acesso à Zenith Cloud."
-                confirmLabel={isChangingPassword ? "A Processar..." : (t.settings as any).security.changeAction}
+                confirmLabel={isChangingPassword ? "A Processar..." : t.settings.security.changeAction}
                 cancelLabel={t.common.cancel}
                 isDanger={false}
             >
                 <div className="mt-6 w-full text-left space-y-4">
                      <div>
                         <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-2 block ml-1">
-                            {(t.settings as any).security.currentPassword}
+                            {t.settings.security.currentPassword}
                         </label>
                         <div className="relative">
                             <input
@@ -944,7 +1023,7 @@ export default function ProfilePage() {
                     </div>
                     <div className="pt-2 border-t border-white/5">
                         <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-2 block ml-1">
-                            {(t.settings as any).security.newPassword}
+                            {t.settings.security.newPassword}
                         </label>
                         <input
                             type={showPasswords ? "text" : "password"}
@@ -955,7 +1034,7 @@ export default function ProfilePage() {
                     </div>
                     <div>
                         <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-2 block ml-1">
-                            {(t.settings as any).security.confirmNewPassword}
+                            {t.settings.security.confirmNewPassword}
                         </label>
                         <input
                             type={showPasswords ? "text" : "password"}

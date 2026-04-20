@@ -11,6 +11,25 @@ import { useGoogleLogin } from '@react-oauth/google';
 import { API_URL, GOOGLE_CLIENT_ID, GOOGLE_IOS_CLIENT_ID } from "@/utils/constants";
 import { Capacitor } from '@capacitor/core';
 import Logo from '@/components/Logo';
+
+function getErrorMessage(error: unknown, fallback = 'Operação cancelada.'): string {
+    if (error instanceof Error && error.message) return error.message;
+    if (typeof error === 'string' && error) return error;
+    if (typeof error === 'object' && error !== null && 'message' in error) {
+        const maybeMessage = (error as { message?: unknown }).message;
+        if (typeof maybeMessage === 'string' && maybeMessage) return maybeMessage;
+    }
+    return fallback;
+}
+
+function getOAuthErrorCode(error: unknown): string | null {
+    if (typeof error === 'object' && error !== null && 'error' in error) {
+        const maybeCode = (error as { error?: unknown }).error;
+        if (typeof maybeCode === 'string' && maybeCode) return maybeCode;
+    }
+    return null;
+}
+
 export default function LoginPage() {
     const router = useRouter();
     const { setJwt, syncWithCloud, clearUserData, restoreUserSession } = useStore();
@@ -41,7 +60,6 @@ export default function LoginPage() {
                         clientId: Capacitor.getPlatform() === 'ios' ? GOOGLE_IOS_CLIENT_ID : GOOGLE_CLIENT_ID,
                         scopes: ['profile', 'email']
                     });
-                    console.log("[ZENITH_AUTH] Capacitor Google Auth initialized for native");
                 } catch (err) {
                     console.error("[ZENITH_AUTH] Failed to initialize Google Auth:", err);
                 }
@@ -87,11 +105,12 @@ export default function LoginPage() {
 
             // Navigate immediately for that instant premium feel
             router.replace('/');
-        } catch (err: any) {
-            if (err.message.includes('fetch') || err.message.includes('Network')) {
+        } catch (err: unknown) {
+            const message = getErrorMessage(err, 'Erro ao entrar.');
+            if (message.includes('fetch') || message.includes('Network')) {
                 setError('Sem ligação ao servidor. Tenta novamente.');
             } else {
-                setError(err.message);
+                setError(message);
             }
             setLoading(false);
         }
@@ -103,8 +122,6 @@ export default function LoginPage() {
             setLoading(true);
             setError("");
             try {
-                console.log("[ZENITH_AUTH] Web Google Login successful. Response:", codeResponse);
-
                 // We send the access_token to the backend, where it will fetch user profile
                 const res = await fetch(`${API_URL}/auth/google/web`, {
                     method: 'POST',
@@ -130,10 +147,11 @@ export default function LoginPage() {
                 syncWithCloud().catch(console.error);
                 router.replace('/');
 
-            } catch (err: any) {
+            } catch (err: unknown) {
                 console.error("[ZENITH_AUTH] Web Google Error:", err);
-                let errorMessage = err.message || 'Operação Cancelada (Web).';
-                if (err.error) errorMessage += ` (${err.error})`;
+                let errorMessage = getErrorMessage(err, 'Operação Cancelada (Web).');
+                const code = getOAuthErrorCode(err);
+                if (code) errorMessage += ` (${code})`;
                 setError('Google Login falhou: ' + errorMessage);
                 setLoading(false);
             }
@@ -149,7 +167,6 @@ export default function LoginPage() {
         const platform = Capacitor.getPlatform();
 
         if (platform === 'web') {
-            console.log("[ZENITH_AUTH] Using Web Google Login fallback...");
             loginWebGoogle();
             return;
         }
@@ -158,10 +175,7 @@ export default function LoginPage() {
         setLoading(true);
         setError("");
         try {
-            console.log("[ZENITH_AUTH] Attempting Native Google Sign In...");
             const googleUser = await GoogleAuth.signIn();
-
-            console.log("[ZENITH_AUTH] Native Google Auth Sign In successful. Sending to backend...");
 
             const res = await fetch(`${API_URL}/auth/google`, {
                 method: 'POST',
@@ -185,10 +199,11 @@ export default function LoginPage() {
             });
             syncWithCloud().catch(console.error);
             router.replace('/');
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error("[ZENITH_AUTH] Full Native Google Error:", err);
-            let errorMessage = err.message || 'Operação Cancelada.';
-            if (err.error) errorMessage += ` (${err.error})`;
+            let errorMessage = getErrorMessage(err, 'Operação Cancelada.');
+            const code = getOAuthErrorCode(err);
+            if (code) errorMessage += ` (${code})`;
             setError('Google Login falhou: ' + errorMessage);
             setLoading(false);
         }
@@ -204,7 +219,6 @@ export default function LoginPage() {
 
             const appleUrl = `https://appleid.apple.com/auth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code id_token&state=${encodeURIComponent(state)}&scope=name email&response_mode=form_post`;
 
-            console.log("[ZENITH_AUTH] Redirecting to Apple Web Auth...");
             window.location.href = appleUrl;
             return;
         }
@@ -246,9 +260,9 @@ export default function LoginPage() {
             });
             syncWithCloud().catch(console.error);
             router.replace('/');
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error("[ZENITH_AUTH] Apple Native Error:", err);
-            setError('Apple Login falhou: ' + (err.message || 'Operação Cancelada.'));
+            setError('Apple Login falhou: ' + getErrorMessage(err, 'Operação Cancelada.'));
             setLoading(false);
         }
     };

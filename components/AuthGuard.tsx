@@ -15,7 +15,6 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
         const handleAppStateChange = async (state: { isActive: boolean }) => {
             if (state.isActive) {
-                console.log("[AuthGuard] App became active, checking for widget toggles...");
                 useStore.getState().checkWidgetToggles().catch(console.error);
             }
         };

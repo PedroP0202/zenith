@@ -22,6 +22,8 @@ import { API_URL } from "@/utils/constants";
 import { getRankForLevel } from "@/utils/progression";
 import TrophyWall from "@/components/TrophyWall";
 import UserOrb from "@/components/UserOrb";
+import type { ArenaReward, FriendProfileData } from "@/types";
+import type { Language } from "@/locales";
 
 const DAY_LABELS_PT = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
 const DAY_LABELS_EN = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
@@ -204,7 +206,7 @@ function BlockModal({ username, userId, jwt, onClose, onSuccess }: {
 
 // ─── Stats Modal ──────────────────────────────────────────────────────────────
 function StatsModal({ friendData, myXP, myLevel, language, onClose }: {
-    friendData: any; myXP: number; myLevel: number; language: string; onClose: () => void;
+    friendData: FriendProfileData; myXP: number; myLevel: number; language: Language; onClose: () => void;
 }) {
     const friendRank = getRankForLevel(friendData.user.level);
     const myRank = getRankForLevel(myLevel);
@@ -288,10 +290,10 @@ function FriendProfileContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const username = searchParams.get('u');
-    const { jwt, habits, logs, level: myLevel, totalXP: myXP, removeFriend } = useStore();
+    const { jwt, logs, level: myLevel, totalXP: myXP, removeFriend } = useStore();
     const { language } = useTranslation();
     
-    const [friendData, setFriendData] = useState<any>(null);
+    const [friendData, setFriendData] = useState<FriendProfileData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [mounted, setMounted] = useState(false);
@@ -318,9 +320,14 @@ function FriendProfileContent() {
             });
             const contentType = res.headers.get("content-type");
             if (contentType && contentType.includes("application/json")) {
-                const data = await res.json();
-                if (res.ok) setFriendData(data);
-                else setError(data.error || `Erro ${res.status}`);
+                const data = (await res.json().catch(() => ({}))) as Partial<FriendProfileData> & { error?: string };
+                if (res.ok && data.user && data.stats && data.arenaHistory && data.unlockedTrophies) {
+                    setFriendData(data as FriendProfileData);
+                } else if (res.ok) {
+                    setError("Formato de perfil inválido.");
+                } else {
+                    setError(data.error || `Erro ${res.status}`);
+                }
             } else {
                 setError(res.status === 404 ? `Utilizador "@${username}" não encontrado.` : `Erro ${res.status}`);
             }
@@ -416,6 +423,25 @@ function FriendProfileContent() {
                         Voltar
                     </button>
                 </div>
+            </div>
+        );
+    }
+
+    if (!friendData) {
+        return (
+            <div className="min-h-[100dvh] bg-black text-white px-6 flex flex-col items-center justify-center gap-6">
+                <div className="w-16 h-16 bg-white/5 rounded-3xl flex items-center justify-center text-white/40">
+                    <Activity size={28} />
+                </div>
+                <p className="text-white/60 font-medium text-center text-sm">
+                    Não foi possível carregar o perfil deste utilizador.
+                </p>
+                <button
+                    onClick={() => router.back()}
+                    className="w-full max-w-[200px] py-4 bg-white/5 rounded-2xl text-sm font-bold text-white/40 active:scale-95 transition-transform"
+                >
+                    Voltar
+                </button>
             </div>
         );
     }
@@ -702,11 +728,11 @@ function FriendProfileContent() {
                         <section>
                             <h2 className="text-[10px] uppercase tracking-[0.2em] text-white/40 font-black px-1 mb-3">Condecorações de Arena</h2>
                             <div className="grid grid-cols-2 gap-3">
-                                {friendData.arenaHistory.map((reward: any, i: number) => (
+                                {friendData.arenaHistory.map((reward: ArenaReward, i: number) => (
                                     <div key={i} className="bg-white/[0.03] border border-white/5 rounded-2xl p-4 flex flex-col items-center text-center gap-2">
-                                        <Trophy size={18} className={reward.position <= 3 ? "text-yellow-400" : "text-white/30"} />
+                                        <Trophy size={18} className={(reward.position || 0) <= 3 ? "text-yellow-400" : "text-white/30"} />
                                         <span className="text-[10px] font-black uppercase tracking-widest text-white/80">{reward.rank_name}</span>
-                                        <span className="text-[9px] font-bold text-white/20">Época {reward.season_id}</span>
+                                        <span className="text-[9px] font-bold text-white/20">{reward.season_name || `Época ${reward.season_id}`}</span>
                                     </div>
                                 ))}
                             </div>

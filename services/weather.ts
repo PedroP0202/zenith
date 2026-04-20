@@ -4,7 +4,6 @@ const API_KEY = process.env.NEXT_PUBLIC_WEATHER_API_KEY;
 export async function getWeatherData(lat: number, lon: number) {
   // Se a chave for a de exemplo ou não existir, devolve dados vazios
   if (!API_KEY || API_KEY === 'TUA_CHAVE_REAL_DA_OPENWEATHER') {
-    console.log('A usar dados mock - Chave API não configurada corretamente');
     return {
       temp: 0,
       wind: 0,

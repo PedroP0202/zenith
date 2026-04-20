@@ -40,3 +40,92 @@ export interface LogEntry {
     /** Timestamp of when this log was last synced with the Cloudflare backend. */
     syncedAt?: number;
 }
+
+/**
+ * Basic public user information used across social features.
+ */
+export interface PublicUser {
+    id: string;
+    name: string;
+    username: string;
+}
+
+/**
+ * Friend list entry with an optional aggregate score.
+ */
+export interface Friend extends PublicUser {
+    score?: number;
+}
+
+/**
+ * Friend request row (incoming/outgoing).
+ */
+export interface FriendRequest extends PublicUser {
+    id: string;
+    created_at: number;
+    from_id?: string;
+    to_id?: string;
+}
+
+/**
+ * Search result item for users.
+ */
+export interface UserSearchResult extends PublicUser {}
+
+/**
+ * Arena reward/season history entry.
+ */
+export interface ArenaReward {
+    id?: string;
+    season_id: number | string;
+    rank_name: string;
+    position: number | null;
+    created_at?: number;
+    season_name?: string;
+    season_start_at?: number;
+    season_end_at?: number;
+}
+
+/**
+ * Blocked user row returned by /friends/blocked.
+ */
+export interface BlockedUser extends PublicUser {
+    friendship_id?: string;
+}
+
+/**
+ * Friend comparison payload row.
+ */
+export interface FriendComparisonHabit {
+    id: string;
+    title: string;
+    completions: number;
+}
+
+export interface FriendComparisonProfile {
+    name: string;
+    username: string;
+    habits: FriendComparisonHabit[];
+}
+
+/**
+ * Detailed profile payload for /users/:username/profile.
+ */
+export interface FriendProfileStats {
+    totalCompletions: number;
+    weeklyCompletions: number;
+    activeWeekdays: number[];
+    activeHabitsCount: number;
+}
+
+export interface FriendProfileUser extends PublicUser {
+    level: number;
+    totalXp: number;
+}
+
+export interface FriendProfileData {
+    user: FriendProfileUser;
+    arenaHistory: ArenaReward[];
+    stats: FriendProfileStats;
+    unlockedTrophies: string[];
+}

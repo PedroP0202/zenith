@@ -1,14 +1,11 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useStore } from '../../store/useStore';
 import {
-    getCompletionsThisMonth,
-    getCompletedDaysThisMonth,
     getYearlyStats,
     getBestStreak,
     calculateStreak,
     getDailyActivityMap,
-    isCompletedToday,
 } from '../../utils/streak';
 import dynamic from 'next/dynamic';
 const HabitCalendar = dynamic(() => import('../../components/HabitCalendar'), {
@@ -19,7 +16,7 @@ const ActivityHeatmap = dynamic(() => import('../../components/ActivityHeatmap')
     loading: () => <div className="h-[120px] w-full bg-white/5 rounded-2xl animate-pulse" />,
     ssr: false
 });
-import { format, getDaysInMonth, startOfWeek, addDays, isSameDay, startOfDay } from 'date-fns';
+import { format, startOfWeek, addDays, isSameDay, startOfDay } from 'date-fns';
 import { enUS, pt } from 'date-fns/locale';
 import { useTranslation } from '../../hooks/useTranslation';
 import Skeleton from '../../components/Skeleton';
@@ -37,28 +34,133 @@ export default function StatsPage() {
 
     useEffect(() => { setMounted(true); }, []);
 
-    const activeHabits = habits.filter(h => h.isActive);
-    const now = mounted ? new Date() : new Date();
+    const activeHabits = useMemo(() => habits.filter(h => h.isActive), [habits]);
+    const now = useMemo(() => new Date(), []);
     const localeObj = language === 'pt' ? pt : enUS;
     const monthName = mounted ? format(now, 'MMMM', { locale: localeObj }) : '...';
     const year = now.getFullYear();
     const DAY_LABELS = language === 'pt' ? DAY_LABELS_PT : DAY_LABELS_EN;
 
-    const yearlyStats = getYearlyStats(logs, now);
-    const activityMap = getDailyActivityMap(logs, 63, now);
-    const daysInMonth = getDaysInMonth(now);
+    const yearlyStats = useMemo(() => getYearlyStats(logs, now), [logs, now]);
+    const activityMap = useMemo(() => getDailyActivityMap(logs, 63, now), [logs, now]);
+
+    const logsByHabit = useMemo(() => {
+        const grouped: Record<string, typeof logs> = {};
+        logs.forEach((log) => {
+            if (!grouped[log.habitId]) grouped[log.habitId] = [];
+            grouped[log.habitId].push(log);
+        });
+        return grouped;
+    }, [logs]);
+
+    const completionByDay = useMemo(() => {
+        const grouped = new Map<number, Set<string>>();
+        logs.forEach((log) => {
+            const dayKey = startOfDay(new Date(log.completedAt)).getTime();
+            if (!grouped.has(dayKey)) grouped.set(dayKey, new Set<string>());
+            grouped.get(dayKey)!.add(log.habitId);
+        });
+        return grouped;
+    }, [logs]);
 
     // Current week (Mon-Sun)
     const weekStart = startOfWeek(now, { weekStartsOn: 1 });
-    const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+    const weekDays = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart]);
     const todayStart = startOfDay(now);
 
     // Global stats
     const totalCompletionsAllTime = logs.length;
-    const longestStreakAllHabits = activeHabits.reduce((max, habit) => {
-        const habitLogs = logs.filter(l => l.habitId === habit.id);
-        return Math.max(max, getBestStreak(habitLogs, habit.frequency));
-    }, 0);
+    const longestStreakAllHabits = useMemo(
+        () =>
+            activeHabits.reduce((max, habit) => {
+                const habitLogs = logsByHabit[habit.id] || [];
+                return Math.max(max, getBestStreak(habitLogs, habit.frequency));
+            }, 0),
+        [activeHabits, logsByHabit]
+    );
+
+    const weekMetrics = useMemo(() => {
+        return weekDays.map((day) => {
+            const dayStart = startOfDay(day);
+            const dayKey = dayStart.getTime();
+            const completedSet = completionByDay.get(dayKey) || new Set<string>();
+            const dayOfWeek = day.getDay();
+
+            let scheduledCount = 0;
+            let completedCount = 0;
+            activeHabits.forEach((habit) => {
+                const isScheduled = !habit.frequency || habit.frequency.includes(dayOfWeek);
+                if (!isScheduled) return;
+                scheduledCount++;
+                if (completedSet.has(habit.id)) completedCount++;
+            });
+
+            const isPast = dayStart <= todayStart;
+            const isToday = isSameDay(day, now);
+            const isFuture = dayStart > todayStart;
+
+            return {
+                date: day,
+                dayOfWeek,
+                isPast,
+                isToday,
+                isFuture,
+                completedCount,
+                scheduledCount,
+                rate: scheduledCount > 0 ? completedCount / scheduledCount : 0,
+            };
+        });
+    }, [weekDays, completionByDay, activeHabits, todayStart, now]);
+
+    const weekCompletedDays = useMemo(
+        () => weekMetrics.filter((metric) => metric.isPast && metric.completedCount > 0).length,
+        [weekMetrics]
+    );
+    const pastDays = useMemo(() => weekMetrics.filter((metric) => !metric.isFuture).length, [weekMetrics]);
+    const weekTotal = useMemo(
+        () => weekMetrics.reduce((sum, metric) => sum + metric.completedCount, 0),
+        [weekMetrics]
+    );
+
+    const habitStats = useMemo(() => {
+        return activeHabits.map((habit) => {
+            const habitLogs = logsByHabit[habit.id] || [];
+            const completedDaysSet = new Set<number>();
+
+            for (const log of habitLogs) {
+                const logDate = new Date(log.completedAt);
+                if (logDate.getMonth() === now.getMonth() && logDate.getFullYear() === now.getFullYear()) {
+                    completedDaysSet.add(logDate.getDate());
+                }
+            }
+
+            const completions = completedDaysSet.size;
+            const completedDaysThisMonth = Array.from(completedDaysSet).sort((a, b) => a - b);
+            const currentStreak = calculateStreak(habitLogs, habit.frequency, now);
+            const bestStreak = getBestStreak(habitLogs, habit.frequency);
+
+            let passedScheduledDays = 0;
+            for (let day = 1; day <= now.getDate(); day++) {
+                const d = new Date(now.getFullYear(), now.getMonth(), day);
+                if (!habit.frequency || habit.frequency.includes(d.getDay())) {
+                    passedScheduledDays++;
+                }
+            }
+
+            const completionRate = passedScheduledDays > 0 ? Math.round((completions / passedScheduledDays) * 100) : 0;
+
+            return {
+                habit,
+                habitLogs,
+                completions,
+                completedDaysThisMonth,
+                currentStreak,
+                bestStreak,
+                passedScheduledDays,
+                completionRate,
+            };
+        });
+    }, [activeHabits, logsByHabit, now]);
 
     return (
         <main className="min-h-[100dvh] bg-black text-white p-6 pb-32 font-sans flex flex-col items-center">
@@ -119,53 +221,17 @@ export default function StatsPage() {
                     transition={{ duration: 0.4, delay: 0.05, type: 'spring' }}
                 >
                     {/* Section header with weekly summary */}
-                    {(() => {
-                        const weekCompletedDays = weekDays.filter(day => {
-                            if (day > todayStart) return false;
-                            const dayOfWeek = day.getDay();
-                            return activeHabits.some(habit => {
-                                if (habit.frequency && !habit.frequency.includes(dayOfWeek)) return false;
-                                return logs.some(log => isSameDay(new Date(log.completedAt), day) && log.habitId === habit.id);
-                            });
-                        }).length;
-
-                        const pastDays = weekDays.filter(d => d <= todayStart).length;
-                        const weekTotal = weekDays.reduce((sum, day) => {
-                            const dayOfWeek = day.getDay();
-                            return sum + activeHabits.filter(habit => {
-                                if (habit.frequency && !habit.frequency.includes(dayOfWeek)) return false;
-                                return logs.some(log => isSameDay(new Date(log.completedAt), day) && log.habitId === habit.id);
-                            }).length;
-                        }, 0);
-
-                        return (
-                            <div className="flex items-baseline justify-between mb-4">
-                                <h2 className="text-[12px] font-bold text-white/40 tracking-wider uppercase">{t.stats.currentWeek}</h2>
-                                <span className="text-[12px] text-white/50">
-                                    <span className="text-white font-semibold">{weekCompletedDays}</span>/{pastDays} {t.stats.daysLabel} &nbsp;·&nbsp; <span className="text-white font-semibold">{weekTotal}</span> {t.stats.checkinsLabel}
-                                </span>
-                            </div>
-                        );
-                    })()}
+                    <div className="flex items-baseline justify-between mb-4">
+                        <h2 className="text-[12px] font-bold text-white/40 tracking-wider uppercase">{t.stats.currentWeek}</h2>
+                        <span className="text-[12px] text-white/50">
+                            <span className="text-white font-semibold">{weekCompletedDays}</span>/{pastDays} {t.stats.daysLabel} &nbsp;·&nbsp; <span className="text-white font-semibold">{weekTotal}</span> {t.stats.checkinsLabel}
+                        </span>
+                    </div>
 
                     <div className="bg-zenith-surface backdrop-blur-md border border-white/[0.05] shadow-sm rounded-2xl px-4 pt-5 pb-4">
                         <div className="flex justify-between items-end gap-1.5">
-                            {weekDays.map((day, i) => {
-                                const isPast = day <= todayStart;
-                                const isToday = isSameDay(day, now);
-                                const isFuture = day > todayStart;
-                                const dayOfWeek = day.getDay();
-
-                                const completedCount = activeHabits.filter(habit => {
-                                    if (habit.frequency && !habit.frequency.includes(dayOfWeek)) return false;
-                                    return logs.some(log => isSameDay(new Date(log.completedAt), day) && log.habitId === habit.id);
-                                }).length;
-
-                                const scheduledCount = activeHabits.filter(habit =>
-                                    !habit.frequency || habit.frequency.includes(dayOfWeek)
-                                ).length;
-
-                                const rate = scheduledCount > 0 ? completedCount / scheduledCount : 0;
+                            {weekMetrics.map((metric, i) => {
+                                const { date, isPast, isToday, isFuture, completedCount, scheduledCount, rate } = metric;
                                 const MAX_HEIGHT = 72;
                                 const MIN_HEIGHT = 6;
                                 const barHeight = isFuture ? MIN_HEIGHT : Math.max(MIN_HEIGHT, Math.round(rate * MAX_HEIGHT));
@@ -202,11 +268,11 @@ export default function StatsPage() {
 
                                         {/* Day label */}
                                         <span className={`text-[10px] font-bold ${isToday ? 'text-white' : 'text-white/25'}`}>
-                                            {DAY_LABELS[day.getDay()]}
+                                            {DAY_LABELS[date.getDay()]}
                                         </span>
                                         {/* Date number */}
                                         <span className={`text-[9px] ${isToday ? 'text-white/60' : 'text-white/15'}`}>
-                                            {day.getDate()}
+                                            {date.getDate()}
                                         </span>
                                     </div>
                                 );
@@ -286,22 +352,17 @@ export default function StatsPage() {
                         <p className="text-center opacity-40 mt-12 text-sm">{t.stats.noData}</p>
                     ) : (
                         <div className="space-y-3">
-                            {activeHabits.map((habit, index) => {
-                                const habitLogs = logs.filter(l => l.habitId === habit.id);
-                                const completions = getCompletionsThisMonth(habitLogs);
-                                const currentStreak = calculateStreak(habitLogs, habit.frequency, now);
-                                const bestStreak = getBestStreak(habitLogs, habit.frequency);
-
-                                // Only count up to today
-                                const passedScheduledDays = Array.from({ length: now.getDate() }, (_, day) => {
-                                    const d = new Date(now.getFullYear(), now.getMonth(), day + 1);
-                                    return (!habit.frequency || habit.frequency.includes(d.getDay())) ? 1 : 0;
-                                }).reduce((a: number, b: number) => a + b, 0);
-
-                                const completionRate = passedScheduledDays > 0
-                                    ? Math.round((completions / passedScheduledDays) * 100)
-                                    : 0;
-
+                            {habitStats.map((habitStat, index) => {
+                                const {
+                                    habit,
+                                    habitLogs,
+                                    completions,
+                                    completedDaysThisMonth,
+                                    currentStreak,
+                                    bestStreak,
+                                    passedScheduledDays,
+                                    completionRate,
+                                } = habitStat;
                                 const isExpanded = expandedId === habit.id;
 
                                 // Streak ring color
@@ -400,7 +461,7 @@ export default function StatsPage() {
                                                     </div>
                                                     <div className="px-5 pb-5">
                                                         <HabitCalendar
-                                                            completedDays={getCompletedDaysThisMonth(habitLogs, now)}
+                                                            completedDays={completedDaysThisMonth}
                                                             monthDate={now}
                                                             onDayClick={() => {}}
                                                         />

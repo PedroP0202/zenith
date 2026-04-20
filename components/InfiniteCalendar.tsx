@@ -3,9 +3,10 @@ import { useRef, useEffect } from 'react';
 import { getDaysInMonth, startOfMonth, getDay, subMonths, format } from 'date-fns';
 import { ptBR, enUS } from 'date-fns/locale';
 import { useTranslation } from '../hooks/useTranslation';
+import { LogEntry } from '../types';
 
 interface InfiniteCalendarProps {
-    habitLogs: any[];
+    habitLogs: LogEntry[];
     onDayClick: (date: Date) => void;
     frequency?: number[];
     isHardMode?: boolean;

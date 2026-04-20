@@ -3,10 +3,20 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, Cloud, Loader2, Eye, EyeOff, Check, Send } from "lucide-react";
+import { ChevronLeft, Loader2, Eye, EyeOff, Check, Send } from "lucide-react";
 import { API_URL } from "@/utils/constants";
 import { deviceHaptics } from "@/utils/haptics";
 import Logo from "@/components/Logo";
+
+function getErrorMessage(error: unknown, fallback = "Erro inesperado."): string {
+    if (error instanceof Error && error.message) return error.message;
+    if (typeof error === "string" && error) return error;
+    if (typeof error === "object" && error !== null && "message" in error) {
+        const maybeMessage = (error as { message?: unknown }).message;
+        if (typeof maybeMessage === "string" && maybeMessage) return maybeMessage;
+    }
+    return fallback;
+}
 
 export default function ForgotPasswordPage() {
     const router = useRouter();
@@ -23,8 +33,7 @@ export default function ForgotPasswordPage() {
     const [successMsg, setSuccessMsg] = useState("");
     const [hp, setHp] = useState(""); // Honeypot
 
-    const handleSendCode = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const sendCode = async () => {
         setLoading(true);
         setError("");
 
@@ -44,16 +53,15 @@ export default function ForgotPasswordPage() {
 
             deviceHaptics.success();
             setStep('reset');
-        } catch (err: any) {
+        } catch (err: unknown) {
             deviceHaptics.error();
-            setError(err.message);
+            setError(getErrorMessage(err, "Erro ao enviar código."));
         } finally {
             setLoading(false);
         }
     };
 
-    const handleResetPassword = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const resetPassword = async () => {
         setLoading(true);
         setError("");
 
@@ -87,11 +95,20 @@ export default function ForgotPasswordPage() {
             setTimeout(() => {
                 router.replace('/login');
             }, 2000);
-        } catch (err: any) {
+        } catch (err: unknown) {
             deviceHaptics.error();
-            setError(err.message);
+            setError(getErrorMessage(err, "Código incorreto ou erro."));
             setLoading(false);
         }
+    };
+
+    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        if (step === 'email') {
+            void sendCode();
+            return;
+        }
+        void resetPassword();
     };
 
     return (
@@ -136,7 +153,7 @@ export default function ForgotPasswordPage() {
                             <p className="text-white/40 text-center text-sm font-medium">{successMsg}</p>
                         </motion.div>
                     ) : (
-                        <form onSubmit={step === 'email' ? handleSendCode : handleResetPassword} className="space-y-6">
+                        <form id="forgot-form" onSubmit={handleSubmit} className="space-y-6">
                             {step === 'email' ? (
                                 <motion.div 
                                     key="email-step"
@@ -231,7 +248,8 @@ export default function ForgotPasswordPage() {
                         )}
 
                         <button
-                            onClick={step === 'email' ? (e: any) => handleSendCode(e) : (e: any) => handleResetPassword(e)}
+                            type="submit"
+                            form="forgot-form"
                             disabled={loading}
                             className="w-full h-16 bg-[var(--zenith-active)] text-black font-black rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-[0.98] disabled:opacity-50 shadow-glow-primary hover:shadow-[0_0_30px_rgba(16,185,129,0.3)] group"
                         >

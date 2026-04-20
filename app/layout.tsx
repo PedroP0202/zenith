@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Outfit } from 'next/font/google';
 import './globals.css';
 import BottomNav from '../components/BottomNav';
@@ -47,11 +47,11 @@ export const metadata: Metadata = {
     },
 };
 
-export const viewport = {
+export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  maximumScale: 5,
+  userScalable: true,
   themeColor: '#000000',
   viewportFit: 'cover',
 };
@@ -64,7 +64,7 @@ export default function RootLayout({
   return (
     <html lang="pt" className="bg-black overscroll-none">
       <head>
-        <meta name="google-signin-client_id" content="471890064632-6pehr2hlbfudc3qbf0je5kjpd2bjavlv.apps.googleusercontent.com" />
+        <meta name="google-signin-client_id" content={GOOGLE_CLIENT_ID} />
       </head>
       <body className={`${outfit.className} ${outfit.variable} bg-black font-sans text-white overscroll-none min-h-screen`}>
         <LangHandler />

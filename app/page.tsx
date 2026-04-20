@@ -1,12 +1,12 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useStore } from '../store/useStore';
 import { calculateStreak, isCompletedToday } from '../utils/streak';
 import Link from 'next/link';
-import { Plus, Settings, Trophy, User } from 'lucide-react';
+import { Plus, Trophy, User } from 'lucide-react';
 import { format } from 'date-fns';
-import { enUS } from 'date-fns/locale';
-import { AnimatePresence, motion } from 'framer-motion';
+import { enUS, pt } from 'date-fns/locale';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import SwipeableHabit from '../components/SwipeableHabit';
 import NotificationOnboarding from '../components/NotificationOnboarding';
 import BetaFeedback from '../components/BetaFeedback';
@@ -24,12 +24,11 @@ export default function Home() {
         userName, 
         removeHabit, 
         checkDailyReward, 
-        showDailyRewardToast, 
-        dismissDailyRewardToast,
         level 
     } = useStore();
-    const { t } = useTranslation();
+    const { t, language } = useTranslation();
     const [mounted, setMounted] = useState(false);
+    const shouldReduceMotion = useReducedMotion();
 
     useEffect(() => {
         setMounted(true);
@@ -40,9 +39,24 @@ export default function Home() {
     const now = new Date();
     const todayDayOfWeek = now.getDay();
 
-    const allActiveHabits = habits.filter(h => h.isActive);
-    const habitsForToday = allActiveHabits.filter(h => h.frequency ? h.frequency.includes(todayDayOfWeek) : true);
-    const otherHabits = allActiveHabits.filter(h => h.frequency && !h.frequency.includes(todayDayOfWeek));
+    const allActiveHabits = useMemo(() => habits.filter(h => h.isActive), [habits]);
+    const habitsForToday = useMemo(
+        () => allActiveHabits.filter(h => (h.frequency ? h.frequency.includes(todayDayOfWeek) : true)),
+        [allActiveHabits, todayDayOfWeek]
+    );
+    const otherHabits = useMemo(
+        () => allActiveHabits.filter(h => h.frequency && !h.frequency.includes(todayDayOfWeek)),
+        [allActiveHabits, todayDayOfWeek]
+    );
+
+    const logsByHabit = useMemo(() => {
+        const map: Record<string, typeof logs> = {};
+        logs.forEach((log) => {
+            if (!map[log.habitId]) map[log.habitId] = [];
+            map[log.habitId].push(log);
+        });
+        return map;
+    }, [logs]);
 
     const hour = now.getHours();
 
@@ -50,18 +64,20 @@ export default function Home() {
     if (hour >= 5 && hour < 12) greeting = t.home.goodMorning;
     else if (hour >= 12 && hour < 18) greeting = t.home.goodAfternoon;
 
-    const dateStr = mounted ? format(now, "MMM do, yyyy", { locale: enUS }) : t.common.loading;
+    const locale = language === 'pt' ? pt : enUS;
+    const dateStr = mounted ? format(now, "MMM do, yyyy", { locale }) : t.common.loading;
 
-    // Gamification Logic
-    let completedTodayCount = 0;
-    habitsForToday.forEach(habit => {
-        const habitLogs = logs.filter(l => l.habitId === habit.id);
-        if (isCompletedToday(habitLogs)) completedTodayCount++;
-    });
+    const completedTodayCount = useMemo(
+        () =>
+            habitsForToday.reduce((count, habit) => {
+                const habitLogs = logsByHabit[habit.id] || [];
+                return isCompletedToday(habitLogs) ? count + 1 : count;
+            }, 0),
+        [habitsForToday, logsByHabit]
+    );
     const todayCompletionPercentage = habitsForToday.length > 0 ? (completedTodayCount / habitsForToday.length) * 100 : 0;
     const currentComboMultiplier = completedTodayCount + 1;
 
-    const totalCompletions = logs.length;
     const currentRank = getRankForLevel(level);
     const userRank = currentRank.name;
 
@@ -90,8 +106,16 @@ export default function Home() {
                         opacity: orbOpacity,
                         backgroundColor: todayCompletionPercentage === 100 ? '#eab308' : '#ffffff'
                     }}
-                    animate={todayCompletionPercentage === 100 ? { scale: [1, 1.05, 1], opacity: [orbOpacity, orbOpacity + 0.1, orbOpacity] } : {}}
-                    transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
+                    animate={
+                        !shouldReduceMotion && todayCompletionPercentage === 100
+                            ? { scale: [1, 1.05, 1], opacity: [orbOpacity, orbOpacity + 0.1, orbOpacity] }
+                            : { scale: 1, opacity: orbOpacity }
+                    }
+                    transition={
+                        !shouldReduceMotion && todayCompletionPercentage === 100
+                            ? { repeat: Infinity, duration: 4, ease: "easeInOut" }
+                            : { duration: 0.2 }
+                    }
                 />
             )}
             
@@ -110,7 +134,7 @@ export default function Home() {
                                 {t.home.dailyBrief} • {dateStr}
                             </span>
                         </div>
-                        <h1 className="text-3xl sm:text-[2.2rem] leading-tight font-medium tracking-tight text-white whitespace-nowrap">
+                        <h1 className="text-3xl sm:text-[2.2rem] leading-tight font-medium tracking-tight text-white">
                             {greeting}
                         </h1>
                         <h2 className="text-3xl sm:text-[2.2rem] leading-tight font-medium tracking-tight text-white/50 truncate max-w-[250px] sm:max-w-full">
@@ -196,7 +220,7 @@ export default function Home() {
                                 >
                                     <AnimatePresence mode="popLayout">
                                         {habitsForToday.map((habit) => {
-                                            const habitLogs = logs.filter(l => l.habitId === habit.id);
+                                            const habitLogs = logsByHabit[habit.id] || [];
                                             const streak = calculateStreak(habitLogs, habit.frequency);
                                             const doneToday = isCompletedToday(habitLogs);
 
@@ -235,7 +259,7 @@ export default function Home() {
                                 >
                                     <AnimatePresence mode="popLayout">
                                         {otherHabits.map((habit) => {
-                                            const habitLogs = logs.filter(l => l.habitId === habit.id);
+                                            const habitLogs = logsByHabit[habit.id] || [];
                                             const streak = calculateStreak(habitLogs, habit.frequency);
                                             const doneToday = isCompletedToday(habitLogs);
 

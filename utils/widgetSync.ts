@@ -1,16 +1,16 @@
 import { Capacitor, registerPlugin } from '@capacitor/core';
 import { Habit, LogEntry } from '@/types';
-import { startOfDay, isSameDay, subDays, format } from 'date-fns';
+import { startOfDay, subDays, format } from 'date-fns';
 import { calculateStreak } from './streak';
 
-interface WidgetSyncPlugin {
+export interface WidgetSyncPlugin {
     setItem: (options: { key: string; value: string; group: string }) => Promise<void>;
-    getItem: (options: { key: string; group: string }) => Promise<{ value: any }>;
+    getItem: (options: { key: string; group: string }) => Promise<{ value: unknown }>;
     removeItem: (options: { key: string; group: string }) => Promise<void>;
     reloadAllTimelines: () => Promise<void>;
 }
 
-const WidgetSync = registerPlugin<WidgetSyncPlugin>('WidgetSyncPlugin');
+export const WidgetSync = registerPlugin<WidgetSyncPlugin>('WidgetSyncPlugin');
 
 export const APP_GROUP_ID = 'group.pedro.zenith.app';
 
@@ -44,29 +44,48 @@ export async function syncWidgetData(habits: Habit[], logs: LogEntry[]) {
         const today = new Date();
         const todayStart = startOfDay(today);
         const currentDayOfWeek = today.getDay();
-        
-        // 1. Current Day Logic
-        const widgetHabits: WidgetHabit[] = [];
-        const activeHabits = habits.filter(h => {
-            if (!h.isActive) return false;
-            if (!h.frequency || h.frequency.length === 0) return true;
-            return h.frequency.includes(currentDayOfWeek);
+
+        const logsByHabit = new Map<string, LogEntry[]>();
+        const completionDaysByHabit = new Map<string, Set<number>>();
+
+        logs.forEach((log) => {
+            if (!logsByHabit.has(log.habitId)) {
+                logsByHabit.set(log.habitId, []);
+            }
+            logsByHabit.get(log.habitId)?.push(log);
+
+            const dayStart = startOfDay(new Date(log.completedAt)).getTime();
+            if (!completionDaysByHabit.has(log.habitId)) {
+                completionDaysByHabit.set(log.habitId, new Set<number>());
+            }
+            completionDaysByHabit.get(log.habitId)?.add(dayStart);
         });
 
-        activeHabits.forEach(habit => {
-            const habitLogs = logs.filter(l => l.habitId === habit.id);
-            const hasLoggedToday = habitLogs.some(log => {
-                const checkDate = startOfDay(new Date(log.completedAt));
-                return isSameDay(todayStart, checkDate);
-            });
+        // 1. Current Day Logic
+        const activeHabitsToday = habits.filter((habit) => {
+            if (!habit.isActive) return false;
+            if (!habit.frequency || habit.frequency.length === 0) return true;
+            return habit.frequency.includes(currentDayOfWeek);
+        });
+
+        const widgetHabits: WidgetHabit[] = activeHabitsToday.map((habit) => {
+            const habitLogs = logsByHabit.get(habit.id) || [];
+            const completedDays = completionDaysByHabit.get(habit.id);
+            const hasLoggedToday = completedDays?.has(todayStart.getTime()) ?? false;
             const currentStreak = calculateStreak(habitLogs, habit.frequency);
 
-            widgetHabits.push({
+            return {
                 id: habit.id,
-                title: habit.title,
+                title: habit.title.trim() || 'Habit',
                 completed: hasLoggedToday,
                 streak: currentStreak
-            });
+            };
+        });
+
+        // Prioritize actionable habits in the widget: pending first, then strongest streak.
+        const prioritizedHabits = [...widgetHabits].sort((a, b) => {
+            if (a.completed !== b.completed) return Number(a.completed) - Number(b.completed);
+            return (b.streak || 0) - (a.streak || 0);
         });
 
         // 2. Weekly Progress Logic (last 7 days)
@@ -74,11 +93,12 @@ export async function syncWidgetData(habits: Habit[], logs: LogEntry[]) {
         for (let i = 6; i >= 0; i--) {
             const targetDate = startOfDay(subDays(today, i));
             const targetDayOfWeek = targetDate.getDay();
+            const targetDayMs = targetDate.getTime();
             
-            const habitsAtThatDay = habits.filter(h => {
-                if (!h.isActive) return false;
-                if (!h.frequency || h.frequency.length === 0) return true;
-                return h.frequency.includes(targetDayOfWeek);
+            const habitsAtThatDay = habits.filter((habit) => {
+                if (!habit.isActive) return false;
+                if (!habit.frequency || habit.frequency.length === 0) return true;
+                return habit.frequency.includes(targetDayOfWeek);
             });
 
             if (habitsAtThatDay.length === 0) {
@@ -86,16 +106,16 @@ export async function syncWidgetData(habits: Habit[], logs: LogEntry[]) {
                 continue;
             }
 
-            const completedCount = habitsAtThatDay.filter(habit => {
-                const habitLogs = logs.filter(l => l.habitId === habit.id);
-                return habitLogs.some(log => isSameDay(startOfDay(new Date(log.completedAt)), targetDate));
+            const completedCount = habitsAtThatDay.filter((habit) => {
+                const completedDays = completionDaysByHabit.get(habit.id);
+                return completedDays?.has(targetDayMs) ?? false;
             }).length;
 
             weeklyCompletion.push(completedCount / habitsAtThatDay.length);
         }
 
-        const displayHabits = widgetHabits.slice(0, 4);
-        const completedHabitsCount = widgetHabits.filter(h => h.completed).length;
+        const displayHabits = prioritizedHabits.slice(0, 4);
+        const completedHabitsCount = widgetHabits.filter((habit) => habit.completed).length;
 
         const widgetData: WidgetData = {
             habits: displayHabits,
@@ -116,7 +136,7 @@ export async function syncWidgetData(habits: Habit[], logs: LogEntry[]) {
 
         await WidgetSync.reloadAllTimelines();
 
-    } catch (e: any) {
+    } catch (e: unknown) {
         console.error("Failed to sync iOS Widget Data:", e);
     }
 }

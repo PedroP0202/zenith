@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { Habit, LogEntry } from '@/types';
+import { Friend, FriendRequest, Habit, LogEntry } from '@/types';
 import { encryptData, decryptData, saveSecureJwt, getSecureJwt, removeSecureJwt } from '@/utils/secureStorage';
 import { Capacitor } from '@capacitor/core';
 import { getLevelFromXp } from '@/utils/progression';
@@ -8,6 +8,10 @@ import { syncWidgetData } from '../utils/widgetSync';
 import { scheduleAllNotifications, cancelAllNotifications } from '../utils/notifications';
 import { Language, translations } from '../locales';
 import { API_URL } from '@/utils/constants';
+
+function isLanguage(value: unknown): value is Language {
+    return typeof value === 'string' && Object.prototype.hasOwnProperty.call(translations, value);
+}
 
 /**
  * Represents the global application state managed by Zustand.
@@ -46,11 +50,11 @@ interface AppState {
     /** Whether the user has opted in to the global leaderboard */
     optInLeaderboard: boolean;
     /** List of accepted friends */
-    friends: any[];
+    friends: Friend[];
     /** List of incoming friend requests */
-    friendRequests: any[];
+    friendRequests: FriendRequest[];
     /** List of outgoing friend requests */
-    outgoingRequests: any[];
+    outgoingRequests: FriendRequest[];
     /** Loading state for social actions */
     friendsLoading: boolean;
     /** User's total experience points */
@@ -603,7 +607,7 @@ export const useStore = create<AppState>()(
                         set({ lastSyncedAt: Date.now(), syncStatus: 'idle' });
                     }
 
-                } catch (error: any) {
+                } catch (error: unknown) {
                     console.error('Sync error:', error);
                     set({ syncStatus: 'error' });
                 }
@@ -641,7 +645,7 @@ export const useStore = create<AppState>()(
                 const updates: Partial<AppState> = {};
                 if (data.name !== undefined) updates.userName = data.name;
                 if (data.username !== undefined) updates.username = data.username;
-                if (data.language !== undefined) updates.language = data.language as any;
+                if (data.language !== undefined && isLanguage(data.language)) updates.language = data.language;
                 if (data.total_xp !== undefined) updates.totalXP = data.total_xp;
                 if (data.level !== undefined) updates.level = data.level;
                 if (data.lastLoginRewardDate !== undefined) updates.lastLoginRewardDate = data.lastLoginRewardDate;
@@ -658,7 +662,7 @@ export const useStore = create<AppState>()(
                     const res = await fetch(`${API_URL}/friends`, {
                         headers: { 'Authorization': `Bearer ${jwt}` }
                     });
-                    const data = await res.json();
+                    const data = (await res.json().catch(() => ({}))) as { friends?: Friend[] };
                     if (res.ok) set({ friends: data.friends || [] });
                 } catch (e) {
                     console.error("[STORE] Failed to fetch friends:", e);
@@ -674,7 +678,10 @@ export const useStore = create<AppState>()(
                     const res = await fetch(`${API_URL}/friends/requests`, {
                         headers: { 'Authorization': `Bearer ${jwt}` }
                     });
-                    const data = await res.json();
+                    const data = (await res.json().catch(() => ({}))) as {
+                        incoming?: FriendRequest[];
+                        outgoing?: FriendRequest[];
+                    };
                     if (res.ok) {
                         set({ 
                             friendRequests: data.incoming || [],
@@ -751,34 +758,109 @@ export const useStore = create<AppState>()(
                 if (typeof window !== 'undefined' && Capacitor.getPlatform() === 'ios') {
                     try {
                         const widgetModule = await import('../utils/widgetSync');
-                        const { APP_GROUP_ID, WidgetSync } = widgetModule as any;
+                        const { APP_GROUP_ID, WidgetSync } = widgetModule;
                         const res = await WidgetSync.getItem({
                             key: 'zenith_pending_widget_toggles',
                             group: APP_GROUP_ID
                         });
 
-                        const pendingToggles = res.value as Record<string, boolean> | null;
-                        if (pendingToggles && Object.keys(pendingToggles).length > 0) {
-                            console.log("[STORE] Found pending widget toggles:", pendingToggles);
+                        const parsePendingToggles = (value: unknown): Record<string, boolean> | null => {
+                            if (!value) return null;
 
-                            // Apply each toggle to the local state
-                            // Note: We use toggleHabitLog which handles the logic, 
-                            // but here we might want to ensure we match the specific status from widget.
-                            // For simplicity, we just toggle if the current state doesn't match the widget state.
-                            const { logs } = get();
-                            const todayStr = new Date().toDateString();
-
-                            for (const [habitId, shouldBeCompleted] of Object.entries(pendingToggles)) {
-                                const isCurrentlyCompleted = logs.some(
-                                    l => l.habitId === habitId && new Date(l.completedAt).toDateString() === todayStr
-                                );
-
-                                if (isCurrentlyCompleted !== shouldBeCompleted) {
-                                    get().toggleHabitLog(habitId);
+                            if (typeof value === 'string') {
+                                try {
+                                    const parsed = JSON.parse(value) as unknown;
+                                    if (parsed && typeof parsed === 'object') {
+                                        return Object.fromEntries(
+                                            Object.entries(parsed as Record<string, unknown>).filter(
+                                                ([, toggleValue]) => typeof toggleValue === 'boolean'
+                                            )
+                                        ) as Record<string, boolean>;
+                                    }
+                                } catch {
+                                    return null;
                                 }
+                                return null;
                             }
 
-                            // Clear the pending toggles
+                            if (typeof value === 'object' && !Array.isArray(value)) {
+                                return Object.fromEntries(
+                                    Object.entries(value as Record<string, unknown>).filter(
+                                        ([, toggleValue]) => typeof toggleValue === 'boolean'
+                                    )
+                                ) as Record<string, boolean>;
+                            }
+
+                            return null;
+                        };
+
+                        const pendingToggles = parsePendingToggles(res.value);
+                        if (pendingToggles && Object.keys(pendingToggles).length > 0) {
+                            const state = get();
+                            const todayStart = new Date();
+                            todayStart.setHours(0, 0, 0, 0);
+                            const todayMs = todayStart.getTime();
+
+                            let nextLogs = [...state.logs];
+                            let nextDeletedLogIds = [...state.deletedLogIds];
+                            let xpDelta = 0;
+                            let arenaDelta = 0;
+                            let hasChanges = false;
+
+                            const habitById = new Map(state.habits.map((habit) => [habit.id, habit] as const));
+
+                            for (const [habitId, shouldBeCompleted] of Object.entries(pendingToggles)) {
+                                const habit = habitById.get(habitId);
+                                if (!habit || !habit.isActive) continue;
+
+                                const todayLogIndex = nextLogs.findIndex((log) => {
+                                    if (log.habitId !== habitId) return false;
+                                    const checkDate = new Date(log.completedAt);
+                                    checkDate.setHours(0, 0, 0, 0);
+                                    return checkDate.getTime() === todayMs;
+                                });
+
+                                const isCurrentlyCompleted = todayLogIndex >= 0;
+                                if (isCurrentlyCompleted === shouldBeCompleted) continue;
+
+                                const xpValue = habit.isHardMode ? 20 : 10;
+
+                                if (shouldBeCompleted) {
+                                    nextLogs.push({
+                                        id: crypto.randomUUID(),
+                                        habitId,
+                                        completedAt: todayMs,
+                                    });
+                                    xpDelta += xpValue;
+                                    if (state.optInLeaderboard) arenaDelta += xpValue;
+                                } else if (todayLogIndex >= 0) {
+                                    const [removedLog] = nextLogs.splice(todayLogIndex, 1);
+                                    nextDeletedLogIds.push(removedLog.id);
+                                    xpDelta -= xpValue;
+                                    if (state.optInLeaderboard) arenaDelta -= xpValue;
+                                }
+
+                                hasChanges = true;
+                            }
+
+                            if (hasChanges) {
+                                const nextTotalXP = Math.max(0, state.totalXP + xpDelta);
+                                const nextArenaPoints = state.optInLeaderboard
+                                    ? Math.max(0, state.arenaPoints + arenaDelta)
+                                    : 0;
+
+                                set({
+                                    logs: nextLogs,
+                                    deletedLogIds: nextDeletedLogIds,
+                                    totalXP: nextTotalXP,
+                                    level: getLevelFromXp(nextTotalXP),
+                                    arenaPoints: nextArenaPoints
+                                });
+
+                                syncWidgetData(state.habits, nextLogs).catch(console.error);
+                                get().syncWithCloud().catch(console.error);
+                            }
+
                             await WidgetSync.removeItem({
                                 key: 'zenith_pending_widget_toggles',
                                 group: APP_GROUP_ID
@@ -841,7 +923,6 @@ export const useStore = create<AppState>()(
                         // The AuthGuard will wait for `isInitializingAuth` to become false before routing.
                         getSecureJwt()
                             .then(token => {
-                                console.log("[Zustand] Rehydrated JWT:", token ? "Found" : "Not Found");
                                 if (token) {
                                     // VERY IMPORTANT: Use useStore.setState instead of state.setJwt 
                                     // if state.setJwt triggers other side-effects that might depend on fully rehydrated state.

@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Zap, Trophy, Target, Loader2 } from "lucide-react";
 import { API_URL } from "@/utils/constants";
+import type { FriendComparisonProfile } from "@/types";
 
 interface ComparisonModalProps {
     isOpen: boolean;
@@ -14,8 +15,8 @@ interface ComparisonModalProps {
 }
 
 export default function ComparisonModal({ isOpen, onClose, friendUsername, friendName }: ComparisonModalProps) {
-    const { jwt, habits, logs, userName } = useStore();
-    const [friendData, setFriendData] = useState<any>(null);
+    const { jwt, logs, userName } = useStore();
+    const [friendData, setFriendData] = useState<FriendComparisonProfile | null>(null);
     const [loading, setLoading] = useState(true);
 
     const fetchComparison = useCallback(async () => {
@@ -24,9 +25,9 @@ export default function ComparisonModal({ isOpen, onClose, friendUsername, frien
             const res = await fetch(`${API_URL}/friends/compare/${friendUsername}`, {
                 headers: { 'Authorization': `Bearer ${jwt}` }
             });
-            const data = await res.json();
+            const data = (await res.json().catch(() => ({}))) as { friend?: FriendComparisonProfile };
             if (res.ok) {
-                setFriendData(data.friend);
+                setFriendData(data.friend || null);
             }
         } catch (e) {
             console.error("Failed to fetch comparison:", e);
@@ -45,7 +46,7 @@ export default function ComparisonModal({ isOpen, onClose, friendUsername, frien
 
     // Calculate My Stats
     const myTotalCompletions = logs.length;
-    const myHabitCount = habits.filter(h => h.isActive).length;
+    const friendTotalCompletions = friendData?.habits?.reduce((acc, h) => acc + Number(h.completions || 0), 0) || 0;
 
     return (
         <AnimatePresence>
@@ -70,7 +71,9 @@ export default function ComparisonModal({ isOpen, onClose, friendUsername, frien
 
                     <div className="text-center mb-8">
                         <h2 className="text-2xl font-black tracking-tight mb-1">Duelo de Hábitos</h2>
-                        <p className="text-white/40 text-sm uppercase tracking-widest font-bold">Tu vs @{friendUsername}</p>
+                        <p className="text-white/40 text-sm uppercase tracking-widest font-bold">
+                            Tu vs {friendName ? `${friendName} (@${friendUsername})` : `@${friendUsername}`}
+                        </p>
                     </div>
 
                     {loading ? (
@@ -90,7 +93,7 @@ export default function ComparisonModal({ isOpen, onClose, friendUsername, frien
                                 <div className="p-6 rounded-3xl bg-[var(--zenith-active)]/10 border border-[var(--zenith-active)]/20 flex flex-col items-center">
                                     <span className="text-[10px] text-[var(--zenith-active)]/60 uppercase font-black mb-4">@{friendUsername}</span>
                                     <span className="text-4xl font-black text-[var(--zenith-active)] mb-1">
-                                        {friendData?.habits?.reduce((acc: number, h: any) => acc + h.completions, 0) || 0}
+                                        {friendTotalCompletions}
                                     </span>
                                     <span className="text-[10px] text-[var(--zenith-active)]/60 uppercase">Total Focos</span>
                                 </div>
@@ -100,7 +103,7 @@ export default function ComparisonModal({ isOpen, onClose, friendUsername, frien
                             <div className="space-y-4">
                                 <h3 className="text-xs font-black uppercase tracking-widest text-white/20 ml-2">Anatomia de Progresso</h3>
                                 <div className="max-h-60 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
-                                    {friendData?.habits?.map((habit: any) => (
+                                    {friendData?.habits?.map((habit) => (
                                         <div key={habit.id} className="p-4 rounded-2xl bg-white/[0.02] border border-white/5">
                                             <div className="flex justify-between items-center mb-3">
                                                 <span className="text-sm font-bold">{habit.title}</span>
@@ -109,7 +112,7 @@ export default function ComparisonModal({ isOpen, onClose, friendUsername, frien
                                             <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
                                                 <motion.div 
                                                     initial={{ width: 0 }}
-                                                    animate={{ width: `${Math.min((habit.completions / 30) * 100, 100)}%` }}
+                                                    animate={{ width: `${Math.min((Number(habit.completions || 0) / 30) * 100, 100)}%` }}
                                                     className="h-full bg-gradient-to-r from-[var(--zenith-active)] to-cyan-400"
                                                 />
                                             </div>

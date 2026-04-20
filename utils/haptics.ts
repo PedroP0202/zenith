@@ -1,6 +1,22 @@
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 import { Capacitor } from '@capacitor/core';
 
+type LegacyAudioWindow = Window & {
+    webkitAudioContext?: typeof AudioContext;
+};
+
+type NativeWidgetSyncPlugin = {
+    nativeVibrate: () => Promise<void>;
+};
+
+type CapacitorPluginWindow = Window & {
+    Capacitor?: {
+        Plugins?: {
+            WidgetSyncPlugin?: NativeWidgetSyncPlugin;
+        };
+    };
+};
+
 /**
  * Safe wrapper around Capacitor Haptics.
  * Only executes on native platforms (iOS/Android) to avoid browser errors.
@@ -18,10 +34,10 @@ class HapticsController {
     playSuccessSound(comboMultiplier: number = 1) {
         if (typeof window === 'undefined') return;
         try {
-            const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-            if (!AudioContext) return;
+            const audioContextCtor = window.AudioContext || (window as LegacyAudioWindow).webkitAudioContext;
+            if (!audioContextCtor) return;
 
-            const ctx = new AudioContext();
+            const ctx = new audioContextCtor();
             const osc = ctx.createOscillator();
             const gain = ctx.createGain();
 
@@ -130,8 +146,10 @@ class HapticsController {
         } catch (e) {
             // Fallback to our custom native bridge if Haptics plugin fails
             try {
-                if ((window as any).Capacitor?.Plugins?.WidgetSyncPlugin) {
-                    await (window as any).Capacitor.Plugins.WidgetSyncPlugin.nativeVibrate();
+                const pluginWindow = window as CapacitorPluginWindow;
+                const widgetPlugin = pluginWindow.Capacitor?.Plugins?.WidgetSyncPlugin;
+                if (widgetPlugin) {
+                    await widgetPlugin.nativeVibrate();
                 }
             } catch (innerE) {
                 console.error("Haptics Vibrate and Native Fallback failed:", innerE);

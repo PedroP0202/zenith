@@ -8,9 +8,15 @@ vi.mock('../../store/useStore', () => ({
     useStore: vi.fn(),
 }));
 
+const mockedUseStore = vi.mocked(useStore);
+
+function mockStoreLanguage(language: 'pt' | 'en' | undefined) {
+    mockedUseStore.mockReturnValue({ language } as unknown as ReturnType<typeof useStore>);
+}
+
 describe('useTranslation', () => {
     it('should return Portuguese translations when language is set to pt', () => {
-        (useStore as any).mockReturnValue({ language: 'pt' });
+        mockStoreLanguage('pt');
 
         const { result } = renderHook(() => useTranslation());
 
@@ -22,7 +28,7 @@ describe('useTranslation', () => {
     });
 
     it('should return English translations when language is set to en', () => {
-        (useStore as any).mockReturnValue({ language: 'en' });
+        mockStoreLanguage('en');
 
         const { result } = renderHook(() => useTranslation());
 
@@ -31,7 +37,7 @@ describe('useTranslation', () => {
     });
 
     it('should fallback to Portuguese if language is undefined', () => {
-        (useStore as any).mockReturnValue({ language: undefined });
+        mockStoreLanguage(undefined);
 
         const { result } = renderHook(() => useTranslation());
 

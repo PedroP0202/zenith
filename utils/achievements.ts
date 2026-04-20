@@ -1,4 +1,4 @@
-import { Habit, LogEntry } from '../types';
+import { Friend, Habit, LogEntry } from '../types';
 import { calculateStreak, getBestStreak } from './streak';
 
 export interface Trophy {
@@ -7,7 +7,7 @@ export interface Trophy {
     description: string;
     icon: string; // Lucide icon name or emoji
     color: string;
-    requirement: (habits: Habit[], logs: LogEntry[], friends: any[]) => boolean;
+    requirement: (habits: Habit[], logs: LogEntry[], friends: Friend[]) => boolean;
 }
 
 export const TROPHIES: Trophy[] = [
@@ -65,6 +65,6 @@ export const TROPHIES: Trophy[] = [
     }
 ];
 
-export function getUnlockedTrophies(habits: Habit[], logs: LogEntry[], friends: any[]) {
+export function getUnlockedTrophies(habits: Habit[], logs: LogEntry[], friends: Friend[]) {
     return TROPHIES.filter(t => t.requirement(habits, logs, friends));
 }

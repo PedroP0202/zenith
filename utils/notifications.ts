@@ -2,6 +2,7 @@ import { LocalNotifications } from '@capacitor/local-notifications';
 import { Capacitor } from '@capacitor/core';
 import { Habit } from '../types';
 import { getRandomNotificationPhrase } from './notificationPhrases';
+import type { LocalNotificationSchema } from '@capacitor/local-notifications';
 
 export const MORNING_REMINDER_ID = 101;
 
@@ -65,7 +66,7 @@ export async function scheduleAllNotifications(
     const hasPermission = await requestNotificationPermissions();
     if (!hasPermission) return;
 
-    const notificationsToSchedule: any[] = [];
+    const notificationsToSchedule: LocalNotificationSchema[] = [];
 
     // 1. Global Morning Reminder
     if (isMorningReminderActive) {
@@ -176,9 +177,9 @@ export async function sendTestNotification() {
         });
 
         alert("Teste agendado via Native Bridge! Por favor, sai da aplicação agora (vai para o Home Screen do iPhone) e espera 5 segundos.");
-    } catch (e: any) {
-        alert(`Erro ao agendar notificação nativa: ${e?.message || e}`);
+    } catch (e: unknown) {
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        alert(`Erro ao agendar notificação nativa: ${errorMessage}`);
     }
 }
-
 

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, useAnimation, useMotionValue, useTransform, PanInfo } from 'framer-motion';
-import { Check, Trash2 } from 'lucide-react';
+import { Check, Flame, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { Habit } from '../types';
 import ConfirmationModal from './ConfirmationModal';
@@ -32,7 +32,7 @@ export default function SwipeableHabit({ habit, streak, doneToday, onToggle, onD
     const trashScale = useTransform(x, [0, -75], [0.5, 1]);
     const backgroundRed = useTransform(x, [0, -100], ['rgba(239, 68, 68, 0)', 'rgba(239, 68, 68, 0.2)']);
 
-    const handleDragEnd = async (e: MouseEvent | TouchEvent | PointerEvent, { offset, velocity }: PanInfo) => {
+    const handleDragEnd = async (_event: MouseEvent | TouchEvent | PointerEvent, { offset, velocity }: PanInfo) => {
         const swipeThreshold = -100;
         if (offset.x < swipeThreshold || velocity.x < -400) {
             deviceHaptics.heavyImpact();
@@ -73,7 +73,7 @@ export default function SwipeableHabit({ habit, streak, doneToday, onToggle, onD
 
     return (
         <motion.div
-            className="relative group mb-4 will-animate overflow-hidden rounded-3xl"
+            className="relative group will-animate overflow-hidden rounded-3xl"
             style={{ touchAction: 'pan-y' }}
             layout
             initial={{ opacity: 0, y: 16 }}
@@ -101,26 +101,39 @@ export default function SwipeableHabit({ habit, streak, doneToday, onToggle, onD
                 onDragEnd={handleDragEnd}
                 animate={controls}
                 whileTap={{ scale: 0.975 }}
-                className={`relative z-10 py-4 px-5 rounded-3xl transition-all duration-300 flex items-center justify-between backdrop-blur-xl border ${doneToday ? 'bg-transparent border-white/[0.04] shadow-none' : 'bg-white/[0.03] border-white/[0.08] shadow-glass hover:bg-white/[0.05]'}`}
+                className={`relative z-10 flex items-center justify-between rounded-[1.75rem] border p-4 transition-all duration-300 backdrop-blur-xl ${doneToday ? 'bg-white/[0.025] border-white/[0.04] shadow-none' : 'bg-white/[0.04] border-white/[0.08] shadow-glass hover:bg-white/[0.055]'}`}
             >
-                <Link href={`/habit/detail?id=${habit.id}`} className="flex-1 min-w-0 pr-4 block card-press">
-                    <div className="flex flex-col">
-                        <span className={`text-lg font-medium truncate mb-0.5 transition-colors duration-300 ${doneToday ? 'text-white/40' : 'text-white/90'}`}>
-                            {habit.title}
-                        </span>
-                        <div className="flex items-center gap-2">
-                            {streak > 0 ? (
-                                <span className={`text-xs font-bold flex items-center gap-1 transition-colors duration-300 ${doneToday ? flameDoneColor : flameColor}`}>
-                                    🔥 {streak} {streak === 1 ? t.habit.day : t.habit.days}
-                                </span>
-                            ) : (
-                                <span className="text-xs font-medium text-white/20">0 {t.habit.days}</span>
-                            )}
+                <Link href={`/habit/detail?id=${habit.id}`} className="card-press block min-w-0 flex-1 pr-4">
+                    <div className="flex items-center gap-3">
+                        <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-[1rem] border text-sm font-bold uppercase tracking-[0.16em] ${doneToday ? 'border-white/[0.08] bg-white/[0.03] text-white/35' : 'border-white/[0.12] bg-white/[0.05] text-white/70'}`}>
+                            {habit.title.slice(0, 1)}
+                        </div>
+                        <div className="min-w-0">
+                            <span className={`block truncate text-base font-semibold tracking-[-0.02em] transition-colors duration-300 sm:text-[1.05rem] ${doneToday ? 'text-white/45' : 'text-white/92'}`}>
+                                {habit.title}
+                            </span>
+                            <div className="mt-1.5 flex items-center gap-2">
+                                {streak > 0 ? (
+                                    <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-bold transition-colors duration-300 ${doneToday ? `border-white/[0.06] bg-white/[0.03] ${flameDoneColor}` : `border-white/[0.08] bg-white/[0.04] ${flameColor}`}`}>
+                                        <Flame size={12} strokeWidth={2.3} />
+                                        {streak} {streak === 1 ? t.habit.day : t.habit.days}
+                                    </span>
+                                ) : (
+                                    <span className="inline-flex items-center gap-1 rounded-full border border-white/[0.06] bg-white/[0.03] px-2.5 py-1 text-[11px] font-medium text-white/30">
+                                        <Flame size={12} strokeWidth={2.3} />
+                                        0 {t.habit.days}
+                                    </span>
+                                )}
+                                {doneToday && (
+                                    <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/28">
+                                        {t.common.today}
+                                    </span>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </Link>
 
-                {/* The checkmark button */}
                 <div className="relative shrink-0">
                     <motion.button
                         whileTap={{ scale: 0.82 }}
@@ -128,7 +141,6 @@ export default function SwipeableHabit({ habit, streak, doneToday, onToggle, onD
                             e.preventDefault();
                             e.stopPropagation();
 
-                            // Fire toggle immediately for instant response
                             onToggle();
 
                             if (!doneToday) {
@@ -142,7 +154,7 @@ export default function SwipeableHabit({ habit, streak, doneToday, onToggle, onD
                                 deviceHaptics.lightImpact();
                             }
                         }}
-                        className={`relative z-10 h-12 w-12 rounded-[16px] flex items-center justify-center transition-all duration-300 ${doneToday ? `bg-white text-black ${glowShadow}` : 'bg-white/[0.03] border border-white/10 text-transparent hover:border-white/30 hover:bg-white/[0.06]'}`}
+                        className={`relative z-10 flex h-14 w-14 items-center justify-center rounded-[1.1rem] transition-all duration-300 ${doneToday ? `bg-white text-black ${glowShadow}` : 'bg-white/[0.03] border border-white/10 text-transparent hover:border-white/30 hover:bg-white/[0.06]'}`}
                         aria-label="Marcar como feito"
                     >
                         <motion.div
@@ -150,14 +162,13 @@ export default function SwipeableHabit({ habit, streak, doneToday, onToggle, onD
                             animate={doneToday ? { scale: [0.6, 1.2, 1], opacity: 1 } : { scale: 0.5, opacity: 0 }}
                             transition={{ duration: 0.35, type: 'spring', stiffness: 500, damping: 22 }}
                         >
-                            <Check size={22} strokeWidth={3} />
+                            <Check size={24} strokeWidth={3} />
                         </motion.div>
                     </motion.button>
 
-                    {/* Completion pulse ring */}
                     {showPulse && (
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <div className={`w-12 h-12 rounded-[16px] animate-pulse-glow ${comboMultiplier >= 3 ? 'bg-orange-500/30' : comboMultiplier === 2 ? 'bg-yellow-500/30' : 'bg-white/30'}`} />
+                        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                            <div className={`h-14 w-14 rounded-[1.1rem] animate-pulse-glow ${comboMultiplier >= 3 ? 'bg-orange-500/30' : comboMultiplier === 2 ? 'bg-yellow-500/30' : 'bg-white/30'}`} />
                         </div>
                     )}
                 </div>

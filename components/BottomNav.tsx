@@ -49,7 +49,13 @@ export default function BottomNav() {
     if (pathname.includes('/habit/') || isAuthRoute) return null;
 
     return (
-        <nav className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 glass rounded-full px-4 py-3 flex items-center gap-6 sm:gap-8 z-50 shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/5">
+        <nav
+            className="fixed left-1/2 z-50 flex -translate-x-1/2 items-center gap-1 rounded-[2rem] border border-white/10 bg-[rgba(10,10,10,0.86)] p-2 shadow-[0_24px_48px_rgba(0,0,0,0.42)] backdrop-blur-2xl"
+            style={{
+                bottom: 'calc(0.75rem + var(--zenith-safe-bottom))',
+                width: 'min(var(--zenith-app-width), calc(100vw - (var(--zenith-safe-x) * 2)))',
+            }}
+        >
             {tabs.map((tab) => {
                 const isActive = pathname === tab.href;
                 const Icon = tab.icon;
@@ -60,18 +66,18 @@ export default function BottomNav() {
                         key={tab.href}
                         href={tab.href}
                         id={`nav-${tab.href.replace('/', '') || 'home'}`}
-                        className="relative z-10 w-14 h-12 flex items-center justify-center transition-colors duration-300"
+                        className="relative z-10 flex min-h-[3.5rem] flex-1 items-center justify-center rounded-[1.35rem] px-3 py-2 transition-colors duration-300"
                         aria-label={tab.label}
                     >
                         {isActive && (
                             <motion.div
                                 layoutId="nav-pill"
-                                className="absolute inset-0 bg-white/10 rounded-full nav-pill-glow"
+                                className="absolute inset-0 rounded-[1.35rem] bg-white/[0.08] ring-1 ring-white/10 nav-pill-glow"
                                 transition={{ type: 'spring', stiffness: 400, damping: 35 }}
                             />
                         )}
                         <motion.div
-                            className="relative z-20"
+                            className="relative z-20 flex flex-col items-center gap-1"
                             animate={{
                                 y: isActive ? -2 : 0,
                                 color: isActive ? '#ffffff' : 'rgba(255,255,255,0.3)',
@@ -98,10 +104,13 @@ export default function BottomNav() {
                                 <div className="relative">
                                     <Icon size={24} strokeWidth={isActive ? 2.5 : 2} />
                                     {tab.href === '/friends' && friendRequests.length > 0 && (
-                                        <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-black" />
+                                        <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-[#0b0b0c] bg-red-500" />
                                     )}
                                 </div>
                             )}
+                            <span className="text-[10px] font-semibold uppercase tracking-[0.16em]">
+                                {tab.label}
+                            </span>
                         </motion.div>
                     </Link>
                 );

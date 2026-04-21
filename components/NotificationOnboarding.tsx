@@ -60,7 +60,7 @@ export default function NotificationOnboarding() {
                     animate={{ y: 0, opacity: 1 }}
                     exit={{ y: 150, opacity: 0 }}
                     transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                    className="fixed bottom-28 left-0 right-0 px-6 z-50 flex justify-center"
+                    className="fixed banner-safe-bottom left-0 right-0 z-50 flex justify-center px-6"
                 >
                     <div className="bg-[#1A1A1A] border border-white/10 w-full max-w-sm rounded-3xl p-5 shadow-2xl flex flex-col gap-4">
                         <div className="flex gap-4 items-start">

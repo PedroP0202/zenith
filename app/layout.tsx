@@ -65,8 +65,9 @@ export default function RootLayout({
     <html lang="pt" className="bg-black overscroll-none">
       <head>
         <meta name="google-signin-client_id" content={GOOGLE_CLIENT_ID} />
+        <meta name="format-detection" content="telephone=no, date=no, email=no, address=no" />
       </head>
-      <body className={`${outfit.className} ${outfit.variable} bg-black font-sans text-white overscroll-none min-h-screen`}>
+      <body className={`${outfit.className} ${outfit.variable} bg-black font-sans text-white overscroll-none min-h-screen antialiased selection:bg-white/20 selection:text-white`}>
         <LangHandler />
         <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
           <AuthGuard>

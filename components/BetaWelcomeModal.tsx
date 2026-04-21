@@ -50,7 +50,7 @@ export default function BetaWelcomeModal() {
                             <h2 className="text-3xl font-black tracking-tighter text-white mb-4">Bem-vindo ao Beta.</h2>
 
                             <p className="text-white/60 text-sm leading-relaxed mb-8">
-                                Estás entre os primeiros a testar o **Zenith**. O nosso objetivo é ajudar-te a forjar disciplina inquebrável.
+                                Estás entre os primeiros a testar o Zenith. O nosso objetivo é ajudar-te a forjar disciplina inquebrável.
                             </p>
 
                             <div className="space-y-4 mb-10">

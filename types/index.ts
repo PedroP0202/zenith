@@ -1,6 +1,9 @@
 /**
  * Represents a single habit within the Zenith application.
  */
+export type HabitScheduleType = 'specific_days' | 'times_per_week';
+export type HabitGoalType = 'complete' | 'count';
+
 export interface Habit {
     /** Unique identifier for the habit (UUID). */
     id: string;
@@ -16,6 +19,16 @@ export interface Habit {
     isActive: boolean;
     /** Defines the active days of the week for this habit (0 = Sunday, 1 = Monday, etc.). */
     frequency: number[];
+    /** Determines whether the habit runs on specific weekdays or as a weekly quota. */
+    scheduleType?: HabitScheduleType;
+    /** Weekly quota target when `scheduleType` is `times_per_week`. */
+    weeklyTarget?: number;
+    /** Determines whether a habit is binary or quantitative. */
+    goalType?: HabitGoalType;
+    /** Numeric target for quantitative habits (e.g. 3 glasses). */
+    targetValue?: number;
+    /** Optional short unit label shown in the UI (e.g. "copos", "km"). */
+    unitLabel?: string;
     /** 
      * If true, this habit runs in 'Hard Mode', preventing retroactive check-ins.
      * If false or undefined, it runs in 'Normal Mode' where past days can be corrected.
@@ -37,8 +50,22 @@ export interface LogEntry {
     habitId: string;
     /** Timestamp of when the habit was marked as completed (in milliseconds). */
     completedAt: number;
+    /** Optional numeric progress value for quantitative logs. Defaults to 1. */
+    value?: number;
     /** Timestamp of when this log was last synced with the Cloudflare backend. */
     syncedAt?: number;
+}
+
+export interface HabitFormValues {
+    title: string;
+    frequency: number[];
+    scheduleType: HabitScheduleType;
+    weeklyTarget?: number;
+    goalType: HabitGoalType;
+    targetValue?: number;
+    unitLabel?: string;
+    isHardMode: boolean;
+    reminderTime?: string;
 }
 
 /**

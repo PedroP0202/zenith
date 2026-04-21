@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
 import { useStore } from '../store/useStore';
-import { calculateStreak, isCompletedToday } from '../utils/streak';
+import { calculateStreak } from '../utils/streak';
 import Link from 'next/link';
 import { CheckCircle2, Flame, Plus, Target, Trophy, User } from 'lucide-react';
 import { format } from 'date-fns';
@@ -15,12 +15,15 @@ import { useTranslation } from '../hooks/useTranslation';
 import Skeleton from '../components/Skeleton';
 import { getRankForLevel } from '../utils/progression';
 import Logo from '../components/Logo';
+import { getHabitGoalType, getHabitPeriodTarget, getHabitProgressForDate, getHabitScheduleType, getHabitUnitLabel, isHabitCompleteForDate } from '../utils/habits';
 
 export default function Home() {
     const { 
         habits, 
         logs, 
-        toggleHabitLog, 
+        toggleHabitLog,
+        incrementHabitProgress,
+        decrementHabitProgress,
         userName, 
         removeHabit, 
         checkDailyReward, 
@@ -38,14 +41,13 @@ export default function Home() {
 
     const now = new Date();
     const todayDayOfWeek = now.getDay();
-
     const allActiveHabits = useMemo(() => habits.filter(h => h.isActive), [habits]);
     const habitsForToday = useMemo(
-        () => allActiveHabits.filter(h => (h.frequency ? h.frequency.includes(todayDayOfWeek) : true)),
+        () => allActiveHabits.filter((habit) => getHabitScheduleType(habit) === 'times_per_week' || habit.frequency.includes(todayDayOfWeek)),
         [allActiveHabits, todayDayOfWeek]
     );
     const otherHabits = useMemo(
-        () => allActiveHabits.filter(h => h.frequency && !h.frequency.includes(todayDayOfWeek)),
+        () => allActiveHabits.filter((habit) => getHabitScheduleType(habit) === 'specific_days' && !habit.frequency.includes(todayDayOfWeek)),
         [allActiveHabits, todayDayOfWeek]
     );
 
@@ -67,20 +69,60 @@ export default function Home() {
     const locale = language === 'pt' ? pt : enUS;
     const dateStr = mounted ? format(now, 'PP', { locale }) : t.common.loading;
 
-    const completedTodayCount = useMemo(
-        () =>
-            habitsForToday.reduce((count, habit) => {
-                const habitLogs = logsByHabit[habit.id] || [];
-                return isCompletedToday(habitLogs) ? count + 1 : count;
-            }, 0),
-        [habitsForToday, logsByHabit]
-    );
-    const todayCompletionPercentage = habitsForToday.length > 0 ? (completedTodayCount / habitsForToday.length) * 100 : 0;
+    const buildProgressLabel = (habit: typeof allActiveHabits[number], progressValue: number, targetValue: number, isComplete: boolean) => {
+        if (getHabitScheduleType(habit) === 'times_per_week') {
+            return `${progressValue}/${targetValue} ${t.habit.weeklyGoalSuffix}`;
+        }
+
+        if (getHabitGoalType(habit) === 'count') {
+            const unit = getHabitUnitLabel(habit);
+            return `${progressValue}/${targetValue}${unit ? ` ${unit}` : ''}`;
+        }
+
+        return isComplete ? t.common.today : '0/1';
+    };
+
+    const todayHabitCards = habitsForToday.map((habit) => {
+        const habitLogs = logsByHabit[habit.id] || [];
+        const streak = calculateStreak(habitLogs, habit);
+        const progressValue = getHabitProgressForDate(habitLogs, habit, now);
+        const targetValue = getHabitPeriodTarget(habit);
+        const isComplete = isHabitCompleteForDate(habitLogs, habit, now);
+
+        return {
+            habit,
+            streak,
+            progressValue,
+            targetValue,
+            isComplete,
+            progressLabel: buildProgressLabel(habit, progressValue, targetValue, isComplete),
+        };
+    });
+
+    const otherHabitCards = otherHabits.map((habit) => {
+        const habitLogs = logsByHabit[habit.id] || [];
+        const streak = calculateStreak(habitLogs, habit);
+        const progressValue = getHabitProgressForDate(habitLogs, habit, now);
+        const targetValue = getHabitPeriodTarget(habit);
+        const isComplete = isHabitCompleteForDate(habitLogs, habit, now);
+
+        return {
+            habit,
+            streak,
+            progressValue,
+            targetValue,
+            isComplete,
+            progressLabel: buildProgressLabel(habit, progressValue, targetValue, isComplete),
+        };
+    });
+
+    const completedTodayCount = todayHabitCards.filter((item) => item.isComplete).length;
+    const todayCompletionPercentage = todayHabitCards.length > 0 ? (completedTodayCount / todayHabitCards.length) * 100 : 0;
     const currentComboMultiplier = completedTodayCount + 1;
     const bestStreakOverall = useMemo(
         () =>
             allActiveHabits.reduce((best, habit) => {
-                const streak = calculateStreak(logsByHabit[habit.id] || [], habit.frequency);
+                const streak = calculateStreak(logsByHabit[habit.id] || [], habit);
                 return Math.max(best, streak);
             }, 0),
         [allActiveHabits, logsByHabit]
@@ -93,12 +135,12 @@ export default function Home() {
     const orbOpacity = 0.05 + (todayCompletionPercentage / 100) * 0.25;
     const roundedCompletion = Math.round(todayCompletionPercentage);
     const heroMessage =
-        habitsForToday.length === 0
+        todayHabitCards.length === 0
             ? t.home.restDayDesc
-            : completedTodayCount === habitsForToday.length
+            : completedTodayCount === todayHabitCards.length
                 ? t.home.allCaughtUp
                 : t.home.keepMomentum;
-    const heroStatLabel = habitsForToday.length > 0 ? `${completedTodayCount}/${habitsForToday.length}` : `0 ${t.home.scheduled}`;
+    const heroStatLabel = todayHabitCards.length > 0 ? `${completedTodayCount}/${todayHabitCards.length}` : `0 ${t.home.scheduled}`;
 
     // Framer Motion Variants for Stagger Effect
     const containerVariants = {
@@ -114,7 +156,7 @@ export default function Home() {
     const summaryCards = [
         {
             label: t.home.scheduled,
-            value: habitsForToday.length,
+            value: todayHabitCards.length,
             icon: Target,
         },
         {
@@ -319,7 +361,7 @@ export default function Home() {
                     </motion.div>
                 ) : (
                     <motion.div className="space-y-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
-                        {habitsForToday.length > 0 && (
+                        {todayHabitCards.length > 0 && (
                             <section className="space-y-4">
                                 <motion.div
                                     className="flex items-center justify-between gap-3"
@@ -334,7 +376,7 @@ export default function Home() {
                                         </h3>
                                     </div>
                                     <div className="rounded-full border border-white/10 bg-white/[0.04] px-3.5 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white/55">
-                                        {completedTodayCount}/{habitsForToday.length}
+                                        {completedTodayCount}/{todayHabitCards.length}
                                     </div>
                                 </motion.div>
                                 <motion.div
@@ -344,29 +386,28 @@ export default function Home() {
                                     animate="visible"
                                 >
                                     <AnimatePresence mode="popLayout">
-                                        {habitsForToday.map((habit) => {
-                                            const habitLogs = logsByHabit[habit.id] || [];
-                                            const streak = calculateStreak(habitLogs, habit.frequency);
-                                            const doneToday = isCompletedToday(habitLogs);
-
-                                            return (
-                                                <SwipeableHabit
-                                                    key={habit.id}
-                                                    habit={habit}
-                                                    streak={streak}
-                                                    doneToday={doneToday}
-                                                    comboMultiplier={currentComboMultiplier}
-                                                    onToggle={() => toggleHabitLog(habit.id)}
-                                                    onDelete={() => removeHabit(habit.id)}
-                                                />
-                                            );
-                                        })}
+                                        {todayHabitCards.map(({ habit, streak, progressValue, targetValue, isComplete, progressLabel }) => (
+                                            <SwipeableHabit
+                                                key={habit.id}
+                                                habit={habit}
+                                                streak={streak}
+                                                isComplete={isComplete}
+                                                progressValue={progressValue}
+                                                targetValue={targetValue}
+                                                progressLabel={progressLabel}
+                                                comboMultiplier={currentComboMultiplier}
+                                                onToggle={() => toggleHabitLog(habit.id)}
+                                                onIncrement={() => incrementHabitProgress(habit.id)}
+                                                onDecrement={() => decrementHabitProgress(habit.id)}
+                                                onDelete={() => removeHabit(habit.id)}
+                                            />
+                                        ))}
                                     </AnimatePresence>
                                 </motion.div>
                             </section>
                         )}
 
-                        {habitsForToday.length === 0 && (
+                        {todayHabitCards.length === 0 && (
                             <motion.div
                                 className="app-card-soft rounded-[1.8rem] p-5"
                                 initial={{ opacity: 0, y: 12 }}
@@ -378,7 +419,7 @@ export default function Home() {
                             </motion.div>
                         )}
 
-                        {otherHabits.length > 0 && (
+                        {otherHabitCards.length > 0 && (
                             <section className="space-y-4">
                                 <motion.div
                                     className="flex items-center justify-between gap-3"
@@ -393,7 +434,7 @@ export default function Home() {
                                         </h3>
                                     </div>
                                     <div className="rounded-full border border-white/[0.06] bg-white/[0.025] px-3.5 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white/40">
-                                        {otherHabits.length}
+                                        {otherHabitCards.length}
                                     </div>
                                 </motion.div>
                                 <motion.div
@@ -403,27 +444,26 @@ export default function Home() {
                                     animate="visible"
                                 >
                                     <AnimatePresence mode="popLayout">
-                                        {otherHabits.map((habit) => {
-                                            const habitLogs = logsByHabit[habit.id] || [];
-                                            const streak = calculateStreak(habitLogs, habit.frequency);
-                                            const doneToday = isCompletedToday(habitLogs);
-
-                                            return (
-                                                <motion.div
-                                                    key={habit.id}
-                                                    className="opacity-55 grayscale-[0.2] transition-opacity hover:opacity-100 hover:grayscale-0"
-                                                    layout
-                                                >
-                                                    <SwipeableHabit
-                                                        habit={habit}
-                                                        streak={streak}
-                                                        doneToday={doneToday}
-                                                        onToggle={() => toggleHabitLog(habit.id)}
-                                                        onDelete={() => removeHabit(habit.id)}
-                                                    />
-                                                </motion.div>
-                                            );
-                                        })}
+                                        {otherHabitCards.map(({ habit, streak, progressValue, targetValue, isComplete, progressLabel }) => (
+                                            <motion.div
+                                                key={habit.id}
+                                                className="opacity-55 grayscale-[0.2] transition-opacity hover:opacity-100 hover:grayscale-0"
+                                                layout
+                                            >
+                                                <SwipeableHabit
+                                                    habit={habit}
+                                                    streak={streak}
+                                                    isComplete={isComplete}
+                                                    progressValue={progressValue}
+                                                    targetValue={targetValue}
+                                                    progressLabel={progressLabel}
+                                                    onToggle={() => toggleHabitLog(habit.id)}
+                                                    onIncrement={() => incrementHabitProgress(habit.id)}
+                                                    onDecrement={() => decrementHabitProgress(habit.id)}
+                                                    onDelete={() => removeHabit(habit.id)}
+                                                />
+                                            </motion.div>
+                                        ))}
                                     </AnimatePresence>
                                 </motion.div>
                             </section>

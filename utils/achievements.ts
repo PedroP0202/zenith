@@ -18,7 +18,7 @@ export const TROPHIES: Trophy[] = [
         icon: 'Flame',
         color: '#00C853',
         requirement: (habits, logs) => {
-            return habits.some(h => calculateStreak(logs.filter(l => l.habitId === h.id), h.frequency) >= 7);
+            return habits.some(h => calculateStreak(logs.filter(l => l.habitId === h.id), h) >= 7);
         }
     },
     {
@@ -28,7 +28,7 @@ export const TROPHIES: Trophy[] = [
         icon: 'Trophy',
         color: '#FFD700',
         requirement: (habits, logs) => {
-            return habits.some(h => calculateStreak(logs.filter(l => l.habitId === h.id), h.frequency) >= 30);
+            return habits.some(h => calculateStreak(logs.filter(l => l.habitId === h.id), h) >= 30);
         }
     },
     {

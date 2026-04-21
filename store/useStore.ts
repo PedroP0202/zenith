@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { Friend, FriendRequest, Habit, LogEntry } from '@/types';
+import { Friend, FriendRequest, Habit, HabitFormValues, LogEntry } from '@/types';
 import { encryptData, decryptData, saveSecureJwt, getSecureJwt, removeSecureJwt } from '@/utils/secureStorage';
 import { Capacitor } from '@capacitor/core';
 import { getLevelFromXp } from '@/utils/progression';
@@ -8,9 +8,72 @@ import { syncWidgetData } from '../utils/widgetSync';
 import { scheduleAllNotifications, cancelAllNotifications } from '../utils/notifications';
 import { Language, translations } from '../locales';
 import { API_URL } from '@/utils/constants';
+import { getHabitDayProgress, getHabitFrequency, getHabitGoalType, getHabitPeriodTarget, getHabitProgressForDate, getHabitScheduleType, getHabitTargetValue, getHabitUnitLabel, getHabitWeeklyTarget, isHabitCompleteForDate } from '@/utils/habits';
 
 function isLanguage(value: unknown): value is Language {
     return typeof value === 'string' && Object.prototype.hasOwnProperty.call(translations, value);
+}
+
+function getHabitXpValue(habit?: Pick<Habit, 'isHardMode'>) {
+    return habit?.isHardMode ? 20 : 10;
+}
+
+function getDayKey(timestamp: number) {
+    const date = new Date(timestamp);
+    date.setHours(0, 0, 0, 0);
+    return date.getTime();
+}
+
+function replaceLogForDay(
+    logs: LogEntry[],
+    deletedLogIds: string[],
+    habitId: string,
+    targetDate: Date,
+    nextValue: number
+) {
+    const targetDayKey = getDayKey(targetDate.getTime());
+    const nextLogs: LogEntry[] = [];
+    const removedLogIds: string[] = [];
+
+    for (const log of logs) {
+        const isSameHabitDay = log.habitId === habitId && getDayKey(log.completedAt) === targetDayKey;
+        if (isSameHabitDay) {
+            removedLogIds.push(log.id);
+            continue;
+        }
+        nextLogs.push(log);
+    }
+
+    if (nextValue > 0) {
+        nextLogs.push({
+            id: crypto.randomUUID(),
+            habitId,
+            completedAt: targetDate.getTime(),
+            value: nextValue === 1 ? undefined : nextValue,
+        });
+    }
+
+    return {
+        nextLogs,
+        nextDeletedLogIds: [...deletedLogIds, ...removedLogIds],
+    };
+}
+
+function normalizeHabitInput(input: HabitFormValues): HabitFormValues {
+    const scheduleType = getHabitScheduleType(input);
+    const goalType = scheduleType === 'times_per_week' ? 'complete' : getHabitGoalType(input);
+
+    return {
+        title: input.title.trim(),
+        frequency: getHabitFrequency(input),
+        scheduleType,
+        weeklyTarget: scheduleType === 'times_per_week' ? getHabitWeeklyTarget(input) : undefined,
+        goalType,
+        targetValue: scheduleType === 'specific_days' && goalType === 'count' ? getHabitTargetValue(input) : undefined,
+        unitLabel: scheduleType === 'specific_days' && goalType === 'count' ? getHabitUnitLabel(input) : undefined,
+        isHardMode: Boolean(input.isHardMode),
+        reminderTime: input.reminderTime,
+    };
 }
 
 /**
@@ -71,12 +134,9 @@ interface AppState {
 
     /**
      * Creates a new habit and adds it to the global state.
-     * @param title The name of the habit.
-     * @param frequency Array of days (0-6) when this habit should be active.
-     * @param isHardMode If true, prevents retroactive check-ins.
-     * @param reminderTime Optional daily reminder time in 'HH:mm' format for this specific habit.
+     * Supports binary and quantitative goals, plus fixed weekdays or weekly quotas.
      */
-    addHabit: (title: string, frequency: number[], isHardMode: boolean, reminderTime?: string) => void;
+    addHabit: (input: HabitFormValues) => void;
 
     /**
      * Soft-deletes a habit by its ID, moving it to the trash.
@@ -117,6 +177,16 @@ interface AppState {
      * @param dateMs Optional timestamp (ms) to log retroactively. Defaults to today.
      */
     toggleHabitLog: (habitId: string, dateMs?: number) => void;
+
+    /**
+     * Increments the progress value of a quantitative habit for a given day.
+     */
+    incrementHabitProgress: (habitId: string, dateMs?: number) => void;
+
+    /**
+     * Decrements the progress value of a quantitative habit for a given day.
+     */
+    decrementHabitProgress: (habitId: string, dateMs?: number) => void;
 
     /**
      * Updates the user's customized display name across the app.
@@ -366,17 +436,23 @@ export const useStore = create<AppState>()(
                 cancelAllNotifications().catch(console.error);
             },
 
-            addHabit: (title, frequency, isHardMode, reminderTime) => {
+            addHabit: (input) => {
+                const normalized = normalizeHabitInput(input);
                 const now = Date.now();
                 const newHabit: Habit = {
                     id: crypto.randomUUID(),
-                    title,
+                    title: normalized.title,
                     createdAt: now,
                     updatedAt: now,
                     isActive: true,
-                    frequency,
-                    isHardMode,
-                    reminderTime,
+                    frequency: normalized.frequency,
+                    scheduleType: normalized.scheduleType,
+                    weeklyTarget: normalized.weeklyTarget,
+                    goalType: normalized.goalType,
+                    targetValue: normalized.targetValue,
+                    unitLabel: normalized.unitLabel,
+                    isHardMode: normalized.isHardMode,
+                    reminderTime: normalized.reminderTime,
                 };
                 set((state) => ({ habits: [...state.habits, newHabit] }));
                 syncWidgetData(get().habits, get().logs).catch(console.error);
@@ -442,57 +518,139 @@ export const useStore = create<AppState>()(
             },
 
             toggleHabitLog: (habitId: string, dateMs?: number) => {
-                const { logs } = get();
-                const targetDate = dateMs ? new Date(dateMs) : new Date();
-                const targetStr = targetDate.toDateString();
+                const state = get();
+                const habit = state.habits.find((item) => item.id === habitId);
+                if (!habit) return;
 
-                // Find if we already have a log for the target date
-                const existingLogIndex = logs.findIndex(
-                    (log) => log.habitId === habitId && new Date(log.completedAt).toDateString() === targetStr
+                const targetDate = dateMs ? new Date(dateMs) : new Date();
+                const habitLogs = state.logs.filter((log) => log.habitId === habitId);
+                const dayProgress = getHabitDayProgress(habitLogs, targetDate);
+                const beforeComplete = isHabitCompleteForDate(habitLogs, habit, targetDate);
+                const nextValue = getHabitGoalType(habit) === 'count'
+                    ? (beforeComplete ? 0 : getHabitTargetValue(habit))
+                    : (dayProgress > 0 ? 0 : 1);
+
+                const { nextLogs, nextDeletedLogIds } = replaceLogForDay(
+                    state.logs,
+                    state.deletedLogIds,
+                    habitId,
+                    targetDate,
+                    nextValue
                 );
 
-                if (existingLogIndex >= 0) {
-                    // Un-tick (remove the log for that date)
-                    const habit = get().habits.find(h => h.id === habitId);
-                    const xpLost = habit?.isHardMode ? 20 : 10;
-                    const newTotalXP = Math.max(0, get().totalXP - xpLost);
-                    const newLevel = getLevelFromXp(newTotalXP);
-                    const newArenaPoints = get().optInLeaderboard ? Math.max(0, get().arenaPoints - xpLost) : 0;
-                    
-                    const deletedLogId = logs[existingLogIndex].id;
+                const nextHabitLogs = nextLogs.filter((log) => log.habitId === habitId);
+                const afterComplete = isHabitCompleteForDate(nextHabitLogs, habit, targetDate);
+                const xpDelta = afterComplete === beforeComplete
+                    ? 0
+                    : afterComplete
+                        ? getHabitXpValue(habit)
+                        : -getHabitXpValue(habit);
+                const nextTotalXP = Math.max(0, state.totalXP + xpDelta);
+                const nextArenaPoints = state.optInLeaderboard
+                    ? Math.max(0, state.arenaPoints + xpDelta)
+                    : 0;
 
-                    const newLogs = [...logs];
-                    newLogs.splice(existingLogIndex, 1);
-                    set({ 
-                        logs: newLogs,
-                        totalXP: newTotalXP,
-                        level: newLevel,
-                        arenaPoints: newArenaPoints,
-                        deletedLogIds: [...get().deletedLogIds, deletedLogId]
-                    });
-                } else {
-                    // Tick (add a log for that date)
-                    const habit = get().habits.find(h => h.id === habitId);
-                    const xpGained = habit?.isHardMode ? 20 : 10;
-                    const newTotalXP = get().totalXP + xpGained;
-                    const newLevel = getLevelFromXp(newTotalXP);
-                    const newArenaPoints = get().optInLeaderboard ? get().arenaPoints + xpGained : 0;
-
-                    const newLog: LogEntry = {
-                        id: crypto.randomUUID(),
-                        habitId,
-                        completedAt: targetDate.getTime(),
-                    };
-                    set({ 
-                        logs: [...logs, newLog],
-                        totalXP: newTotalXP,
-                        arenaPoints: newArenaPoints,
-                        level: newLevel
-                    });
-                }
+                set({
+                    logs: nextLogs,
+                    deletedLogIds: nextDeletedLogIds,
+                    totalXP: nextTotalXP,
+                    level: getLevelFromXp(nextTotalXP),
+                    arenaPoints: nextArenaPoints,
+                });
 
                 syncWidgetData(get().habits, get().logs).catch(console.error);
                 // Only sync habits/logs to cloud. XP is calculated server-side in /sync/pull.
+                get().syncWithCloud().catch(console.error);
+            },
+
+            incrementHabitProgress: (habitId: string, dateMs?: number) => {
+                const state = get();
+                const habit = state.habits.find((item) => item.id === habitId);
+                if (!habit || getHabitGoalType(habit) !== 'count') return;
+
+                const targetDate = dateMs ? new Date(dateMs) : new Date();
+                const habitLogs = state.logs.filter((log) => log.habitId === habitId);
+                const dayProgress = getHabitDayProgress(habitLogs, targetDate);
+                const targetValue = getHabitTargetValue(habit);
+                const beforeComplete = isHabitCompleteForDate(habitLogs, habit, targetDate);
+                const nextValue = Math.min(targetValue, dayProgress + 1);
+
+                if (nextValue === dayProgress) return;
+
+                const { nextLogs, nextDeletedLogIds } = replaceLogForDay(
+                    state.logs,
+                    state.deletedLogIds,
+                    habitId,
+                    targetDate,
+                    nextValue
+                );
+
+                const nextHabitLogs = nextLogs.filter((log) => log.habitId === habitId);
+                const afterComplete = isHabitCompleteForDate(nextHabitLogs, habit, targetDate);
+                const xpDelta = afterComplete === beforeComplete
+                    ? 0
+                    : afterComplete
+                        ? getHabitXpValue(habit)
+                        : -getHabitXpValue(habit);
+                const nextTotalXP = Math.max(0, state.totalXP + xpDelta);
+                const nextArenaPoints = state.optInLeaderboard
+                    ? Math.max(0, state.arenaPoints + xpDelta)
+                    : 0;
+
+                set({
+                    logs: nextLogs,
+                    deletedLogIds: nextDeletedLogIds,
+                    totalXP: nextTotalXP,
+                    level: getLevelFromXp(nextTotalXP),
+                    arenaPoints: nextArenaPoints,
+                });
+
+                syncWidgetData(get().habits, get().logs).catch(console.error);
+                get().syncWithCloud().catch(console.error);
+            },
+
+            decrementHabitProgress: (habitId: string, dateMs?: number) => {
+                const state = get();
+                const habit = state.habits.find((item) => item.id === habitId);
+                if (!habit || getHabitGoalType(habit) !== 'count') return;
+
+                const targetDate = dateMs ? new Date(dateMs) : new Date();
+                const habitLogs = state.logs.filter((log) => log.habitId === habitId);
+                const dayProgress = getHabitDayProgress(habitLogs, targetDate);
+                const beforeComplete = isHabitCompleteForDate(habitLogs, habit, targetDate);
+                const nextValue = Math.max(0, dayProgress - 1);
+
+                if (nextValue === dayProgress) return;
+
+                const { nextLogs, nextDeletedLogIds } = replaceLogForDay(
+                    state.logs,
+                    state.deletedLogIds,
+                    habitId,
+                    targetDate,
+                    nextValue
+                );
+
+                const nextHabitLogs = nextLogs.filter((log) => log.habitId === habitId);
+                const afterComplete = isHabitCompleteForDate(nextHabitLogs, habit, targetDate);
+                const xpDelta = afterComplete === beforeComplete
+                    ? 0
+                    : afterComplete
+                        ? getHabitXpValue(habit)
+                        : -getHabitXpValue(habit);
+                const nextTotalXP = Math.max(0, state.totalXP + xpDelta);
+                const nextArenaPoints = state.optInLeaderboard
+                    ? Math.max(0, state.arenaPoints + xpDelta)
+                    : 0;
+
+                set({
+                    logs: nextLogs,
+                    deletedLogIds: nextDeletedLogIds,
+                    totalXP: nextTotalXP,
+                    level: getLevelFromXp(nextTotalXP),
+                    arenaPoints: nextArenaPoints,
+                });
+
+                syncWidgetData(get().habits, get().logs).catch(console.error);
                 get().syncWithCloud().catch(console.error);
             },
 
@@ -813,32 +971,27 @@ export const useStore = create<AppState>()(
                                 const habit = habitById.get(habitId);
                                 if (!habit || !habit.isActive) continue;
 
-                                const todayLogIndex = nextLogs.findIndex((log) => {
-                                    if (log.habitId !== habitId) return false;
-                                    const checkDate = new Date(log.completedAt);
-                                    checkDate.setHours(0, 0, 0, 0);
-                                    return checkDate.getTime() === todayMs;
-                                });
-
-                                const isCurrentlyCompleted = todayLogIndex >= 0;
+                                const habitLogs = nextLogs.filter((log) => log.habitId === habitId);
+                                const isCurrentlyCompleted = isHabitCompleteForDate(habitLogs, habit, todayStart);
                                 if (isCurrentlyCompleted === shouldBeCompleted) continue;
 
-                                const xpValue = habit.isHardMode ? 20 : 10;
+                                const nextValue = shouldBeCompleted
+                                    ? (getHabitGoalType(habit) === 'count' ? getHabitTargetValue(habit) : 1)
+                                    : 0;
+                                const replacement = replaceLogForDay(nextLogs, nextDeletedLogIds, habitId, todayStart, nextValue);
+                                nextLogs = replacement.nextLogs;
+                                nextDeletedLogIds = replacement.nextDeletedLogIds;
 
-                                if (shouldBeCompleted) {
-                                    nextLogs.push({
-                                        id: crypto.randomUUID(),
-                                        habitId,
-                                        completedAt: todayMs,
-                                    });
-                                    xpDelta += xpValue;
-                                    if (state.optInLeaderboard) arenaDelta += xpValue;
-                                } else if (todayLogIndex >= 0) {
-                                    const [removedLog] = nextLogs.splice(todayLogIndex, 1);
-                                    nextDeletedLogIds.push(removedLog.id);
-                                    xpDelta -= xpValue;
-                                    if (state.optInLeaderboard) arenaDelta -= xpValue;
-                                }
+                                const nextHabitLogs = nextLogs.filter((log) => log.habitId === habitId);
+                                const afterComplete = isHabitCompleteForDate(nextHabitLogs, habit, todayStart);
+                                const completionDelta = afterComplete === isCurrentlyCompleted
+                                    ? 0
+                                    : afterComplete
+                                        ? getHabitXpValue(habit)
+                                        : -getHabitXpValue(habit);
+
+                                xpDelta += completionDelta;
+                                if (state.optInLeaderboard) arenaDelta += completionDelta;
 
                                 hasChanges = true;
                             }

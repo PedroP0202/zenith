@@ -1,72 +1,91 @@
-import { LogEntry } from '../types';
-import { startOfDay, isSameDay, subDays, differenceInCalendarDays } from 'date-fns';
+import { Habit, LogEntry } from '../types';
+import { addDays, addWeeks, differenceInCalendarDays, isSameDay, startOfDay, startOfWeek, subDays, subWeeks } from 'date-fns';
+import { EVERYDAY_FREQUENCY, getCompletedHabitPeriods, getHabitFrequency, getHabitGoalType, getHabitScheduleType, getHabitTargetValue, getHabitWeeklyTarget, hasHabitLogOnDate, isHabitScheduledForDate } from './habits';
+
+type HabitLike = Pick<Habit, 'frequency' | 'scheduleType' | 'weeklyTarget' | 'goalType' | 'targetValue'>;
+
+function resolveHabitConfig(habitOrFrequency?: Habit | number[]): HabitLike {
+    if (Array.isArray(habitOrFrequency)) {
+        return {
+            frequency: habitOrFrequency.length > 0 ? habitOrFrequency : [...EVERYDAY_FREQUENCY],
+            scheduleType: 'specific_days',
+            goalType: 'complete',
+            targetValue: 1,
+            weeklyTarget: 1,
+        };
+    }
+
+    return {
+        frequency: getHabitFrequency(habitOrFrequency),
+        scheduleType: getHabitScheduleType(habitOrFrequency),
+        weeklyTarget: getHabitWeeklyTarget(habitOrFrequency),
+        goalType: getHabitGoalType(habitOrFrequency),
+        targetValue: getHabitTargetValue(habitOrFrequency),
+    };
+}
+
+function getPreviousScheduledDate(date: Date, habit: HabitLike): Date {
+    let candidate = subDays(startOfDay(date), 1);
+    while (!isHabitScheduledForDate(habit, candidate)) {
+        candidate = subDays(candidate, 1);
+    }
+    return candidate;
+}
+
+function getNextScheduledDate(date: Date, habit: HabitLike): Date {
+    let candidate = addDays(startOfDay(date), 1);
+    while (!isHabitScheduledForDate(habit, candidate)) {
+        candidate = addDays(candidate, 1);
+    }
+    return candidate;
+}
 
 /**
  * Calculates the current streak for a habit based on its log entries.
  * The core rule: A streak is broken if the user didn't complete it yesterday.
  * So, if completed today or yesterday, we count backwards from yesterday (or today if that's the latest).
  */
-export function calculateStreak(logs: LogEntry[], frequency: number[] = [0, 1, 2, 3, 4, 5, 6], todayDate: Date = new Date()): number {
-    if (!logs || logs.length === 0 || !frequency || frequency.length === 0) return 0;
+export function calculateStreak(logs: LogEntry[], habitOrFrequency: Habit | number[] = [...EVERYDAY_FREQUENCY], todayDate: Date = new Date()): number {
+    if (!logs || logs.length === 0) return 0;
 
-    // Sort newest first
-    const sortedLogs = [...logs].sort((a, b) => b.completedAt - a.completedAt);
+    const habit = resolveHabitConfig(habitOrFrequency);
+    const completedPeriods = new Set(getCompletedHabitPeriods(logs, habit));
 
-    // Clean duplicates per day and keep Date objects
-    const uniqueLogsByDay: Date[] = [];
-    const seenDays = new Set<string>();
+    if (completedPeriods.size === 0) return 0;
 
-    for (const log of sortedLogs) {
-        const d = startOfDay(new Date(log.completedAt));
-        const dayStr = d.toISOString();
-        if (!seenDays.has(dayStr)) {
-            seenDays.add(dayStr);
-            uniqueLogsByDay.push(d);
+    if (getHabitScheduleType(habit) === 'times_per_week') {
+        const currentWeek = startOfWeek(startOfDay(todayDate), { weekStartsOn: 1 });
+        const previousWeek = subWeeks(currentWeek, 1);
+
+        let cursor: Date | null = null;
+        if (completedPeriods.has(currentWeek.getTime())) cursor = currentWeek;
+        else if (completedPeriods.has(previousWeek.getTime())) cursor = previousWeek;
+        if (!cursor) return 0;
+
+        let streak = 0;
+        while (completedPeriods.has(cursor.getTime())) {
+            streak++;
+            cursor = subWeeks(cursor, 1);
         }
+        return streak;
     }
 
-    if (uniqueLogsByDay.length === 0) return 0;
-
-    const today = startOfDay(todayDate);
-    const isScheduled = (d: Date) => frequency.includes(d.getDay());
-
-    // Find the latest scheduled day <= today
-    let lastScheduled = new Date(today);
-    while (!isScheduled(lastScheduled)) {
+    let lastScheduled = startOfDay(todayDate);
+    while (!isHabitScheduledForDate(habit, lastScheduled)) {
         lastScheduled = subDays(lastScheduled, 1);
     }
 
-    // Find the scheduled day before that
-    let prevScheduled = subDays(lastScheduled, 1);
-    while (!isScheduled(prevScheduled)) {
-        prevScheduled = subDays(prevScheduled, 1);
-    }
+    const previousScheduled = getPreviousScheduledDate(lastScheduled, habit);
+    let cursor: Date | null = null;
 
-    // Filter out logs that are NOT on scheduled days
-    const scheduledLogs = uniqueLogsByDay.filter(d => isScheduled(d));
-    if (scheduledLogs.length === 0) return 0;
-
-    const mostRecentScheduledLog = scheduledLogs[0];
-
-    // If the most recent scheduled log isn't the last scheduled day or the one before it, streak is broken.
-    if (!isSameDay(mostRecentScheduledLog, lastScheduled) && !isSameDay(mostRecentScheduledLog, prevScheduled)) {
-        return 0;
-    }
+    if (completedPeriods.has(lastScheduled.getTime())) cursor = lastScheduled;
+    else if (completedPeriods.has(previousScheduled.getTime())) cursor = previousScheduled;
+    if (!cursor) return 0;
 
     let streak = 0;
-    let expectedDate = mostRecentScheduledLog;
-
-    for (const logDate of scheduledLogs) {
-        if (isSameDay(logDate, expectedDate)) {
-            streak++;
-            // Calculate next expected date backwards
-            expectedDate = subDays(expectedDate, 1);
-            while (!isScheduled(expectedDate)) {
-                expectedDate = subDays(expectedDate, 1);
-            }
-        } else if (logDate.getTime() < expectedDate.getTime()) {
-            break; // Gap found
-        }
+    while (completedPeriods.has(cursor.getTime())) {
+        streak++;
+        cursor = getPreviousScheduledDate(cursor, habit);
     }
 
     return streak;
@@ -80,12 +99,7 @@ export function calculateStreak(logs: LogEntry[], frequency: number[] = [0, 1, 2
  */
 export function isCompletedToday(logs: LogEntry[], todayDate: Date = new Date()): boolean {
     if (!logs || logs.length === 0) return false;
-    const todayStr = startOfDay(todayDate).toISOString();
-
-    return logs.some(log => {
-        const logStr = startOfDay(new Date(log.completedAt)).toISOString();
-        return logStr === todayStr;
-    });
+    return hasHabitLogOnDate(logs, todayDate);
 }
 
 /**
@@ -171,47 +185,32 @@ export function getYearlyStats(logs: LogEntry[], todayDate: Date = new Date()) {
 /**
  * Calculates the best (longest) streak for a habit over its entire history.
  */
-export function getBestStreak(logs: LogEntry[], frequency: number[] = [0, 1, 2, 3, 4, 5, 6]): number {
+export function getBestStreak(logs: LogEntry[], habitOrFrequency: Habit | number[] = [...EVERYDAY_FREQUENCY]): number {
     if (!logs || logs.length === 0) return 0;
 
-    const sortedLogs = [...logs].sort((a, b) => a.completedAt - b.completedAt); // Oldest first
-    const uniqueLogsByDay: Date[] = [];
-    const seenDays = new Set<string>();
+    const habit = resolveHabitConfig(habitOrFrequency);
+    const completedPeriods = getCompletedHabitPeriods(logs, habit);
+    if (completedPeriods.length === 0) return 0;
 
-    for (const log of sortedLogs) {
-        const d = startOfDay(new Date(log.completedAt));
-        const dayStr = d.toISOString();
-        if (!seenDays.has(dayStr)) {
-            seenDays.add(dayStr);
-            uniqueLogsByDay.push(d);
-        }
-    }
-
-    if (uniqueLogsByDay.length === 0) return 0;
-
-    const isScheduled = (d: Date) => frequency.includes(d.getDay());
-    const scheduledLogs = uniqueLogsByDay.filter(d => isScheduled(d));
-
-    if (scheduledLogs.length === 0) return 0;
-
-    let maxStreak = 0;
+    let maxStreak = 1;
     let currentStreak = 1;
 
-    for (let i = 1; i < scheduledLogs.length; i++) {
-        let expectedPrevDate = subDays(scheduledLogs[i], 1);
-        while (!isScheduled(expectedPrevDate)) {
-            expectedPrevDate = subDays(expectedPrevDate, 1);
-        }
+    for (let i = 1; i < completedPeriods.length; i++) {
+        const currentPeriod = new Date(completedPeriods[i]);
+        const previousPeriod = new Date(completedPeriods[i - 1]);
 
-        if (isSameDay(scheduledLogs[i - 1], expectedPrevDate)) {
+        const expectedPrevious = getHabitScheduleType(habit) === 'times_per_week'
+            ? addWeeks(previousPeriod, 1)
+            : getNextScheduledDate(previousPeriod, habit);
+
+        if (isSameDay(currentPeriod, expectedPrevious)) {
             currentStreak++;
+            maxStreak = Math.max(maxStreak, currentStreak);
         } else {
-            if (currentStreak > maxStreak) maxStreak = currentStreak;
             currentStreak = 1;
         }
     }
 
-    if (currentStreak > maxStreak) maxStreak = currentStreak;
     return maxStreak;
 }
 

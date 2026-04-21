@@ -3,6 +3,7 @@ import { Capacitor } from '@capacitor/core';
 import { Habit } from '../types';
 import { getRandomNotificationPhrase } from './notificationPhrases';
 import type { LocalNotificationSchema } from '@capacitor/local-notifications';
+import { getHabitScheduleType } from './habits';
 
 export const MORNING_REMINDER_ID = 101;
 
@@ -98,9 +99,7 @@ export async function scheduleAllNotifications(
 
         const phrase = getRandomNotificationPhrase(habit.title);
 
-        // Se o hábito tem dias específicos (frequency), precisamos de agendar 
-        // notificações distintas por cada dia (Weekday) no Capacitor
-        if (habit.frequency && habit.frequency.length > 0) {
+        if (getHabitScheduleType(habit) === 'specific_days' && habit.frequency && habit.frequency.length > 0) {
             habit.frequency.forEach((dayIndex, i) => {
                 // Capacitor: weekday is 1-7 (1=Sunday, 2=Monday... 7=Saturday)
                 // Zenith frequency is 0-6 (0=Sunday, 1=Monday... 6=Saturday)
@@ -182,4 +181,3 @@ export async function sendTestNotification() {
         alert(`Erro ao agendar notificação nativa: ${errorMessage}`);
     }
 }
-

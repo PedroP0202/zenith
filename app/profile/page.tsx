@@ -171,7 +171,7 @@ export default function ProfilePage() {
     const activeHabits = habits.filter(h => h.isActive);
     const totalCompletions = logs.length;
     const bestStreakAllHabits = activeHabits.reduce((max, h) =>
-        Math.max(max, getBestStreak(logs.filter(l => l.habitId === h.id), h.frequency)), 0);
+        Math.max(max, getBestStreak(logs.filter(l => l.habitId === h.id), h)), 0);
     const yearlyStats = getYearlyStats(logs, new Date());
 
     // New Space-Themed Progression

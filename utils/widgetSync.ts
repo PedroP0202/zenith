@@ -2,6 +2,7 @@ import { Capacitor, registerPlugin } from '@capacitor/core';
 import { Habit, LogEntry } from '@/types';
 import { startOfDay, subDays, format } from 'date-fns';
 import { calculateStreak } from './streak';
+import { hasHabitLogOnDate, isHabitCompleteForDate, isHabitScheduledForDate } from './habits';
 
 export interface WidgetSyncPlugin {
     setItem: (options: { key: string; value: string; group: string }) => Promise<void>;
@@ -43,41 +44,27 @@ export async function syncWidgetData(habits: Habit[], logs: LogEntry[]) {
     try {
         const today = new Date();
         const todayStart = startOfDay(today);
-        const currentDayOfWeek = today.getDay();
-
         const logsByHabit = new Map<string, LogEntry[]>();
-        const completionDaysByHabit = new Map<string, Set<number>>();
 
         logs.forEach((log) => {
             if (!logsByHabit.has(log.habitId)) {
                 logsByHabit.set(log.habitId, []);
             }
             logsByHabit.get(log.habitId)?.push(log);
-
-            const dayStart = startOfDay(new Date(log.completedAt)).getTime();
-            if (!completionDaysByHabit.has(log.habitId)) {
-                completionDaysByHabit.set(log.habitId, new Set<number>());
-            }
-            completionDaysByHabit.get(log.habitId)?.add(dayStart);
         });
 
         // 1. Current Day Logic
-        const activeHabitsToday = habits.filter((habit) => {
-            if (!habit.isActive) return false;
-            if (!habit.frequency || habit.frequency.length === 0) return true;
-            return habit.frequency.includes(currentDayOfWeek);
-        });
+        const activeHabitsToday = habits.filter((habit) => habit.isActive && isHabitScheduledForDate(habit, today));
 
         const widgetHabits: WidgetHabit[] = activeHabitsToday.map((habit) => {
             const habitLogs = logsByHabit.get(habit.id) || [];
-            const completedDays = completionDaysByHabit.get(habit.id);
-            const hasLoggedToday = completedDays?.has(todayStart.getTime()) ?? false;
-            const currentStreak = calculateStreak(habitLogs, habit.frequency);
+            const isComplete = isHabitCompleteForDate(habitLogs, habit, today);
+            const currentStreak = calculateStreak(habitLogs, habit);
 
             return {
                 id: habit.id,
                 title: habit.title.trim() || 'Habit',
-                completed: hasLoggedToday,
+                completed: isComplete,
                 streak: currentStreak
             };
         });
@@ -92,14 +79,9 @@ export async function syncWidgetData(habits: Habit[], logs: LogEntry[]) {
         const weeklyCompletion: number[] = [];
         for (let i = 6; i >= 0; i--) {
             const targetDate = startOfDay(subDays(today, i));
-            const targetDayOfWeek = targetDate.getDay();
             const targetDayMs = targetDate.getTime();
             
-            const habitsAtThatDay = habits.filter((habit) => {
-                if (!habit.isActive) return false;
-                if (!habit.frequency || habit.frequency.length === 0) return true;
-                return habit.frequency.includes(targetDayOfWeek);
-            });
+            const habitsAtThatDay = habits.filter((habit) => habit.isActive && isHabitScheduledForDate(habit, targetDate));
 
             if (habitsAtThatDay.length === 0) {
                 weeklyCompletion.push(0);
@@ -107,8 +89,12 @@ export async function syncWidgetData(habits: Habit[], logs: LogEntry[]) {
             }
 
             const completedCount = habitsAtThatDay.filter((habit) => {
-                const completedDays = completionDaysByHabit.get(habit.id);
-                return completedDays?.has(targetDayMs) ?? false;
+                const habitLogs = logsByHabit.get(habit.id) || [];
+                if (targetDayMs === todayStart.getTime()) {
+                    return isHabitCompleteForDate(habitLogs, habit, targetDate);
+                }
+
+                return hasHabitLogOnDate(habitLogs, targetDate);
             }).length;
 
             weeklyCompletion.push(completedCount / habitsAtThatDay.length);

@@ -3,28 +3,20 @@ import { useRef, useEffect } from 'react';
 import { getDaysInMonth, startOfMonth, getDay, subMonths, format } from 'date-fns';
 import { ptBR, enUS } from 'date-fns/locale';
 import { useTranslation } from '../hooks/useTranslation';
-import { LogEntry } from '../types';
+import { Habit, LogEntry } from '../types';
+import { getHabitDayProgress, getHabitGoalType, getHabitScheduleType, getHabitTargetValue } from '../utils/habits';
 
 interface InfiniteCalendarProps {
+    habit: Habit;
     habitLogs: LogEntry[];
     onDayClick: (date: Date) => void;
-    frequency?: number[];
-    isHardMode?: boolean;
     monthsToGenerate?: number;
 }
 
-export default function InfiniteCalendar({ habitLogs, onDayClick, frequency, isHardMode, monthsToGenerate = 12 }: InfiniteCalendarProps) {
+export default function InfiniteCalendar({ habit, habitLogs, onDayClick, monthsToGenerate = 12 }: InfiniteCalendarProps) {
     const scrollRef = useRef<HTMLDivElement>(null);
     const { language } = useTranslation();
     const dateLocale = language === 'pt' ? ptBR : enUS;
-
-    // Convert logs into a Set of 'YYYY-MM-DD' for O(1) lookups
-    const completedSet = new Set(
-        habitLogs.map(log => {
-            const d = new Date(log.completedAt);
-            return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-        })
-    );
 
     const currentDate = new Date();
     const monthsArray = Array.from({ length: monthsToGenerate }, (_, i) => {
@@ -83,10 +75,12 @@ export default function InfiniteCalendar({ habitLogs, onDayClick, frequency, isH
                                     {days.map(day => {
                                         const cellDate = new Date(monthDate.getFullYear(), monthDate.getMonth(), day);
                                         const now = new Date();
-
-                                        const lookupKey = `${cellDate.getFullYear()}-${cellDate.getMonth()}-${day}`;
-                                        const isCompleted = completedSet.has(lookupKey);
                                         const dayOfWeek = cellDate.getDay();
+                                        const dayProgress = getHabitDayProgress(habitLogs, cellDate);
+                                        const targetValue = getHabitGoalType(habit) === 'count' ? getHabitTargetValue(habit) : 1;
+                                        const progressRatio = Math.min(1, dayProgress / targetValue);
+                                        const isCompleted = dayProgress >= targetValue;
+                                        const hasPartialProgress = dayProgress > 0 && !isCompleted;
 
                                         const todayZero = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
                                         const cellZero = cellDate.getTime();
@@ -95,16 +89,17 @@ export default function InfiniteCalendar({ habitLogs, onDayClick, frequency, isH
                                         const isFuture = cellZero > todayZero;
                                         const isPast = cellZero < todayZero;
 
-                                        // Domain starts at 0 = Sunday, identical to JS standard getDay()
-                                        const isScheduled = frequency ? frequency.includes(dayOfWeek) : true;
+                                        const isScheduled = getHabitScheduleType(habit) === 'times_per_week'
+                                            ? true
+                                            : habit.frequency.includes(dayOfWeek);
 
                                         let isClickable = true;
 
                                         if (isFuture) isClickable = false;
                                         if (!isScheduled) isClickable = false;
-                                        if (isHardMode && isPast) isClickable = false;
+                                        if (habit.isHardMode && isPast) isClickable = false;
 
-                                        if (isCompleted && (!isHardMode || isToday)) {
+                                        if (isCompleted && (!habit.isHardMode || isToday)) {
                                             isClickable = true;
                                         }
 
@@ -113,14 +108,19 @@ export default function InfiniteCalendar({ habitLogs, onDayClick, frequency, isH
                                                 key={day}
                                                 onClick={() => isClickable && onDayClick(cellDate)}
                                                 disabled={!isClickable}
-                                                className={`aspect-square flex items-center justify-center rounded-lg text-sm font-bold transition-all duration-300 w-full ${isClickable ? 'cursor-pointer hover:scale-110 active:scale-95' : 'cursor-default'} ${!isClickable && !isCompleted
+                                                className={`aspect-square flex items-center justify-center rounded-lg text-sm font-bold transition-all duration-300 w-full ${isClickable ? 'cursor-pointer hover:scale-110 active:scale-95' : 'cursor-default'} ${!isClickable && !isCompleted && !hasPartialProgress
                                                     ? 'opacity-20 text-white/10'
                                                     : isCompleted
                                                         ? 'bg-[var(--zenith-active)] text-black shadow-[0_0_12px_rgba(255,255,255,0.4)] opacity-100'
+                                                        : hasPartialProgress
+                                                            ? 'border border-white/20 text-white shadow-[inset_0_0_12px_rgba(255,255,255,0.05)]'
                                                         : isToday
                                                             ? 'bg-transparent border border-white/40 text-white/90 shadow-[inset_0_0_8px_rgba(255,255,255,0.1)]'
                                                             : 'bg-white/[0.04] text-white/40 hover:bg-white/10'
                                                     }`}
+                                                style={hasPartialProgress ? {
+                                                    background: `linear-gradient(180deg, rgba(255,255,255,${0.08 + (progressRatio * 0.18)}) 0%, rgba(255,255,255,0.03) 100%)`
+                                                } : undefined}
                                             >
                                                 {day}
                                             </button>

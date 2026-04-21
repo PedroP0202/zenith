@@ -1,23 +1,33 @@
 'use client';
+
 import { useStore } from '../../../store/useStore';
 import { calculateStreak, getBestStreak } from '../../../utils/streak';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ChevronLeft, Trash2, Loader2 } from 'lucide-react';
-import { Suspense, useState, useEffect, useRef } from 'react';
-
+import { ChevronLeft, Loader2, Minus, Plus, Repeat, Shield, Trash2 } from 'lucide-react';
+import { Suspense, useMemo, useState, useEffect, useRef } from 'react';
 import { Habit, LogEntry } from '../../../types';
 import InfiniteCalendar from '../../../components/InfiniteCalendar';
 import { useTranslation } from '../../../hooks/useTranslation';
 import ConfirmationModal from '../../../components/ConfirmationModal';
 import { deviceHaptics } from '../../../utils/haptics';
 import { motion } from 'framer-motion';
+import { getHabitDayProgress, getHabitGoalType, getHabitPeriodTarget, getHabitProgressForDate, getHabitScheduleType, getHabitTargetValue, getHabitUnitLabel, getHabitWeeklyTarget, isHabitCompleteForDate } from '../../../utils/habits';
 
 function HabitDetailContent() {
     const { t } = useTranslation();
     const searchParams = useSearchParams();
     const id = searchParams.get('id');
     const router = useRouter();
-    const { habits, logs, removeHabit, editHabit, editHabitReminder, toggleHabitLog } = useStore();
+    const {
+        habits,
+        logs,
+        removeHabit,
+        editHabit,
+        editHabitReminder,
+        toggleHabitLog,
+        incrementHabitProgress,
+        decrementHabitProgress,
+    } = useStore();
 
     const [localTitle, setLocalTitle] = useState('');
     const [isReminderEnabled, setIsReminderEnabled] = useState(false);
@@ -25,11 +35,10 @@ function HabitDetailContent() {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
 
-    const habit = habits.find((h: Habit) => h.id === id);
-    const habitLogs = logs.filter((l: LogEntry) => l.habitId === id);
-    const streak = calculateStreak(habitLogs, habit?.frequency);
-    const bestStreak = getBestStreak(habitLogs, habit?.frequency);
-    const milestones = [7, 30, 90, 365];
+    const habit = habits.find((item: Habit) => item.id === id);
+    const habitLogs = logs.filter((item: LogEntry) => item.habitId === id);
+    const streak = habit ? calculateStreak(habitLogs, habit) : 0;
+    const bestStreak = habit ? getBestStreak(habitLogs, habit) : 0;
 
     useEffect(() => {
         if (habit) {
@@ -43,6 +52,38 @@ function HabitDetailContent() {
         }
     }, [habit]);
 
+    const now = new Date();
+    const todayProgress = habit ? getHabitProgressForDate(habitLogs, habit, now) : 0;
+    const todayDayProgress = habit ? getHabitDayProgress(habitLogs, now) : 0;
+    const periodTarget = habit ? getHabitPeriodTarget(habit) : 1;
+    const isCompleteNow = habit ? isHabitCompleteForDate(habitLogs, habit, now) : false;
+    const isQuantitative = habit ? getHabitGoalType(habit) === 'count' : false;
+    const unitLabel = habit ? getHabitUnitLabel(habit) : undefined;
+
+    const cadenceLabel = useMemo(() => {
+        if (!habit) return '';
+        if (getHabitScheduleType(habit) === 'times_per_week') {
+            return `${getHabitWeeklyTarget(habit)}x ${t.habit.weeklyGoalSuffix}`;
+        }
+
+        if (habit.frequency.length === 7) {
+            return t.habit.everyDay;
+        }
+
+        return `${habit.frequency.length} ${t.habit.selectedDays}`;
+    }, [habit, t.habit.everyDay, t.habit.selectedDays, t.habit.weeklyGoalSuffix]);
+
+    const goalLabel = useMemo(() => {
+        if (!habit) return '';
+        if (getHabitGoalType(habit) === 'count') {
+            return `${getHabitTargetValue(habit)} ${unitLabel || 'un'} ${t.habit.dailyGoalSuffix}`;
+        }
+
+        return getHabitScheduleType(habit) === 'times_per_week'
+            ? `${periodTarget}x ${t.habit.weeklyGoalSuffix}`
+            : `1x ${t.habit.dailyGoalSuffix}`;
+    }, [habit, periodTarget, t.habit.dailyGoalSuffix, t.habit.weeklyGoalSuffix, unitLabel]);
+
     if (!id) return <p>{t.habit.notFound}</p>;
 
     if (!habit) {
@@ -53,215 +94,248 @@ function HabitDetailContent() {
         );
     }
 
-    const handleDelete = () => {
-        deviceHaptics.heavyImpact();
-        setShowDeleteModal(true);
-    };
-
     const handleConfirmDelete = () => {
         removeHabit(habit.id);
         router.push('/');
     };
 
     return (
-        <main className="min-h-[100dvh] bg-black text-white p-6 font-sans flex flex-col items-center">
-            <div className="w-full max-w-md pt-8 flex flex-col h-full min-h-[85vh]">
-                <motion.header
-                    className="flex justify-between items-center mb-16"
-                    initial={{ opacity: 0, y: -12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, type: 'spring', bounce: 0.2 }}
-                >
-                    <button
-                        onClick={() => {
-                            deviceHaptics.lightImpact();
-                            router.back();
-                        }}
-                        className="h-12 w-12 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 transition-colors -ml-3 active:scale-90"
+        <main className="app-page min-h-[100dvh] text-white">
+            <div className="app-main-spacing">
+                <div className="app-shell">
+                    <motion.header
+                        className="mb-8 flex items-center justify-between"
+                        initial={{ opacity: 0, y: -12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.45, type: 'spring', bounce: 0.2 }}
                     >
-                        <ChevronLeft size={24} />
-                    </button>
+                        <button
+                            onClick={() => {
+                                deviceHaptics.lightImpact();
+                                router.back();
+                            }}
+                            className="flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white/80 transition-colors hover:bg-white/[0.08] active:scale-95"
+                        >
+                            <ChevronLeft size={22} />
+                        </button>
 
-                    <button
-                        onClick={handleDelete}
-                        className="h-12 w-12 flex items-center justify-center rounded-full text-red-500/70 hover:text-red-500 hover:bg-red-500/10 transition-colors active:scale-90"
-                        aria-label={t.common.delete}
+                        <button
+                            onClick={() => {
+                                deviceHaptics.heavyImpact();
+                                setShowDeleteModal(true);
+                            }}
+                            className="flex h-12 w-12 items-center justify-center rounded-full text-red-500/70 transition-colors hover:bg-red-500/10 hover:text-red-500 active:scale-95"
+                            aria-label={t.common.delete}
+                        >
+                            <Trash2 size={20} />
+                        </button>
+                    </motion.header>
+
+                    <motion.section
+                        className="app-card rounded-[2rem] p-5"
+                        initial={{ opacity: 0, y: 14 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.45 }}
                     >
-                        <Trash2 size={20} />
-                    </button>
-                </motion.header>
+                        <input
+                            ref={inputRef}
+                            type="text"
+                            value={localTitle}
+                            onChange={(e) => setLocalTitle(e.target.value)}
+                            onBlur={() => {
+                                if (localTitle.trim() && localTitle !== habit.title) {
+                                    editHabit(habit.id, localTitle.trim());
+                                } else {
+                                    setLocalTitle(habit.title);
+                                }
+                            }}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') inputRef.current?.blur();
+                            }}
+                            className="w-full border-b border-white/10 bg-transparent pb-3 text-[2rem] font-semibold tracking-[-0.06em] text-white outline-none focus:border-white/30"
+                            aria-label={t.habit.editTitle}
+                        />
 
-                <div className="flex-1 flex flex-col items-center justify-center text-center">
-                    <input
-                        ref={inputRef}
-                        type="text"
-                        value={localTitle}
-                        onChange={(e) => setLocalTitle(e.target.value)}
-                        onBlur={() => {
-                            if (localTitle.trim() && localTitle !== habit.title) {
-                                editHabit(habit.id, localTitle.trim());
-                            } else {
-                                setLocalTitle(habit.title);
-                            }
-                        }}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                                inputRef.current?.blur();
-                            }
-                        }}
-                        className="gap-2 text-3xl font-medium text-white/50 focus:text-white/90 transition-all duration-300 mb-12 bg-transparent border-b-2 border-white/10 focus:border-white/30 outline-none text-center w-full caret-white"
-                        aria-label={t.habit.editTitle}
-                    />
+                        <div className="mt-5 flex flex-wrap gap-2">
+                            <span className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/60">
+                                {goalLabel}
+                            </span>
+                            <span className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/60">
+                                {cadenceLabel}
+                            </span>
+                            {habit.isHardMode && (
+                                <span className="rounded-full border border-red-500/20 bg-red-500/10 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-red-300">
+                                    {t.habit.hardMode}
+                                </span>
+                            )}
+                        </div>
 
-                    {habit && (
+                        <div className="mt-5 grid grid-cols-2 gap-3">
+                            <div className="rounded-[1.4rem] border border-white/10 bg-white/[0.03] p-4">
+                                <p className="app-kicker">{t.habit.currentStreak}</p>
+                                <p className="mt-3 text-4xl font-semibold tracking-[-0.08em] text-white">{streak}</p>
+                            </div>
+                            <div className="rounded-[1.4rem] border border-white/10 bg-white/[0.03] p-4">
+                                <p className="app-kicker">{t.home.bestRun}</p>
+                                <p className="mt-3 text-4xl font-semibold tracking-[-0.08em] text-white">{bestStreak}</p>
+                            </div>
+                        </div>
+                    </motion.section>
+
+                    <motion.section
+                        className="app-card mt-5 rounded-[2rem] p-5"
+                        initial={{ opacity: 0, y: 14 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.45, delay: 0.05 }}
+                    >
+                        <div className="flex items-center justify-between gap-4">
+                            <div>
+                                <p className="app-kicker">
+                                    {getHabitScheduleType(habit) === 'times_per_week' ? t.habit.thisWeek : t.habit.todayProgress}
+                                </p>
+                                <p className="mt-2 text-sm leading-6 text-white/55">
+                                    {getHabitScheduleType(habit) === 'times_per_week'
+                                        ? `${todayProgress}/${periodTarget} ${t.habit.weeklyGoalSuffix}`
+                                        : `${todayProgress}/${periodTarget} ${unitLabel || ''}`.trim()}
+                                </p>
+                            </div>
+                            <div className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-semibold tracking-[-0.03em] text-white">
+                                {isCompleteNow ? '100%' : `${Math.min(100, Math.round((todayProgress / periodTarget) * 100))}%`}
+                            </div>
+                        </div>
+
+                        {isQuantitative ? (
+                            <div className="mt-5 flex items-center justify-between rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-4">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        deviceHaptics.lightImpact();
+                                        decrementHabitProgress(habit.id);
+                                    }}
+                                    disabled={todayDayProgress <= 0}
+                                    className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white transition disabled:opacity-30"
+                                    aria-label={t.habit.decrease}
+                                >
+                                    <Minus size={18} />
+                                </button>
+
+                                <div className="text-center">
+                                    <p className="text-[2.6rem] font-semibold tracking-[-0.08em] text-white">
+                                        {todayDayProgress}/{getHabitTargetValue(habit)}
+                                    </p>
+                                    <p className="text-sm text-white/45">{unitLabel || t.habit.unitLabel}</p>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        deviceHaptics.lightImpact();
+                                        incrementHabitProgress(habit.id);
+                                    }}
+                                    disabled={todayDayProgress >= getHabitTargetValue(habit)}
+                                    className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white text-black transition disabled:opacity-40"
+                                    aria-label={t.habit.increase}
+                                >
+                                    <Plus size={18} />
+                                </button>
+                            </div>
+                        ) : (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    deviceHaptics.lightImpact();
+                                    toggleHabitLog(habit.id);
+                                }}
+                                className={`mt-5 flex h-14 w-full items-center justify-center rounded-full text-sm font-bold uppercase tracking-[0.18em] transition-all ${isCompleteNow ? 'bg-white text-black' : 'border border-white/10 bg-white/[0.04] text-white'}`}
+                            >
+                                {isCompleteNow ? t.common.success : t.habit.claimDay}
+                            </button>
+                        )}
+                    </motion.section>
+
+                    <motion.div
+                        className="mt-5"
+                        initial={{ opacity: 0, y: 14 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.45, delay: 0.1 }}
+                    >
                         <InfiniteCalendar
+                            habit={habit}
                             habitLogs={habitLogs}
-                            frequency={habit.frequency}
-                            isHardMode={habit.isHardMode}
                             onDayClick={(date) => {
-                                if (!habit) return;
-
-                                const now = new Date();
-                                const todayZero = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+                                const nowDate = new Date();
+                                const todayZero = new Date(nowDate.getFullYear(), nowDate.getMonth(), nowDate.getDate()).getTime();
                                 const cellZero = date.getTime();
 
-                                // Block future date clicks unconditionally
-                                if (cellZero > todayZero) {
-                                    return;
-                                }
+                                if (cellZero > todayZero) return;
+                                if (habit.isHardMode && cellZero < todayZero) return;
+                                if (getHabitScheduleType(habit) === 'specific_days' && !habit.frequency.includes(date.getDay())) return;
 
-                                // Hard Mode: Allow only 'Today', block past days
-                                if (habit.isHardMode && cellZero < todayZero) {
-                                    return;
-                                }
-
-                                // Prevent clicking on non-scheduled days
-                                const dayOfWeek = date.getDay();
-                                if (habit.frequency && !habit.frequency.includes(dayOfWeek)) {
-                                    return;
-                                }
-
-                                // Trigger Zustand store
                                 deviceHaptics.lightImpact();
                                 toggleHabitLog(habit.id, date.getTime());
                             }}
                         />
-                    )}
-
-                    <motion.div
-                        className="relative flex flex-col items-center justify-center"
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.6, delay: 0.15, type: 'spring', bounce: 0.25 }}
-                    >
-
-                        <span className="text-[9rem] leading-none font-black tracking-tighter text-white drop-shadow-[0_0_40px_rgba(255,255,255,0.15)]">
-                            {streak}
-                        </span>
-                        <div className="flex items-center gap-3 mt-4">
-                            <span className="text-xl font-medium text-white/40 uppercase tracking-widest">
-                                {streak === 1 ? t.habit.streakDay : t.habit.streakDays}
-                            </span>
-                            {streak > 0 && (
-                                <span className="text-2xl animate-bounce">🔥</span>
-                            )}
-                        </div>
                     </motion.div>
 
-                    {/* Constellation Badges */}
-                    {bestStreak >= 7 && (
-                        <motion.div 
-                            className="mt-8 mb-4 h-12 flex items-center justify-center pointer-events-auto"
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.4, duration: 0.8 }}
-                        >
-                            {milestones.map((m, i) => {
-                                const reached = bestStreak >= m;
-                                const isZenith = m === 365;
-                                // Only show up to the next unreached milestone to keep it minimal
-                                if (i > 0 && !reached && bestStreak < milestones[i-1]) return null;
-                                
-                                return (
-                                    <div key={m} className={`flex items-center ${!reached ? 'opacity-30' : 'opacity-100'}`}>
-                                        <div 
-                                            className="relative group cursor-pointer p-2 hover:scale-150 transition-transform active:scale-90"
-                                            onClick={() => {
-                                                if (reached) {
-                                                    if (isZenith) deviceHaptics.heavyImpact();
-                                                    else deviceHaptics.mediumImpact();
-                                                } else {
-                                                    deviceHaptics.lightImpact();
-                                                }
-                                            }}
-                                        >
-                                            <div className={`w-2 h-2 rounded-full transition-all duration-500 ${reached ? (isZenith ? 'bg-yellow-500 shadow-[0_0_12px_rgba(234,179,8,0.8)]' : 'bg-white shadow-[0_0_10px_rgba(255,255,255,0.8)]') : 'bg-white/20'}`} />
-                                            <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[9px] font-bold tracking-[0.2em] text-white/40">{m}</span>
-                                        </div>
-                                        {i < milestones.length - 1 && (bestStreak >= m || i === 0) && (
-                                            <div className={`w-8 h-[1px] transition-all duration-700 ${reached ? 'bg-white/40' : 'bg-white/10'}`} />
-                                        )}
-                                    </div>
-                                );
-                            })}
-                        </motion.div>
-                    )}
-
-                    {/* Lembrete Secção (Specific Notification) */}
-                    <motion.div
-                        className="mt-12 w-full flex flex-col p-4 rounded-2xl bg-white/5 border border-white/5 text-left"
-                        initial={{ opacity: 0, y: 16 }}
+                    <motion.section
+                        className="app-card mt-5 rounded-[2rem] p-5"
+                        initial={{ opacity: 0, y: 14 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.45, delay: 0.25, type: 'spring', bounce: 0.15 }}
+                        transition={{ duration: 0.45, delay: 0.15 }}
                     >
-                        <div 
-                            className="flex items-center justify-between cursor-pointer hover:opacity-80 transition-opacity"
-                            onClick={() => {
-                                deviceHaptics.lightImpact();
-                                const newState = !isReminderEnabled;
-                                setIsReminderEnabled(newState);
-                                if (newState) {
-                                    editHabitReminder(habit.id, localReminderTime);
-                                } else {
-                                    editHabitReminder(habit.id, undefined);
-                                }
-                            }}
-                        >
-                            <div className="flex flex-col pr-4 pointer-events-none">
-                                <label className="text-sm font-bold text-white/90">
-                                    {t.habit.reminder}
-                                </label>
-                                <span className="text-xs text-white/40 mt-1 leading-snug">
-                                    {t.habit.reminderDesc}
-                                </span>
-                            </div>
+                        <div className="space-y-3">
                             <button
                                 type="button"
-                                className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out pointer-events-none ${isReminderEnabled ? 'bg-white' : 'bg-white/20'}`}
-                                role="switch"
-                                aria-checked={isReminderEnabled}
+                                onClick={() => {
+                                    deviceHaptics.lightImpact();
+                                    const nextState = !isReminderEnabled;
+                                    setIsReminderEnabled(nextState);
+                                    editHabitReminder(habit.id, nextState ? localReminderTime : undefined);
+                                }}
+                                className="flex w-full items-center justify-between rounded-[1.4rem] border border-white/10 bg-white/[0.03] p-4 text-left"
                             >
-                                <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full shadow ring-0 transition duration-200 ease-in-out ${isReminderEnabled ? 'translate-x-5 bg-black' : 'translate-x-0 bg-white'}`} />
+                                <div>
+                                    <p className="text-sm font-semibold text-white">{t.habit.reminder}</p>
+                                    <p className="mt-1 text-xs leading-5 text-white/45">{t.habit.reminderDesc}</p>
+                                </div>
+                                <span className={`inline-flex h-7 w-12 items-center rounded-full transition-colors ${isReminderEnabled ? 'bg-white' : 'bg-white/15'}`}>
+                                    <span className={`h-5 w-5 rounded-full transition-transform ${isReminderEnabled ? 'translate-x-6 bg-black' : 'translate-x-1 bg-white'}`} />
+                                </span>
                             </button>
-                        </div>
 
-                        {isReminderEnabled && (
-                            <div className="mt-4 pt-4 border-t border-white/10 flex justify-between items-center">
-                                <span className="text-sm font-medium text-white/60">{t.habit.editTime}</span>
-                                <input
-                                    type="time"
-                                    value={localReminderTime}
-                                    onChange={(e) => {
-                                        setLocalReminderTime(e.target.value);
-                                        editHabitReminder(habit.id, e.target.value);
-                                    }}
-                                    className="bg-transparent text-white text-lg font-bold outline-none border-b border-white/20 focus:border-white transition-colors"
-                                />
+                            {isReminderEnabled && (
+                                <div className="flex items-center justify-between rounded-[1.4rem] border border-white/10 bg-white/[0.03] p-4">
+                                    <span className="text-sm text-white/60">{t.habit.editTime}</span>
+                                    <input
+                                        type="time"
+                                        value={localReminderTime}
+                                        onChange={(e) => {
+                                            setLocalReminderTime(e.target.value);
+                                            editHabitReminder(habit.id, e.target.value);
+                                        }}
+                                        className="bg-transparent text-lg font-semibold tracking-[-0.03em] text-white outline-none"
+                                    />
+                                </div>
+                            )}
+
+                            <div className="rounded-[1.4rem] border border-white/10 bg-white/[0.03] p-4">
+                                <div className="flex items-start gap-3">
+                                    <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-[0.9rem] border border-white/8 bg-white/[0.04]">
+                                        {getHabitScheduleType(habit) === 'times_per_week'
+                                            ? <Repeat size={16} className="text-white/60" />
+                                            : <Shield size={16} className="text-white/60" />}
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-semibold text-white">{t.habit.preview}</p>
+                                        <p className="mt-1 text-xs leading-5 text-white/45">
+                                            {goalLabel} · {cadenceLabel}
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
-                        )}
-                    </motion.div>
+                        </div>
+                    </motion.section>
                 </div>
-
             </div>
 
             <ConfirmationModal

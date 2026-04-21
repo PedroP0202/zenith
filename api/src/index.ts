@@ -2058,11 +2058,87 @@ app.use('/sync/*', (c, next) => {
     return jwtMiddleware(c, next);
 });
 
+function normalizeHabitFrequency(rawFrequency: string): number[] {
+    try {
+        const parsed = JSON.parse(rawFrequency) as unknown;
+        if (Array.isArray(parsed)) {
+            return parsed
+                .filter((value): value is number => typeof value === 'number' && value >= 0 && value <= 6)
+                .sort((a, b) => a - b);
+        }
+    } catch {
+        return [0, 1, 2, 3, 4, 5, 6];
+    }
+
+    return [0, 1, 2, 3, 4, 5, 6];
+}
+
+function getStartOfDayMs(timestamp: number) {
+    const date = new Date(timestamp);
+    date.setHours(0, 0, 0, 0);
+    return date.getTime();
+}
+
+function getStartOfWeekMs(timestamp: number) {
+    const date = new Date(timestamp);
+    date.setHours(0, 0, 0, 0);
+    const currentDay = date.getDay();
+    const diffToMonday = (currentDay + 6) % 7;
+    date.setDate(date.getDate() - diffToMonday);
+    return date.getTime();
+}
+
+function calculateCanonicalXp(habitsRaw: any[], logsRaw: any[]) {
+    const logsByHabit = new Map<string, any[]>();
+
+    for (const log of logsRaw) {
+        const currentLogs = logsByHabit.get(log.habit_id) || [];
+        currentLogs.push(log);
+        logsByHabit.set(log.habit_id, currentLogs);
+    }
+
+    return habitsRaw.reduce((totalXp, habit) => {
+        const habitLogs = logsByHabit.get(habit.id) || [];
+        if (habitLogs.length === 0) return totalXp;
+
+        const scheduleType = habit.schedule_type === 'times_per_week' ? 'times_per_week' : 'specific_days';
+        const goalType = habit.goal_type === 'count' ? 'count' : 'complete';
+        const targetValue = scheduleType === 'times_per_week'
+            ? Math.min(7, Math.max(1, Number(habit.weekly_target || 1)))
+            : goalType === 'count'
+                ? Math.max(1, Number(habit.target_value || 1))
+                : 1;
+        const xpPerCompletion = habit.is_hard_mode === 1 ? 20 : 10;
+        const frequency = normalizeHabitFrequency(habit.frequency);
+        const progressByPeriod = new Map<number, number>();
+
+        for (const log of habitLogs) {
+            const dayMs = getStartOfDayMs(Number(log.completed_at));
+            const dayOfWeek = new Date(dayMs).getDay();
+            if (scheduleType === 'specific_days' && !frequency.includes(dayOfWeek)) {
+                continue;
+            }
+
+            const periodKey = scheduleType === 'times_per_week' ? getStartOfWeekMs(dayMs) : dayMs;
+            const logValue = Math.max(0, Number(log.value ?? 1));
+            progressByPeriod.set(periodKey, (progressByPeriod.get(periodKey) || 0) + logValue);
+        }
+
+        const completedPeriods = Array.from(progressByPeriod.values()).filter((value) => value >= targetValue).length;
+        return totalXp + (completedPeriods * xpPerCompletion);
+    }, 0);
+}
+
 // Zod schemas for the sync payloads to heavily validate incoming edge data
 const habitSchema = z.object({
     id: z.string().uuid(),
     title: z.string().min(1).max(200),
     frequency: z.array(z.number().min(0).max(6)).max(7),
+    scheduleType: z.enum(['specific_days', 'times_per_week']).optional(),
+    weeklyTarget: z.number().int().min(1).max(7).nullable().optional(),
+    goalType: z.enum(['complete', 'count']).optional(),
+    targetValue: z.number().int().min(1).nullable().optional(),
+    unitLabel: z.string().max(24).nullable().optional(),
     isHardMode: z.boolean().optional(),
     reminderTime: z.string().regex(/^([01]\d|2[0-3]):?([0-5]\d)$/).nullable().optional(),
     isActive: z.boolean(),
@@ -2074,6 +2150,7 @@ const logSchema = z.object({
     id: z.string().uuid(),
     habitId: z.string().uuid(),
     completedAt: z.number(),
+    value: z.number().int().min(1).optional(),
 });
 
 const pushSchema = z.object({
@@ -2096,11 +2173,16 @@ app.post('/sync/push', zValidator('json', pushSchema), async (c) => {
     for (const habit of payload.habits) {
         stmts.push(
             db.prepare(`
-        INSERT INTO habits (id, user_id, title, frequency, is_hard_mode, reminder_time, is_active, created_at, updated_at) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO habits (id, user_id, title, frequency, schedule_type, weekly_target, goal_type, target_value, unit_label, is_hard_mode, reminder_time, is_active, created_at, updated_at) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET 
           title=excluded.title, 
           frequency=excluded.frequency, 
+          schedule_type=excluded.schedule_type,
+          weekly_target=excluded.weekly_target,
+          goal_type=excluded.goal_type,
+          target_value=excluded.target_value,
+          unit_label=excluded.unit_label,
           is_hard_mode=excluded.is_hard_mode, 
           reminder_time=excluded.reminder_time, 
           is_active=excluded.is_active, 
@@ -2111,6 +2193,11 @@ app.post('/sync/push', zValidator('json', pushSchema), async (c) => {
                 user.id,
                 habit.title,
                 JSON.stringify(habit.frequency),
+                habit.scheduleType || 'specific_days',
+                habit.scheduleType === 'times_per_week' ? (habit.weeklyTarget || 1) : null,
+                habit.goalType || 'complete',
+                habit.goalType === 'count' ? (habit.targetValue || 1) : null,
+                habit.goalType === 'count' ? (habit.unitLabel || null) : null,
                 habit.isHardMode ? 1 : 0,
                 habit.reminderTime || null,
                 habit.isActive ? 1 : 0,
@@ -2125,10 +2212,10 @@ app.post('/sync/push', zValidator('json', pushSchema), async (c) => {
     for (const log of payload.logs) {
         stmts.push(
             db.prepare(`
-        INSERT OR IGNORE INTO logs (id, habit_id, completed_at, synced_at)
-        SELECT ?, ?, ?, ?
+        INSERT OR IGNORE INTO logs (id, habit_id, completed_at, value, synced_at)
+        SELECT ?, ?, ?, ?, ?
         WHERE EXISTS (SELECT 1 FROM habits WHERE id = ? AND user_id = ?)
-      `).bind(log.id, log.habitId, log.completedAt, now, log.habitId, user.id)
+      `).bind(log.id, log.habitId, log.completedAt, log.value || null, now, log.habitId, user.id)
         );
     }
 
@@ -2189,6 +2276,11 @@ app.get('/sync/pull', async (c) => {
             id: r.id,
             title: r.title,
             frequency: JSON.parse(r.frequency),
+            scheduleType: r.schedule_type || 'specific_days',
+            weeklyTarget: r.weekly_target || undefined,
+            goalType: r.goal_type || 'complete',
+            targetValue: r.target_value || undefined,
+            unitLabel: r.unit_label || undefined,
             isHardMode: r.is_hard_mode === 1,
             reminderTime: r.reminder_time || undefined,
             isActive: r.is_active === 1,
@@ -2200,19 +2292,21 @@ app.get('/sync/pull', async (c) => {
             id: r.id,
             habitId: r.habit_id,
             completedAt: r.completed_at,
+            value: r.value || undefined,
         }));
 
-        // 3. AUTHORITATIVE: Recalculate total_xp and level directly from logs in DB.
-        // This is the single source of truth - the client NEVER writes XP, only the server calculates it.
-        const xpResult = await db.prepare(`
-            SELECT 
-                COALESCE(SUM(CASE WHEN h.is_hard_mode = 1 THEN 20 ELSE 10 END), 0) as total_xp
-            FROM logs l
+        const { results: allHabitsRaw } = await db.prepare(`
+            SELECT * FROM habits WHERE user_id = ?
+        `).bind(user.id).all();
+
+        const { results: allLogsRaw } = await db.prepare(`
+            SELECT l.* FROM logs l
             JOIN habits h ON l.habit_id = h.id
             WHERE h.user_id = ?
-        `).bind(user.id).first() as any;
+        `).bind(user.id).all();
 
-        const correctXp = xpResult?.total_xp || 0;
+        // 3. AUTHORITATIVE: Recalculate total_xp and level directly from the completed periods in DB.
+        const correctXp = calculateCanonicalXp(allHabitsRaw as any[], allLogsRaw as any[]);
         const correctLevel = Math.max(1, Math.floor(correctXp / 100) + 1);
 
         // Also get arena_points and lastLoginRewardDate (these remain client-controlled)

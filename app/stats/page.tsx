@@ -74,7 +74,7 @@ export default function StatsPage() {
         () =>
             activeHabits.reduce((max, habit) => {
                 const habitLogs = logsByHabit[habit.id] || [];
-                return Math.max(max, getBestStreak(habitLogs, habit.frequency));
+                return Math.max(max, getBestStreak(habitLogs, habit));
             }, 0),
         [activeHabits, logsByHabit]
     );
@@ -136,8 +136,8 @@ export default function StatsPage() {
 
             const completions = completedDaysSet.size;
             const completedDaysThisMonth = Array.from(completedDaysSet).sort((a, b) => a - b);
-            const currentStreak = calculateStreak(habitLogs, habit.frequency, now);
-            const bestStreak = getBestStreak(habitLogs, habit.frequency);
+            const currentStreak = calculateStreak(habitLogs, habit, now);
+            const bestStreak = getBestStreak(habitLogs, habit);
 
             let passedScheduledDays = 0;
             for (let day = 1; day <= now.getDate(); day++) {

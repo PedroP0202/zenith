@@ -42,6 +42,11 @@ CREATE TABLE IF NOT EXISTS habits (
     user_id TEXT NOT NULL,
     title TEXT NOT NULL,
     frequency TEXT NOT NULL, -- Stored as JSON string, e.g. "[0, 1, 2]"
+    schedule_type TEXT NOT NULL DEFAULT 'specific_days',
+    weekly_target INTEGER,
+    goal_type TEXT NOT NULL DEFAULT 'complete',
+    target_value INTEGER,
+    unit_label TEXT,
     is_hard_mode BOOLEAN NOT NULL DEFAULT 0,
     reminder_time TEXT,
     is_active BOOLEAN NOT NULL DEFAULT 1,
@@ -54,6 +59,7 @@ CREATE TABLE IF NOT EXISTS logs (
     id TEXT PRIMARY KEY,
     habit_id TEXT NOT NULL,
     completed_at INTEGER NOT NULL,
+    value INTEGER,
     synced_at INTEGER NOT NULL,
     FOREIGN KEY(habit_id) REFERENCES habits(id) ON DELETE CASCADE
 );

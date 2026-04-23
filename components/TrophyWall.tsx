@@ -1,12 +1,14 @@
 "use client";
 
+import { useState, type ElementType } from "react";
 import { motion } from "framer-motion";
-import { TROPHIES, getUnlockedTrophies } from "@/utils/achievements";
-import { useStore } from "@/store/useStore";
-import { Flame, Trophy as TrophyIcon, Award, Sparkles, Users, Layout, Lock } from "lucide-react";
-import { useState } from "react";
+import { Award, Flame, Layout, Lock, Sparkles, Trophy as TrophyIcon, Users } from "lucide-react";
 
-const ICON_MAP: Record<string, React.ElementType> = {
+import { useTranslation } from "@/hooks/useTranslation";
+import { useStore } from "@/store/useStore";
+import { TROPHIES, getUnlockedTrophies } from "@/utils/achievements";
+
+const ICON_MAP: Record<string, ElementType> = {
     Flame,
     Trophy: TrophyIcon,
     Award,
@@ -17,36 +19,53 @@ const ICON_MAP: Record<string, React.ElementType> = {
 
 export default function TrophyWall({ unlockedIds: externalUnlockedIds }: { unlockedIds?: string[] }) {
     const { habits, logs, friends } = useStore();
-    
-    // Use external IDs if provided (for friend profiles), otherwise calculate from store
-    const unlockedIds = externalUnlockedIds 
-        ? new Set(externalUnlockedIds)
-        : new Set(getUnlockedTrophies(habits, logs, friends).map(t => t.id));
-    
-    const unlockedCount = unlockedIds.size;
+    const { language } = useTranslation();
     const [selectedTrophy, setSelectedTrophy] = useState<string | null>(null);
 
-    // Calculate progress (e.g., 3/6)
+    const copy =
+        language === "pt"
+            ? {
+                  title: "Mural de Troféus",
+                  subtitle: "Marcos que mostram a profundidade e consistência da tua jornada.",
+                  locked: "Fechado",
+                  unlocked: "Desbloqueado",
+              }
+            : {
+                  title: "Trophy Wall",
+                  subtitle: "Milestones that show the depth and consistency of your journey.",
+                  locked: "Locked",
+                  unlocked: "Unlocked",
+              };
+
+    const unlockedIds = externalUnlockedIds
+        ? new Set(externalUnlockedIds)
+        : new Set(getUnlockedTrophies(habits, logs, friends).map((trophy) => trophy.id));
+
+    const unlockedCount = unlockedIds.size;
     const progress = Math.round((unlockedCount / TROPHIES.length) * 100);
 
     return (
         <div className="w-full">
-            <div className="flex items-center justify-between mb-4 px-2">
-                <h2 className="text-sm uppercase tracking-widest text-white/40 font-medium">Mural de Troféus</h2>
-                <span className="text-xs font-bold text-white/30">{unlockedCount}/{TROPHIES.length}</span>
+            <div className="flex items-start justify-between gap-4 px-1">
+                <div>
+                    <p className="app-kicker">{copy.title}</p>
+                    <p className="mt-2 max-w-[30rem] text-sm leading-relaxed text-white/42">{copy.subtitle}</p>
+                </div>
+                <span className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white/58">
+                    {unlockedCount}/{TROPHIES.length}
+                </span>
             </div>
 
-            {/* Progress Bar */}
-            <div className="mx-2 mb-6 h-1.5 bg-white/5 rounded-full overflow-hidden">
-                <motion.div 
+            <div className="mt-5 overflow-hidden rounded-full border border-white/8 bg-white/[0.04] p-[2px]">
+                <motion.div
                     initial={{ width: 0 }}
-                    animate={{ width: `${progress}%` }}
-                    transition={{ duration: 1, type: "spring" }}
-                    className="h-full bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full"
+                    animate={{ width: `${Math.max(progress, 4)}%` }}
+                    transition={{ duration: 0.85, type: "spring" }}
+                    className="h-2 rounded-full bg-gradient-to-r from-yellow-400 via-amber-300 to-orange-400"
                 />
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="mt-5 grid grid-cols-3 gap-3">
                 {TROPHIES.map((trophy, index) => {
                     const isUnlocked = unlockedIds.has(trophy.id);
                     const Icon = ICON_MAP[trophy.icon] || TrophyIcon;
@@ -55,67 +74,67 @@ export default function TrophyWall({ unlockedIds: externalUnlockedIds }: { unloc
                     return (
                         <div key={trophy.id} className="relative flex flex-col items-center">
                             <motion.button
-                                initial={{ opacity: 0, scale: 0.8 }}
+                                initial={{ opacity: 0, scale: 0.92 }}
                                 animate={{ opacity: 1, scale: 1 }}
-                                transition={{ duration: 0.4, delay: index * 0.1, type: 'spring' }}
+                                transition={{ duration: 0.35, delay: index * 0.05, type: "spring" }}
                                 onClick={() => setSelectedTrophy(isSelected ? null : trophy.id)}
-                                className={`w-20 h-24 rounded-2xl flex flex-col items-center justify-center gap-2 border transition-all ${
-                                    isUnlocked 
-                                        ? 'bg-gradient-to-b from-white/10 to-transparent border-white/20 shadow-[0_4px_15px_rgba(255,255,255,0.05)]' 
-                                        : 'bg-white/[0.02] border-white/5 opacity-60 grayscale'
-                                } ${isSelected ? 'ring-2 ring-offset-2 ring-offset-black ring-white/30 scale-105 z-10' : 'hover:scale-105'}`}
+                                className={`relative flex h-28 w-full flex-col items-center justify-center gap-2 rounded-[24px] border p-3 text-center transition-all ${
+                                    isUnlocked
+                                        ? "border-white/14 bg-gradient-to-b from-white/[0.1] to-white/[0.03] shadow-[0_18px_40px_rgba(0,0,0,0.2)]"
+                                        : "border-white/6 bg-white/[0.02] opacity-70 grayscale"
+                                } ${isSelected ? "scale-[1.03] ring-1 ring-white/25" : "hover:scale-[1.02]"}`}
                             >
-                                <div 
-                                    className="w-10 h-10 rounded-full flex items-center justify-center shadow-inner"
-                                    style={{ 
-                                        backgroundColor: isUnlocked ? `${trophy.color}20` : 'rgba(255,255,255,0.05)',
-                                        border: `1px solid ${isUnlocked ? trophy.color : 'rgba(255,255,255,0.1)'}`
+                                <div
+                                    className="flex h-11 w-11 items-center justify-center rounded-full border shadow-inner"
+                                    style={{
+                                        backgroundColor: isUnlocked ? `${trophy.color}18` : "rgba(255,255,255,0.05)",
+                                        borderColor: isUnlocked ? `${trophy.color}55` : "rgba(255,255,255,0.08)",
                                     }}
                                 >
                                     {isUnlocked ? (
-                                        <Icon size={20} color={trophy.color} className="drop-shadow-lg" />
+                                        <Icon size={20} color={trophy.color} className="drop-shadow-[0_0_12px_rgba(255,255,255,0.08)]" />
                                     ) : (
                                         <Lock size={16} className="text-white/20" />
                                     )}
                                 </div>
-                                <span className={`text-[9px] font-bold text-center leading-tight px-1 ${isUnlocked ? 'text-white/90' : 'text-white/30'}`}>
+
+                                <span className={`text-[10px] font-bold leading-tight ${isUnlocked ? "text-white/88" : "text-white/30"}`}>
                                     {trophy.title}
+                                </span>
+
+                                <span
+                                    className={`rounded-full px-2 py-1 text-[8px] font-bold uppercase tracking-[0.16em] ${
+                                        isUnlocked
+                                            ? "border border-white/10 bg-white/[0.05] text-white/46"
+                                            : "border border-white/6 bg-white/[0.03] text-white/24"
+                                    }`}
+                                >
+                                    {isUnlocked ? copy.unlocked : copy.locked}
                                 </span>
                             </motion.button>
 
-                            {/* Tooltip / Description Popover */}
-                            {isSelected && (
-                                <motion.div 
-                                    initial={{ opacity: 0, y: 10, scale: 0.9 }}
+                            {isSelected ? (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10, scale: 0.96 }}
                                     animate={{ opacity: 1, y: 0, scale: 1 }}
-                                    className="absolute top-28 left-1/2 -translate-x-1/2 w-48 bg-[#1a1a1a] border border-white/10 p-3 rounded-xl z-50 shadow-2xl"
+                                    className="app-card absolute left-1/2 top-[7.4rem] z-50 w-52 -translate-x-1/2 rounded-[22px] p-4"
                                 >
-                                    <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-[#1a1a1a] border-t border-l border-white/10 rotate-45" />
-                                    <h4 className="text-xs font-bold text-white mb-1 relative z-10 flex items-center gap-1.5">
-                                        {isUnlocked ? <Icon size={12} color={trophy.color} /> : <Lock size={12} className="text-white/40" />}
-                                        {trophy.title}
-                                    </h4>
-                                    <p className="text-[10px] text-white/50 relative z-10">{trophy.description}</p>
-                                    
-                                    {!isUnlocked && (
-                                        <div className="mt-2 pt-2 border-t border-white/5 relative z-10 text-[9px] text-white/40 font-medium uppercase tracking-widest text-center">
-                                            Fechado
-                                        </div>
-                                    )}
+                                    <div className="absolute -top-2 left-1/2 h-4 w-4 -translate-x-1/2 rotate-45 border-l border-t border-white/10 bg-[#111113]" />
+                                    <div className="relative z-10">
+                                        <h4 className="flex items-center gap-2 text-xs font-bold text-white">
+                                            {isUnlocked ? <Icon size={12} color={trophy.color} /> : <Lock size={12} className="text-white/35" />}
+                                            {trophy.title}
+                                        </h4>
+                                        <p className="mt-2 text-[11px] leading-relaxed text-white/48">{trophy.description}</p>
+                                    </div>
                                 </motion.div>
-                            )}
+                            ) : null}
                         </div>
                     );
                 })}
             </div>
-            
-            {/* Overlay to close popover when clicking outside */}
-            {selectedTrophy && (
-                <div 
-                    className="fixed inset-0 z-40"
-                    onClick={() => setSelectedTrophy(null)}
-                />
-            )}
+
+            {selectedTrophy ? <div className="fixed inset-0 z-40" onClick={() => setSelectedTrophy(null)} /> : null}
         </div>
     );
 }

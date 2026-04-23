@@ -12,6 +12,8 @@ import SwiftUI
 struct ZenithWidgetBundle: WidgetBundle {
     var body: some Widget {
         ZenithWidget()
-        ZenithWidgetControl()
+        if #available(iOSApplicationExtension 16.0, *) {
+            ZenithAccessoryWidget()
+        }
     }
 }

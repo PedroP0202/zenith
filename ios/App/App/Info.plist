@@ -20,6 +20,14 @@
 				<string>com.googleusercontent.apps.471890064632-giqv86u4n6t9upor1kf5eulnaiggebrt</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>zenith</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>zenith</string>
+			</array>
+		</dict>
 	</array>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>

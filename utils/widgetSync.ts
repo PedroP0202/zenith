@@ -1,8 +1,17 @@
 import { Capacitor, registerPlugin } from '@capacitor/core';
 import { Habit, LogEntry } from '@/types';
-import { startOfDay, subDays, format } from 'date-fns';
+import { startOfDay, subDays } from 'date-fns';
 import { calculateStreak } from './streak';
-import { hasHabitLogOnDate, isHabitCompleteForDate, isHabitScheduledForDate } from './habits';
+import {
+    getHabitGoalType,
+    getHabitPeriodTarget,
+    getHabitProgressForDate,
+    getHabitScheduleType,
+    getHabitUnitLabel,
+    hasHabitLogOnDate,
+    isHabitCompleteForDate,
+    isHabitScheduledForDate
+} from './habits';
 
 export interface WidgetSyncPlugin {
     setItem: (options: { key: string; value: string; group: string }) => Promise<void>;
@@ -20,6 +29,11 @@ export interface WidgetHabit {
     title: string;
     completed: boolean;
     streak: number;
+    progressValue: number;
+    targetValue: number;
+    progressRatio: number;
+    isWeeklyTarget: boolean;
+    unitLabel?: string;
 }
 
 export interface WidgetData {
@@ -27,9 +41,8 @@ export interface WidgetData {
     totalHabits: number;
     completedHabits: number;
     weeklyCompletion: number[];
-    dayName: string;
-    dayNumber: string;
-    monthName: string;
+    bestStreak: number;
+    snapshotDate: number;
 }
 
 /**
@@ -60,18 +73,29 @@ export async function syncWidgetData(habits: Habit[], logs: LogEntry[]) {
             const habitLogs = logsByHabit.get(habit.id) || [];
             const isComplete = isHabitCompleteForDate(habitLogs, habit, today);
             const currentStreak = calculateStreak(habitLogs, habit);
+            const progressValue = Math.max(0, Math.round(getHabitProgressForDate(habitLogs, habit, today)));
+            const targetValue = Math.max(1, Math.round(getHabitPeriodTarget(habit)));
+            const progressRatio = Math.min(progressValue / targetValue, 1);
+            const isWeeklyTarget = getHabitScheduleType(habit) === 'times_per_week';
+            const unitLabel = getHabitGoalType(habit) === 'count' ? getHabitUnitLabel(habit) : undefined;
 
             return {
                 id: habit.id,
                 title: habit.title.trim() || 'Habit',
                 completed: isComplete,
-                streak: currentStreak
+                streak: currentStreak,
+                progressValue,
+                targetValue,
+                progressRatio,
+                isWeeklyTarget,
+                unitLabel
             };
         });
 
-        // Prioritize actionable habits in the widget: pending first, then strongest streak.
+        // Prioritize actionable habits in the widget: pending first, then nearest to completion.
         const prioritizedHabits = [...widgetHabits].sort((a, b) => {
             if (a.completed !== b.completed) return Number(a.completed) - Number(b.completed);
+            if (a.progressRatio !== b.progressRatio) return b.progressRatio - a.progressRatio;
             return (b.streak || 0) - (a.streak || 0);
         });
 
@@ -100,17 +124,17 @@ export async function syncWidgetData(habits: Habit[], logs: LogEntry[]) {
             weeklyCompletion.push(completedCount / habitsAtThatDay.length);
         }
 
-        const displayHabits = prioritizedHabits.slice(0, 4);
+        const displayHabits = prioritizedHabits.slice(0, 5);
         const completedHabitsCount = widgetHabits.filter((habit) => habit.completed).length;
+        const bestStreak = widgetHabits.reduce((best, habit) => Math.max(best, habit.streak || 0), 0);
 
         const widgetData: WidgetData = {
             habits: displayHabits,
             totalHabits: widgetHabits.length,
             completedHabits: completedHabitsCount,
             weeklyCompletion: weeklyCompletion,
-            dayName: format(today, 'EEEE').toUpperCase(),
-            dayNumber: format(today, 'd'),
-            monthName: format(today, 'MMMM yyyy').toUpperCase()
+            bestStreak,
+            snapshotDate: today.getTime()
         };
 
         // Write directly to App Group UserDefaults

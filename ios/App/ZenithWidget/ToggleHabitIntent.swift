@@ -35,54 +35,45 @@ struct ToggleHabitIntent: AppIntent {
         if let index = widgetData.habits.firstIndex(where: { $0.id == habitId }) {
             let wasCompleted = widgetData.habits[index].completed
             let newStatus = !wasCompleted
+            let targetValue = widgetData.habits[index].targetValue ?? 1
             
-            // 1. Update the widget data structure
-            let updatedHabit = WidgetHabit(
-                id: widgetData.habits[index].id,
-                title: widgetData.habits[index].title,
-                completed: newStatus,
-                streak: (widgetData.habits[index].streak ?? 0) + (newStatus ? 0 : 0) // We don't recalculate streak here, app will do it
-            )
-            
-            widgetData.habits[index] = updatedHabit
-            
-            // 2. Adjust total completed count
+            widgetData.habits[index].completed = newStatus
+            widgetData.habits[index].progressValue = newStatus ? targetValue : 0
+            widgetData.habits[index].progressRatio = newStatus ? 1 : 0
+
             let currentTotalCompleted = widgetData.completedHabits ?? 0
             let newTotalCompleted = newStatus ? currentTotalCompleted + 1 : max(0, currentTotalCompleted - 1)
             widgetData.completedHabits = newTotalCompleted
-            
-            // 2.5 Update current day's weekly progress for instant chart feedback
+            widgetData.snapshotDate = Date().timeIntervalSince1970 * 1000
+
             if var weekly = widgetData.weeklyCompletion, !weekly.isEmpty {
                 let total = Double(widgetData.totalHabits ?? 1)
                 weekly[weekly.count - 1] = Double(newTotalCompleted) / max(total, 1.0)
                 widgetData.weeklyCompletion = weekly
             }
-            
-            // 3. Save back to shared defaults so the App can see it later
+
             if let updatedData = try? JSONEncoder().encode(widgetData),
                let updatedString = String(data: updatedData, encoding: .utf8) {
                 sharedDefaults?.set(updatedString, forKey: "zenith_widget_data")
-                
-                // 4. Record this specific toggle so the App can sync it
-                // We store toggled IDs in a separate key "zenith_pending_widget_toggles"
+
                 var pendingToggles = sharedDefaults?.dictionary(forKey: "zenith_pending_widget_toggles") as? [String: Bool] ?? [:]
                 pendingToggles[habitId] = newStatus
                 sharedDefaults?.set(pendingToggles, forKey: "zenith_pending_widget_toggles")
             }
         }
-        
-        // 5. Trigger maximum haptic feedback for the widget interaction
+
+        WidgetCenter.shared.reloadAllTimelines()
+
         DispatchQueue.main.async {
             let generator = UINotificationFeedbackGenerator()
             generator.prepare()
-            generator.notificationOccurred(.error)
+            generator.notificationOccurred(.success)
             
-            let impact = UIImpactFeedbackGenerator(style: .heavy)
+            let impact = UIImpactFeedbackGenerator(style: .medium)
             impact.prepare()
             impact.impactOccurred()
         }
-        
-        // This forces any widgets using this intent to reload their timeline
+
         return .result()
     }
 }

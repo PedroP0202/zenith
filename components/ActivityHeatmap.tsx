@@ -12,6 +12,8 @@ export default function ActivityHeatmap({ data }: ActivityHeatmapProps) {
     const { t, language } = useTranslation();
     const localeObj = language === 'pt' ? pt : enUS;
     const today = new Date();
+    const activityWord = language === 'pt' ? 'registo' : 'check-in';
+    const activityWordPlural = language === 'pt' ? 'registos' : 'check-ins';
 
     // Summary stats
     const totalDaysActive = data.filter(d => d.count > 0).length;
@@ -46,27 +48,23 @@ export default function ActivityHeatmap({ data }: ActivityHeatmapProps) {
     const totalWidth = weeksCount * (CELL + GAP) - GAP;
 
     return (
-        <div className="w-full bg-[#111111] rounded-2xl p-5 mb-6">
-            {/* Header row */}
-            <div className="flex items-baseline justify-between mb-4">
-                <span className="text-[12px] font-bold text-white/40 tracking-wider uppercase">
-                    {t.stats.activity}
-                </span>
-                <span className="text-[12px] text-white/50">
-                    <span className="text-white font-semibold">{totalDaysActive}</span> {t.stats.daysLabel} &nbsp;·&nbsp;{' '}
-                    <span className="text-white font-semibold">{totalCheckins}</span> {t.stats.checkinsLabel}
+        <div className="app-card rounded-[32px] p-5 md:p-6">
+            <div className="mb-5 flex items-baseline justify-between gap-4">
+                <span className="app-kicker">{t.stats.activity}</span>
+                <span className="text-[12px] text-white/48">
+                    <span className="font-semibold text-white/80">{totalDaysActive}</span> {t.stats.daysLabel}
+                    {' · '}
+                    <span className="font-semibold text-white/80">{totalCheckins}</span> {t.stats.checkinsLabel}
                 </span>
             </div>
 
-            {/* Month labels */}
-            <div className="relative overflow-x-auto">
+            <div className="scroll-smooth-ios relative overflow-x-auto -mx-1 px-1">
                 <div style={{ width: totalWidth, minWidth: totalWidth }}>
-                    {/* Month name row */}
                     <div className="relative h-4 mb-1">
                         {monthLabels.map(({ col, label }) => (
                             <span
                                 key={label}
-                                className="absolute text-[9px] font-bold text-white/25 uppercase tracking-widest"
+                                className="absolute text-[9px] font-bold uppercase tracking-widest text-white/24"
                                 style={{ left: col * (CELL + GAP) }}
                             >
                                 {label}
@@ -74,7 +72,6 @@ export default function ActivityHeatmap({ data }: ActivityHeatmapProps) {
                         ))}
                     </div>
 
-                    {/* Grid */}
                     <div
                         className="grid"
                         style={{
@@ -87,13 +84,15 @@ export default function ActivityHeatmap({ data }: ActivityHeatmapProps) {
                         {data.map((day, i) => {
                             const isToday = isSameDay(day.date, today);
                             const color = cellColor(day.count, day.date);
-                            const label = `${format(day.date, 'EEE dd MMM', { locale: localeObj })} · ${day.count} check-in${day.count !== 1 ? 's' : ''}`;
+                            const label = `${format(day.date, 'EEE dd MMM', { locale: localeObj })} · ${day.count} ${
+                                day.count === 1 ? activityWord : activityWordPlural
+                            }`;
 
                             return (
                                 <motion.div
                                     key={i}
                                     title={label}
-                                    className={`rounded-[3px] ${isToday ? 'ring-1 ring-white/40 ring-offset-1 ring-offset-[#111]' : ''}`}
+                                    className={`rounded-[4px] ${isToday ? 'ring-1 ring-white/40 ring-offset-1 ring-offset-[#0d0d0f]' : ''}`}
                                     style={{
                                         width: CELL,
                                         height: CELL,
@@ -113,9 +112,8 @@ export default function ActivityHeatmap({ data }: ActivityHeatmapProps) {
                 </div>
             </div>
 
-            {/* Legend */}
-            <div className="flex items-center gap-4 mt-4 pt-4 border-t border-white/5">
-                <span className="text-[10px] text-white/25 font-medium">{t.stats.lessActivity}</span>
+            <div className="mt-4 flex items-center gap-4 border-t border-white/5 pt-4">
+                <span className="text-[10px] font-medium text-white/25">{t.stats.lessActivity}</span>
                 <div className="flex gap-1">
                     {[0, 0.25, 0.5, 0.75, 1].map((t) => (
                         <div
@@ -135,7 +133,7 @@ export default function ActivityHeatmap({ data }: ActivityHeatmapProps) {
                         />
                     ))}
                 </div>
-                <span className="text-[10px] text-white/25 font-medium">{t.stats.moreActivity}</span>
+                <span className="text-[10px] font-medium text-white/25">{t.stats.moreActivity}</span>
             </div>
         </div>
     );

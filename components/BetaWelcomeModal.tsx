@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, CheckCircle2, Cloud, ArrowRight, X } from "lucide-react";
+import { APP_VERSION } from "@/utils/appVersion";
 
 export default function BetaWelcomeModal() {
     const [isOpen, setIsOpen] = useState(false);
@@ -81,7 +82,7 @@ export default function BetaWelcomeModal() {
                                 Começar Exploração
                             </button>
 
-                            <p className="mt-6 text-[10px] text-white/20 uppercase tracking-widest font-bold">Zenith v4.2 Early Access</p>
+                            <p className="mt-6 text-[10px] text-white/20 uppercase tracking-widest font-bold">Zenith v{APP_VERSION} Early Access</p>
                         </div>
 
                         <button

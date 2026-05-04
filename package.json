@@ -14,7 +14,6 @@
   "dependencies": {
     "@capacitor-community/apple-sign-in": "^7.1.0",
     "@capacitor/app": "^7.1.2",
-    "@capacitor/cli": "^8.0.0",
     "@capacitor/core": "^7.4.4",
     "@capacitor/geolocation": "^7.1.7",
     "@capacitor/haptics": "^7.0.3",
@@ -29,27 +28,30 @@
     "date-fns": "^4.1.0",
     "framer-motion": "^12.34.3",
     "lucide-react": "^0.562.0",
-    "next": "^15.2.0",
+    "next": "^15.5.15",
     "react": "^18",
     "react-dom": "^18",
     "zustand": "^5.0.11"
   },
   "devDependencies": {
-    "@capacitor/assets": "^3.0.5",
-    "@types/node": "^20",
-    "@types/react": "^18",
-    "@types/react-dom": "^18",
+    "@capacitor/cli": "^8.3.1",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.2.0",
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
     "eslint": "^8",
     "eslint-config-next": "15.1.9",
     "jsdom": "^26.0.0",
-    "postcss": "^8",
+    "postcss": "8.5.14",
     "tailwindcss": "^3.4.1",
     "typescript": "^5",
     "vitest": "^3.0.7"
+  },
+  "overrides": {
+    "postcss": "8.5.14"
   }
 }

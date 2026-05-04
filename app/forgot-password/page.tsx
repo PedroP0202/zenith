@@ -7,6 +7,7 @@ import { ChevronLeft, Loader2, Eye, EyeOff, Check, Send } from "lucide-react";
 import { API_URL } from "@/utils/constants";
 import { deviceHaptics } from "@/utils/haptics";
 import Logo from "@/components/Logo";
+import { AppButton, AppInput } from "@/components/ui";
 
 function getErrorMessage(error: unknown, fallback = "Erro inesperado."): string {
     if (error instanceof Error && error.message) return error.message;
@@ -165,22 +166,23 @@ export default function ForgotPasswordPage() {
                                     <div style={{ display: 'none' }}>
                                         <input
                                             type="text"
+                                            aria-hidden="true"
                                             value={hp}
                                             onChange={(e) => setHp(e.target.value)}
                                             tabIndex={-1}
                                             autoComplete="off"
                                         />
                                     </div>
-                                    <div className="relative group">
-                                        <input
-                                            type="email"
-                                            placeholder="O teu Email"
-                                            value={email}
-                                            onChange={(e) => setEmail(e.target.value)}
-                                            required
-                                            className="w-full bg-white/[0.03] backdrop-blur-md border border-white/10 rounded-2xl px-6 py-5 text-white placeholder:text-white/20 focus:outline-none focus:border-[var(--zenith-active)]/50 focus:bg-white/[0.05] transition-all font-medium"
-                                        />
-                                    </div>
+                                    <AppInput
+                                        id="forgot-email"
+                                        label="Email"
+                                        type="email"
+                                        placeholder="nome@exemplo.com"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        autoComplete="email"
+                                        required
+                                    />
                                 </motion.div>
                             ) : (
                                 <motion.div 
@@ -191,42 +193,53 @@ export default function ForgotPasswordPage() {
                                     className="space-y-6"
                                 >
                                     <div>
-                                        <label className="block text-[10px] uppercase tracking-[0.2em] text-white/30 mb-3 ml-2 font-black">Código de 6 Dígitos</label>
-                                        <input
+                                        <AppInput
+                                            id="forgot-code"
+                                            label="Código de 6 dígitos"
                                             type="text"
                                             inputMode="numeric"
                                             placeholder="000 000"
                                             value={code}
                                             onChange={(e) => setCode(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
                                             required
-                                            className="w-full bg-white/[0.05] border border-white/10 rounded-2xl px-6 py-6 text-center text-4xl font-black tracking-[0.5em] text-[var(--zenith-active)] placeholder:text-white/5 focus:outline-none focus:border-[var(--zenith-active)] transition-all font-mono"
+                                            inputClassName="py-6 text-center text-4xl font-black tracking-[0.5em] text-[var(--zenith-active)] font-mono"
                                         />
                                     </div>
                                     <div className="relative group">
-                                        <input
+                                        <AppInput
+                                            id="forgot-new-password"
+                                            label="Nova palavra-passe"
                                             type={showPassword ? "text" : "password"}
-                                            placeholder="Nova Palavra-passe"
+                                            placeholder="Nova palavra-passe"
                                             value={newPassword}
                                             onChange={(e) => setNewPassword(e.target.value)}
+                                            autoComplete="new-password"
                                             required
-                                            className="w-full bg-white/[0.03] backdrop-blur-md border border-white/10 rounded-2xl px-6 py-5 pr-14 text-white placeholder:text-white/20 focus:outline-none focus:border-[var(--zenith-active)]/50 focus:bg-white/[0.05] transition-all font-mono"
+                                            inputClassName="font-mono"
+                                            trailing={(
+                                                <button type="button" onClick={() => setShowPassword(!showPassword)} className="text-white/30 hover:text-white/60 transition-colors" aria-label={showPassword ? "Esconder Palavra-passe" : "Mostrar Palavra-passe"}>
+                                                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                                </button>
+                                            )}
                                         />
-                                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-5 top-1/2 -translate-y-1/2 text-white/20 hover:text-white/40 transition-colors">
-                                            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                                        </button>
                                     </div>
                                     <div className="relative group">
-                                        <input
+                                        <AppInput
+                                            id="forgot-confirm-password"
+                                            label="Confirmar palavra-passe"
                                             type={showConfirmPassword ? "text" : "password"}
-                                            placeholder="Confirmar Repetição"
+                                            placeholder="Confirmar repetição"
                                             value={confirmPassword}
                                             onChange={(e) => setConfirmPassword(e.target.value)}
+                                            autoComplete="new-password"
                                             required
-                                            className={`w-full bg-white/[0.03] backdrop-blur-md border rounded-2xl px-6 py-5 pr-14 text-white placeholder:text-white/20 focus:outline-none focus:bg-white/[0.05] transition-all font-mono ${confirmPassword && newPassword === confirmPassword ? 'border-green-500/50 focus:border-green-500/70' : 'border-white/10 focus:border-[var(--zenith-active)]/50'}`}
+                                            inputClassName={`font-mono ${confirmPassword && newPassword === confirmPassword ? 'border-green-500/50 focus:border-green-500/70' : ''}`}
+                                            trailing={(
+                                                <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="text-white/30 hover:text-white/60 transition-colors" aria-label={showConfirmPassword ? "Esconder Palavra-passe" : "Mostrar Palavra-passe"}>
+                                                    {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                                </button>
+                                            )}
                                         />
-                                        <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-5 top-1/2 -translate-y-1/2 text-white/20 hover:text-white/40 transition-colors">
-                                            {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                                        </button>
                                     </div>
                                 </motion.div>
                             )}
@@ -247,11 +260,12 @@ export default function ForgotPasswordPage() {
                             </motion.p>
                         )}
 
-                        <button
+                        <AppButton
                             type="submit"
                             form="forgot-form"
                             disabled={loading}
-                            className="w-full h-16 bg-[var(--zenith-active)] text-black font-black rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-[0.98] disabled:opacity-50 shadow-glow-primary hover:shadow-[0_0_30px_rgba(16,185,129,0.3)] group"
+                            fullWidth
+                            className="h-16 bg-[var(--zenith-active)] shadow-glow-primary hover:shadow-[0_0_30px_rgba(16,185,129,0.3)]"
                         >
                             {loading ? (
                                 <Loader2 className="w-6 h-6 animate-spin" />
@@ -261,7 +275,7 @@ export default function ForgotPasswordPage() {
                                     {step === 'email' ? <Send className="w-5 h-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" /> : <Check className="w-6 h-6" />}
                                 </>
                             )}
-                        </button>
+                        </AppButton>
 
                         <button
                             onClick={() => router.push('/login')}

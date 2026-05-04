@@ -4,6 +4,7 @@ import { Habit } from '../types';
 import { getRandomNotificationPhrase } from './notificationPhrases';
 import type { LocalNotificationSchema } from '@capacitor/local-notifications';
 import { getHabitScheduleType } from './habits';
+import { showAppToast } from './toast';
 
 export const MORNING_REMINDER_ID = 101;
 
@@ -148,13 +149,20 @@ export async function scheduleAllNotifications(
  */
 export async function sendTestNotification() {
     if (!Capacitor.isNativePlatform()) {
-        alert("Local Notifications require the app to be running on an iOS Simulator or Device via Xcode.");
+        showAppToast({
+            title: 'Notificações nativas indisponíveis',
+            description: 'Executa a app num simulador ou dispositivo iOS via Xcode para testar notificações locais.',
+        });
         return;
     }
 
     const hasPermission = await requestNotificationPermissions();
     if (!hasPermission) {
-        alert("Push Notification permissions were explicitly denied.");
+        showAppToast({
+            title: 'Permissão recusada',
+            description: 'Ativa as notificações nas definições do sistema para receber lembretes.',
+            tone: 'error',
+        });
         return;
     }
 
@@ -172,12 +180,24 @@ export async function sendTestNotification() {
 
         // Listen internally to see if it fires while we are on screen
         LocalNotifications.addListener('localNotificationReceived', (notification) => {
-            alert(`Notificação recebida na App: ${notification.title}`);
+            showAppToast({
+                title: 'Notificação recebida',
+                description: notification.title,
+                tone: 'success',
+            });
         });
 
-        alert("Teste agendado via Native Bridge! Por favor, sai da aplicação agora (vai para o Home Screen do iPhone) e espera 5 segundos.");
+        showAppToast({
+            title: 'Teste agendado',
+            description: 'Sai da aplicação e espera 5 segundos para confirmar a entrega.',
+            tone: 'success',
+        });
     } catch (e: unknown) {
         const errorMessage = e instanceof Error ? e.message : String(e);
-        alert(`Erro ao agendar notificação nativa: ${errorMessage}`);
+        showAppToast({
+            title: 'Erro ao agendar notificação',
+            description: errorMessage,
+            tone: 'error',
+        });
     }
 }

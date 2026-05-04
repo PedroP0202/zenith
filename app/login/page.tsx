@@ -11,6 +11,8 @@ import { useGoogleLogin } from '@react-oauth/google';
 import { API_URL, GOOGLE_CLIENT_ID, GOOGLE_IOS_CLIENT_ID } from "@/utils/constants";
 import { Capacitor } from '@capacitor/core';
 import Logo from '@/components/Logo';
+import { AppButton, AppInput } from '@/components/ui';
+import { APP_VERSION } from '@/utils/appVersion';
 
 function getErrorMessage(error: unknown, fallback = 'Operação cancelada.'): string {
     if (error instanceof Error && error.message) return error.message;
@@ -289,38 +291,43 @@ export default function LoginPage() {
             >
                 <div className="flex justify-between items-center mb-2">
                     <h1 className="text-3xl font-black tracking-tight">Bem-vindo.</h1>
-                    <span className="text-[10px] font-bold text-white/20 uppercase tracking-widest bg-white/5 px-2 py-1 rounded">v4.2</span>
+                    <span className="text-[10px] font-bold text-white/20 uppercase tracking-widest bg-white/5 px-2 py-1 rounded">v{APP_VERSION}</span>
                 </div>
                 <p className="text-white/60 text-sm mb-12">Faz login para sincronizar os teus hábitos de forma invisível.</p>
 
                 <form onSubmit={handleLogin} className="space-y-6">
-                    <div>
-                        <input
-                            type="email"
-                            placeholder="O teu Email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            required
-                            className="w-full bg-white/[0.03] backdrop-blur-md border border-white/10 rounded-2xl px-6 py-4 text-white placeholder:text-white/30 focus:outline-none transition-all shadow-sm"
-                        />
-                    </div>
+                    <AppInput
+                        id="login-email"
+                        label="Email"
+                        type="email"
+                        placeholder="nome@exemplo.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        autoComplete="email"
+                        required
+                    />
                     <div className="relative">
-                        <input
+                        <AppInput
+                            id="login-password"
+                            label="Palavra-passe"
                             type={showPassword ? "text" : "password"}
-                            placeholder="A tua Password"
+                            placeholder="A tua palavra-passe"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
+                            autoComplete="current-password"
                             required
-                            className="w-full bg-white/[0.03] backdrop-blur-md border border-white/10 rounded-2xl px-6 py-4 pr-12 text-white placeholder:text-white/30 focus:outline-none transition-all font-mono shadow-sm"
+                            inputClassName="font-mono"
+                            trailing={(
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="text-white/40 hover:text-white/70 transition-colors p-1"
+                                    aria-label={showPassword ? "Esconder Palavra-passe" : "Mostrar Palavra-passe"}
+                                >
+                                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                </button>
+                            )}
                         />
-                        <button
-                            type="button"
-                            onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 transition-colors p-1"
-                            aria-label={showPassword ? "Esconder Palavra-passe" : "Mostrar Palavra-passe"}
-                        >
-                            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                        </button>
                     </div>
                     <div className="flex justify-end -mt-4">
                         <button
@@ -341,10 +348,10 @@ export default function LoginPage() {
                         </motion.p>
                     )}
 
-                    <button
+                    <AppButton
                         type="submit"
                         disabled={loading}
-                        className="w-full h-14 bg-white text-black font-bold rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-70 disabled:active:scale-100 shadow-glow-white hover:shadow-[0_0_25px_rgba(255,255,255,0.25)] hover:-translate-y-0.5"
+                        fullWidth
                     >
                         {loading ? (
                             <>
@@ -352,7 +359,7 @@ export default function LoginPage() {
                                 <span className="opacity-70">A sintonizar...</span>
                             </>
                         ) : "Entrar e Sincronizar"}
-                    </button>
+                    </AppButton>
 
                     <div className="pt-4 text-center">
                         <button

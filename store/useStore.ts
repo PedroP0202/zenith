@@ -356,7 +356,10 @@ export const useStore = create<AppState>()(
             },
 
             setOptInLeaderboard: (optedIn) => {
-                set({ optInLeaderboard: optedIn });
+                set((state) => ({
+                    optInLeaderboard: optedIn,
+                    arenaPoints: optedIn ? state.arenaPoints : 0,
+                }));
                 get().syncProfile().catch(console.error);
             },
 
@@ -772,7 +775,7 @@ export const useStore = create<AppState>()(
             },
 
             syncProfile: async () => {
-                const { jwt, userName, language, optInLeaderboard, username, lastLoginRewardDate, arenaPoints } = get();
+                const { jwt, userName, language, optInLeaderboard, username, lastLoginRewardDate } = get();
                 if (!jwt) return;
 
                 try {
@@ -782,10 +785,10 @@ export const useStore = create<AppState>()(
                             'Authorization': `Bearer ${jwt}`,
                             'Content-Type': 'application/json'
                         },
-                        // IMPORTANT: total_xp and level are NOT sent here.
+                        // IMPORTANT: total_xp, level, and arena_points are NOT sent here.
                         // They are authoritatively calculated by the server in /sync/pull.
                         // Only social/profile fields that the client controls are sent.
-                        body: JSON.stringify({ name: userName, language, optInLeaderboard, username, lastLoginRewardDate, arenaPoints })
+                        body: JSON.stringify({ name: userName, language, optInLeaderboard, username, lastLoginRewardDate })
                     });
                     const data = await res.json().catch(() => ({}));
                     if (!res.ok) {

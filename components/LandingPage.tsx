@@ -197,9 +197,9 @@ export default function LandingPage() {
                             <Link href="/register" className="w-full md:w-auto bg-white text-black px-12 py-5 rounded-full text-xl font-bold hover:scale-105 transition-transform active:scale-95 shadow-glow-white">
                                 Solicitar Acesso Beta
                             </Link>
-                            <Link href="#" className="flex items-center gap-2 text-white/40 hover:text-white transition-colors group">
+                            <Link href="/register?channel=testflight" className="flex items-center gap-2 text-white/40 hover:text-white transition-colors group">
                                 <Smartphone size={18} />
-                                Baixar via TestFlight
+                                Pedir convite TestFlight
                                 <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
                             </Link>
                         </div>
@@ -216,9 +216,9 @@ export default function LandingPage() {
                             <span className="text-xl font-medium tracking-tight">Zenith</span>
                         </div>
                         <div className="flex gap-12 text-sm text-white/30 uppercase font-black tracking-widest">
-                            <a href="#" className="hover:text-white transition-colors">Termos</a>
-                            <a href="#" className="hover:text-white transition-colors">Privacidade</a>
-                            <a href="#" className="hover:text-white transition-colors">Contacto</a>
+                            <Link href="/terms" className="hover:text-white transition-colors">Termos</Link>
+                            <Link href="/privacy" className="hover:text-white transition-colors">Privacidade</Link>
+                            <a href="mailto:hello@dronee.blog" className="hover:text-white transition-colors">Contacto</a>
                         </div>
                         <div className="text-sm text-white/30">
                             © 2026 Zenith. Mastery through Consistency.

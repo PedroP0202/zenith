@@ -22,6 +22,7 @@ import { API_URL } from "@/utils/constants";
 import { getRankForLevel } from "@/utils/progression";
 import TrophyWall from "@/components/TrophyWall";
 import UserOrb from "@/components/UserOrb";
+import ConfirmationModal from "@/components/ConfirmationModal";
 import type { ArenaReward, FriendProfileData } from "@/types";
 import type { Language } from "@/locales";
 
@@ -291,7 +292,7 @@ function FriendProfileContent() {
     const searchParams = useSearchParams();
     const username = searchParams.get('u');
     const { jwt, logs, level: myLevel, totalXP: myXP, removeFriend } = useStore();
-    const { language } = useTranslation();
+    const { t, language } = useTranslation();
     
     const [friendData, setFriendData] = useState<FriendProfileData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -303,12 +304,26 @@ function FriendProfileContent() {
     const [showReportModal, setShowReportModal] = useState(false);
     const [showBlockModal, setShowBlockModal] = useState(false);
     const [showStatsModal, setShowStatsModal] = useState(false);
+    const [showRemoveFriendConfirm, setShowRemoveFriendConfirm] = useState(false);
     const optionsRef = useRef<HTMLDivElement>(null);
 
     const DAY_LABELS = language === 'pt' ? DAY_LABELS_PT : DAY_LABELS_EN;
 
     const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
         setToast({ message, type });
+    };
+
+    const handleRemoveFriend = async () => {
+        if (!friendData) return;
+
+        const res = await removeFriend(friendData.user.id);
+        setShowRemoveFriendConfirm(false);
+
+        if (res.success) {
+            router.replace('/friends');
+        } else {
+            showToast(res.error || t.common.error, 'error');
+        }
     };
 
     const fetchFriendProfile = useCallback(async () => {
@@ -544,12 +559,7 @@ function FriendProfileContent() {
                         <div className="flex items-center gap-3 w-full max-w-[300px]">
                             {/* Remove Friend */}
                             <button
-                                onClick={async () => {
-                                    if (confirm(`Remover @${friendData.user.username}?`)) {
-                                        const res = await removeFriend(friendData.user.id);
-                                        if (res.success) router.replace('/friends');
-                                    }
-                                }}
+                                onClick={() => setShowRemoveFriendConfirm(true)}
                                 className="flex-1 py-3.5 px-5 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center gap-2 hover:bg-red-500/10 hover:border-red-500/30 transition-all group active:scale-95"
                             >
                                 <span className="text-sm font-bold text-white/70 group-hover:text-red-400 transition-colors">
@@ -787,6 +797,17 @@ function FriendProfileContent() {
                         myLevel={myLevel}
                         language={language}
                         onClose={() => setShowStatsModal(false)}
+                    />
+                )}
+                {showRemoveFriendConfirm && friendData && (
+                    <ConfirmationModal
+                        isOpen={showRemoveFriendConfirm}
+                        onClose={() => setShowRemoveFriendConfirm(false)}
+                        onConfirm={handleRemoveFriend}
+                        title={t.social.removeFriend}
+                        description={`${t.social.confirmRemove} @${friendData.user.username}`}
+                        confirmLabel={t.social.removeFriend}
+                        cancelLabel={t.common.cancel}
                     />
                 )}
             </AnimatePresence>

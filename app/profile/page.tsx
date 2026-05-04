@@ -197,6 +197,7 @@ export default function ProfilePage() {
     const [usernameInput, setUsernameInput] = useState("");
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [deletePassword, setDeletePassword] = useState("");
+    const [deleteAccountError, setDeleteAccountError] = useState("");
     const [isDeleting, setIsDeleting] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
     const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
@@ -208,6 +209,7 @@ export default function ProfilePage() {
     const [passwordError, setPasswordError] = useState("");
     const [isSavingUsername, setIsSavingUsername] = useState(false);
     const [usernameMessage, setUsernameMessage] = useState<{ text: string; type: "success" | "error" | "info" } | null>(null);
+    const [showArenaOptOutConfirm, setShowArenaOptOutConfirm] = useState(false);
     const [rewards, setRewards] = useState<ArenaReward[]>([]);
     const [isLoadingRewards, setIsLoadingRewards] = useState(false);
     const [blockedUsers, setBlockedUsers] = useState<BlockedUser[]>([]);
@@ -262,6 +264,7 @@ export default function ProfilePage() {
                   profileFallbackName: "Utilizador Zenith",
                   noUsername: "sem-tag",
                   passwordModalDescription: "Altera a tua chave de acesso à Zenith Cloud.",
+                  deleteAccountError: "Não foi possível apagar a conta. Confirma a password e tenta novamente.",
                   supportTitle: "Suporte",
                   supportDescription: "Questões, ideias e feedback direto para a equipa.",
                   blockedTitle: "Utilizadores bloqueados",
@@ -321,6 +324,7 @@ export default function ProfilePage() {
                   profileFallbackName: "Zenith user",
                   noUsername: "no-tag",
                   passwordModalDescription: "Update the key you use to access Zenith Cloud.",
+                  deleteAccountError: "We could not delete the account. Check your password and try again.",
                   supportTitle: "Support",
                   supportDescription: "Questions, ideas, and direct feedback for the team.",
                   blockedTitle: "Blocked users",
@@ -669,13 +673,16 @@ export default function ProfilePage() {
                 router.push("/login");
             } else {
                 const data = await res.json();
-                alert(data.error || t.common.error);
+                setDeletePassword("");
+                setShowDeleteConfirm(true);
+                setDeleteAccountError(data.error || copy.deleteAccountError);
             }
         } catch (error) {
-            alert(t.common.error);
+            setDeletePassword("");
+            setShowDeleteConfirm(true);
+            setDeleteAccountError(copy.deleteAccountError);
         } finally {
             setIsDeleting(false);
-            setDeletePassword("");
         }
     };
 
@@ -1027,11 +1034,7 @@ export default function ProfilePage() {
                                     <div className="mt-4 flex flex-wrap gap-3">
                                         {optInLeaderboard ? (
                                             <button
-                                                onClick={() => {
-                                                    if (confirm(`${t.arena.optOutTitle} ${t.arena.optOutDescription}`)) {
-                                                        setOptInLeaderboard(false);
-                                                    }
-                                                }}
+                                                onClick={() => setShowArenaOptOutConfirm(true)}
                                                 className="rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-red-400 transition-colors hover:bg-red-500/16"
                                             >
                                                 {t.arena.optOutConfirm}
@@ -1345,11 +1348,7 @@ export default function ProfilePage() {
 
                                                     {optInLeaderboard ? (
                                                         <button
-                                                            onClick={() => {
-                                                                if (confirm(`${t.arena.optOutTitle} ${t.arena.optOutDescription}`)) {
-                                                                    setOptInLeaderboard(false);
-                                                                }
-                                                            }}
+                                                            onClick={() => setShowArenaOptOutConfirm(true)}
                                                             className="rounded-2xl border border-red-500/15 bg-red-500/10 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-red-400 transition-colors hover:bg-red-500/16"
                                                         >
                                                             {t.arena.optOutConfirm}
@@ -1498,12 +1497,14 @@ export default function ProfilePage() {
                 onClose={() => {
                     setShowDeleteConfirm(false);
                     setDeletePassword("");
+                    setDeleteAccountError("");
                 }}
                 onConfirm={handleDeleteAccount}
                 title={t.settings.dangerZone.deleteAccount}
                 description={t.settings.dangerZone.deleteWarning}
                 confirmLabel={t.settings.dangerZone.deleteAction}
                 cancelLabel={t.common.cancel}
+                confirmDisabled={jwt ? !deletePassword || isDeleting : isDeleting}
             >
                 {jwt ? (
                     <div className="mt-6 w-full text-left">
@@ -1518,9 +1519,27 @@ export default function ProfilePage() {
                             className="h-14 w-full rounded-2xl border border-white/10 bg-white/5 px-4 text-white outline-none transition-colors focus:border-red-500/50"
                             autoFocus
                         />
+                        {deleteAccountError ? (
+                            <p className="mt-3 text-xs font-semibold leading-relaxed text-red-300">
+                                {deleteAccountError}
+                            </p>
+                        ) : null}
                     </div>
                 ) : null}
             </ConfirmationModal>
+
+            <ConfirmationModal
+                isOpen={showArenaOptOutConfirm}
+                onClose={() => setShowArenaOptOutConfirm(false)}
+                onConfirm={() => {
+                    setOptInLeaderboard(false);
+                    setShowArenaOptOutConfirm(false);
+                }}
+                title={t.arena.optOutTitle}
+                description={t.arena.optOutDescription}
+                confirmLabel={t.arena.optOutConfirm}
+                cancelLabel={t.arena.optOutCancel}
+            />
 
             <ConfirmationModal
                 isOpen={showPasswordConfirm}

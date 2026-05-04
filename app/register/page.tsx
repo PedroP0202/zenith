@@ -11,6 +11,7 @@ import { useGoogleLogin } from '@react-oauth/google';
 import { API_URL, GOOGLE_CLIENT_ID, GOOGLE_IOS_CLIENT_ID } from "@/utils/constants";
 import { Capacitor } from '@capacitor/core';
 import Logo from '@/components/Logo';
+import { AppButton, AppInput } from '@/components/ui';
 
 function getErrorMessage(error: unknown, fallback = 'Operação cancelada.'): string {
     if (error instanceof Error && error.message) return error.message;
@@ -299,76 +300,84 @@ export default function RegisterPage() {
                             <div style={{ display: 'none' }}>
                                 <input
                                     type="text"
+                                    aria-hidden="true"
                                     value={hp}
                                     onChange={(e) => setHp(e.target.value)}
                                     tabIndex={-1}
                                     autoComplete="off"
                                 />
                             </div>
-                            <div>
-                                <input
-                                    type="text"
-                                    placeholder="O teu Nome"
-                                    value={name}
-                                    onChange={(e) => setName(e.target.value)}
-                                    required
-                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white placeholder:text-white/30 focus:outline-none focus:border-white/40 focus:bg-white/10 transition-all"
-                                />
-                            </div>
-                            <div>
-                                <input
-                                    type="email"
-                                    placeholder="O teu Email"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    required
-                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white placeholder:text-white/30 focus:outline-none focus:border-white/40 focus:bg-white/10 transition-all"
-                                />
-                            </div>
+                            <AppInput
+                                id="register-name"
+                                label="Nome"
+                                type="text"
+                                placeholder="O teu nome"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                autoComplete="name"
+                                required
+                            />
+                            <AppInput
+                                id="register-email"
+                                label="Email"
+                                type="email"
+                                placeholder="nome@exemplo.com"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                autoComplete="email"
+                                required
+                            />
                             <div className="relative">
-                                <input
+                                <AppInput
+                                    id="register-password"
+                                    label="Palavra-passe"
                                     type={showPassword ? "text" : "password"}
-                                    placeholder="Palavra-passe Segura"
+                                    placeholder="Palavra-passe segura"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
+                                    autoComplete="new-password"
                                     required
-                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 pr-12 text-white placeholder:text-white/30 focus:outline-none focus:border-[var(--zenith-active)] focus:bg-white/10 transition-all font-mono"
+                                    hint="Mín. 8 caracteres, 1 maiúscula, 1 número, 1 símbolo."
+                                    inputClassName="font-mono"
+                                    trailing={(
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            className="text-white/40 hover:text-[var(--zenith-active)] transition-colors p-1"
+                                            aria-label={showPassword ? "Esconder Palavra-passe" : "Mostrar Palavra-passe"}
+                                        >
+                                            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                        </button>
+                                    )}
                                 />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-[var(--zenith-active)] transition-colors p-1"
-                                    aria-label={showPassword ? "Esconder Palavra-passe" : "Mostrar Palavra-passe"}
-                                >
-                                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                                </button>
-                                <p className="text-[11px] text-white/40 mt-2 px-2">Mín. 8 caracteres, 1 maiúscula, 1 número, 1 símbolo.</p>
                             </div>
                             <div className="relative">
-                                <input
+                                <AppInput
+                                    id="register-confirm-password"
+                                    label="Confirmar palavra-passe"
                                     type={showConfirmPassword ? "text" : "password"}
-                                    placeholder="Repetir Palavra-passe"
+                                    placeholder="Repetir palavra-passe"
                                     value={confirmPassword}
                                     onChange={(e) => setConfirmPassword(e.target.value)}
+                                    autoComplete="new-password"
                                     required
-                                    className={`w-full bg-white/5 border rounded-2xl px-6 py-4 pr-12 text-white placeholder:text-white/30 focus:outline-none focus:bg-white/10 transition-all font-mono ${confirmPassword && password === confirmPassword
-                                        ? 'border-green-500/50 focus:border-green-500/70'
-                                        : 'border-white/10 focus:border-[var(--zenith-active)]'
-                                        }`}
-                                />
-                                <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                                    {confirmPassword && password === confirmPassword && (
-                                        <Check className="w-5 h-5 text-green-500" />
+                                    inputClassName={`font-mono ${confirmPassword && password === confirmPassword ? 'border-green-500/50 focus:border-green-500/70' : ''}`}
+                                    trailing={(
+                                        <div className="flex items-center gap-2">
+                                            {confirmPassword && password === confirmPassword && (
+                                                <Check className="w-5 h-5 text-green-500" />
+                                            )}
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                                className="text-white/40 hover:text-[var(--zenith-active)] transition-colors p-1"
+                                                aria-label={showConfirmPassword ? "Esconder Palavra-passe" : "Mostrar Palavra-passe"}
+                                            >
+                                                {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                            </button>
+                                        </div>
                                     )}
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                        className="text-white/40 hover:text-[var(--zenith-active)] transition-colors p-1"
-                                        aria-label={showConfirmPassword ? "Esconder Palavra-passe" : "Mostrar Palavra-passe"}
-                                    >
-                                        {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                                    </button>
-                                </div>
+                                />
                             </div>
                         </motion.div>
                     ) : (
@@ -378,17 +387,18 @@ export default function RegisterPage() {
                             className="space-y-6 text-center"
                         >
                             <p className="text-sm text-white/50 mb-4">Enviámos um código de 6 dígitos para <br /><span className="text-white font-medium">{email}</span></p>
-                            <div>
-                                <input
-                                    type="text"
-                                    placeholder="000 000"
-                                    value={code}
-                                    onChange={(e) => setCode(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
-                                    required
-                                    autoFocus
-                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-6 text-center text-3xl font-bold tracking-[0.5em] text-white placeholder:text-white/10 focus:outline-none focus:border-[var(--zenith-active)] focus:bg-white/10 transition-all"
-                                />
-                            </div>
+                            <AppInput
+                                id="register-code"
+                                label="Código de verificação"
+                                type="text"
+                                inputMode="numeric"
+                                placeholder="000 000"
+                                value={code}
+                                onChange={(e) => setCode(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
+                                required
+                                autoFocus
+                                inputClassName="py-6 text-center text-3xl font-bold tracking-[0.5em]"
+                            />
                             <button
                                 type="button"
                                 onClick={() => setStep('info')}
@@ -408,10 +418,10 @@ export default function RegisterPage() {
                         </motion.p>
                     )}
 
-                    <button
+                    <AppButton
                         type="submit"
                         disabled={loading || sendingCode}
-                        className="w-full h-14 bg-white text-black font-bold rounded-2xl flex items-center justify-center gap-2 transition-transform active:scale-95 disabled:opacity-70 disabled:active:scale-100 shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+                        fullWidth
                     >
                         {loading || sendingCode ? (
                             <>
@@ -421,7 +431,7 @@ export default function RegisterPage() {
                         ) : (
                             step === 'info' ? "Enviar Código de Verificação" : "Verificar e Criar Conta"
                         )}
-                    </button>
+                    </AppButton>
 
                     {step === 'info' && (
                         <>

@@ -33,12 +33,9 @@ The next high-value split is route registration:
 
 ```txt
 routes/
-  auth.ts
-  friends.ts
   groups.ts
-  leaderboard.ts
 ```
 
 Each route module should export a Hono sub-app or a registration function. That will make endpoint ownership clearer and will make backend tests easier to add without booting the whole API surface.
 
-`admin.ts`, `beta.ts`, `sync.ts`, and `users.ts` have already started this split. Continue moving routes by bounded domain, keeping behavior unchanged and running the API typecheck after each extraction.
+`admin.ts`, `auth.ts`, `beta.ts`, `friends.ts`, `leaderboard.ts`, `sync.ts`, and `users.ts` have already started this split. Continue moving routes by bounded domain, keeping behavior unchanged and running the API typecheck after each extraction.

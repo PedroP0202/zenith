@@ -2,10 +2,17 @@ import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 import { jwt } from 'hono/jwt';
 import { pushSchema } from '../schemas/sync';
-import { calculateCanonicalXp } from '../services/syncXp';
+import { calculateCanonicalHabitPoints, calculateCanonicalXp } from '../services/syncXp';
 import type { Bindings } from '../types';
 
 const syncRoutes = new Hono<{ Bindings: Bindings }>();
+
+function getCurrentArenaWindow(now: number) {
+    const currentDate = new Date(now);
+    const startAt = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1, 0, 0, 0, 0).getTime();
+    const endAt = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1, 0, 0, 0, 0).getTime();
+    return { startAt, endAt };
+}
 
 syncRoutes.use('*', (c, next) => {
     const secret = c.env.JWT_SECRET || 'zenith-local-dev-secret';
@@ -149,23 +156,36 @@ syncRoutes.get('/pull', async (c) => {
             WHERE h.user_id = ?
         `).bind(user.id).all();
 
+        const now = Date.now();
         const correctXp = calculateCanonicalXp(allHabitsRaw as any[], allLogsRaw as any[]);
         const correctLevel = Math.max(1, Math.floor(correctXp / 100) + 1);
 
-        const userProfile = await db.prepare('SELECT arena_points, last_login_reward_date FROM users WHERE id = ?').bind(user.id).first() as any;
+        const activeSeason = await db.prepare(
+            'SELECT start_at, end_at FROM arena_seasons WHERE is_finalized = 0 AND start_at <= ? AND end_at > ? ORDER BY end_at ASC LIMIT 1'
+        ).bind(now, now).first<{ start_at: number; end_at: number }>();
 
-        await db.prepare('UPDATE users SET total_xp = ?, level = ? WHERE id = ?')
-            .bind(correctXp, correctLevel, user.id)
+        const fallbackArenaWindow = getCurrentArenaWindow(now);
+        const arenaWindow = activeSeason
+            ? { startAt: Number(activeSeason.start_at), endAt: Number(activeSeason.end_at) + 1 }
+            : fallbackArenaWindow;
+
+        const userProfile = await db.prepare('SELECT opt_in_leaderboard, last_login_reward_date FROM users WHERE id = ?').bind(user.id).first() as any;
+        const correctArenaPoints = userProfile?.opt_in_leaderboard === 1
+            ? calculateCanonicalHabitPoints(allHabitsRaw as any[], allLogsRaw as any[], arenaWindow)
+            : 0;
+
+        await db.prepare('UPDATE users SET total_xp = ?, level = ?, arena_points = ? WHERE id = ?')
+            .bind(correctXp, correctLevel, correctArenaPoints, user.id)
             .run();
 
         return c.json({
             habits,
             logs,
-            timestamp: Date.now(),
+            timestamp: now,
             user: {
                 total_xp: correctXp,
                 level: correctLevel,
-                arena_points: userProfile?.arena_points || 0,
+                arena_points: correctArenaPoints,
                 lastLoginRewardDate: userProfile?.last_login_reward_date || null,
             },
         });

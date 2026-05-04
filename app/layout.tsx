@@ -8,6 +8,7 @@ import { GOOGLE_CLIENT_ID } from '@/utils/constants';
 import LangHandler from '../components/LangHandler';
 import Onboarding from '../components/Onboarding';
 import DailyRewardToast from '../components/DailyRewardToast';
+import AppToastHost from '../components/AppToastHost';
 
 const outfit = Outfit({ subsets: ['latin'], variable: '--font-outfit' });
 
@@ -72,6 +73,7 @@ export default function RootLayout({
         <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
           <AuthGuard>
             <DailyRewardToast />
+            <AppToastHost />
             {children}
             <BottomNav />
             <Onboarding />

@@ -28,7 +28,12 @@ function getStartOfWeekMs(timestamp: number) {
     return date.getTime();
 }
 
-export function calculateCanonicalXp(habitsRaw: any[], logsRaw: any[]) {
+type ScoreWindow = {
+    startAt?: number;
+    endAt?: number;
+};
+
+export function calculateCanonicalHabitPoints(habitsRaw: any[], logsRaw: any[], window: ScoreWindow = {}) {
     const logsByHabit = new Map<string, any[]>();
 
     for (const log of logsRaw) {
@@ -53,7 +58,11 @@ export function calculateCanonicalXp(habitsRaw: any[], logsRaw: any[]) {
         const progressByPeriod = new Map<number, number>();
 
         for (const log of habitLogs) {
-            const dayMs = getStartOfDayMs(Number(log.completed_at));
+            const completedAt = Number(log.completed_at);
+            if (window.startAt !== undefined && completedAt < window.startAt) continue;
+            if (window.endAt !== undefined && completedAt >= window.endAt) continue;
+
+            const dayMs = getStartOfDayMs(completedAt);
             const dayOfWeek = new Date(dayMs).getDay();
             if (scheduleType === 'specific_days' && !frequency.includes(dayOfWeek)) {
                 continue;
@@ -67,4 +76,8 @@ export function calculateCanonicalXp(habitsRaw: any[], logsRaw: any[]) {
         const completedPeriods = Array.from(progressByPeriod.values()).filter((value) => value >= targetValue).length;
         return totalXp + (completedPeriods * xpPerCompletion);
     }, 0);
+}
+
+export function calculateCanonicalXp(habitsRaw: any[], logsRaw: any[]) {
+    return calculateCanonicalHabitPoints(habitsRaw, logsRaw);
 }

@@ -8,6 +8,7 @@ import Skeleton from "@/components/Skeleton";
 import { API_URL } from "@/utils/constants";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
+import { AppButton, AppInput, EmptyState, MetricCard, PageHeader } from "@/components/ui";
 
 type Feedback = {
     id: string;
@@ -101,22 +102,25 @@ export default function AdminPage() {
                     <p className="text-white/40 text-center text-sm mb-8">Acesso restrito ao criador do Zenith.</p>
 
                     <form onSubmit={handleLogin} className="space-y-4">
-                        <input
+                        <AppInput
+                            id="admin-secret"
+                            label="Chave mestra"
                             type="password"
-                            placeholder="Chave Mestra"
+                            placeholder="Chave mestra"
                             value={secret}
                             onChange={(e) => setSecret(e.target.value)}
-                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-center text-white placeholder:text-white/20 focus:outline-none focus:border-red-500/50 focus:bg-white/10 transition-all font-mono tracking-widest"
+                            autoComplete="current-password"
+                            inputClassName="text-center font-mono tracking-widest focus:border-red-500/50"
                             required
                         />
                         {error && <p className="text-red-400 text-xs text-center">{error}</p>}
-                        <button
+                        <AppButton
                             type="submit"
                             disabled={loading}
-                            className="w-full h-14 bg-white text-black font-bold rounded-2xl flex items-center justify-center transition-transform active:scale-95 disabled:opacity-50"
+                            fullWidth
                         >
                             {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Desbloquear"}
-                        </button>
+                        </AppButton>
                     </form>
                     <button onClick={() => router.push('/')} className="w-full mt-6 text-xs text-white/30 hover:text-white/60 uppercase tracking-widest font-bold">Voltar</button>
                 </motion.div>
@@ -131,10 +135,7 @@ export default function AdminPage() {
                     <button onClick={() => router.push('/')} className="p-3 -ml-3 bg-white/5 rounded-full text-white/60 hover:text-white transition-colors">
                         <ChevronLeft className="w-5 h-5" />
                     </button>
-                    <div>
-                        <h1 className="text-2xl font-black tracking-tight">Comando Central</h1>
-                        <p className="text-white/50 text-xs">Visão Global do Zenith</p>
-                    </div>
+                    <PageHeader title="Comando Central" description="Visão Global do Zenith" />
                 </div>
                 <div className="flex items-center gap-2 px-3 py-1.5 bg-[var(--zenith-active)]/10 border border-[var(--zenith-active)]/20 rounded-full">
                     <Cloud className="w-4 h-4 text-[var(--zenith-active)]" />
@@ -158,42 +159,26 @@ export default function AdminPage() {
                 </section>
             ) : (
                 <section className="mb-12 grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-white/5 border border-white/5 p-6 lg:p-8 rounded-[32px] hover:bg-white/[0.07] transition-colors">
-                        <div className="flex items-center gap-3 text-white/40 mb-3">
-                            <Users className="w-4 h-4" />
-                            <span className="text-[10px] uppercase tracking-widest font-black">Utilizadores</span>
-                        </div>
-                        <div className="text-3xl lg:text-4xl font-black">{stats.totalUsers}</div>
-                        <div className="text-[10px] text-green-400 font-bold mt-1">+{stats.activeUsers24h} ativos 24h</div>
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+                        <MetricCard icon={<Users className="w-4 h-4" />} label="Utilizadores" value={stats.totalUsers} detail={`+${stats.activeUsers24h} ativos 24h`} />
                     </motion.div>
 
-                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="bg-white/5 border border-white/5 p-6 lg:p-8 rounded-[32px] hover:bg-white/[0.07] transition-colors">
-                        <div className="flex items-center gap-3 text-white/40 mb-3">
-                            <Zap className="w-4 h-4" />
-                            <span className="text-[10px] uppercase tracking-widest font-black">Hábitos</span>
-                        </div>
-                        <div className="text-3xl lg:text-4xl font-black">{stats.totalHabits}</div>
-                        <div className="text-[10px] text-white/30 font-bold mt-1">Total no ecossistema</div>
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
+                        <MetricCard icon={<Zap className="w-4 h-4" />} label="Hábitos" value={stats.totalHabits} detail="Total no ecossistema" />
                     </motion.div>
 
-                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-white/5 border border-white/5 p-6 lg:p-8 rounded-[32px] hover:bg-white/[0.07] transition-colors">
-                        <div className="flex items-center gap-3 text-white/40 mb-3">
-                            <CheckCircle2 className="w-4 h-4" />
-                            <span className="text-[10px] uppercase tracking-widest font-black">Conclusões</span>
-                        </div>
-                        <div className="text-3xl lg:text-4xl font-black">{stats.totalLogs}</div>
-                        <div className="text-[10px] text-[var(--zenith-active)] font-bold mt-1">+{stats.logs24h} hoje</div>
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+                        <MetricCard icon={<CheckCircle2 className="w-4 h-4" />} label="Conclusões" value={stats.totalLogs} detail={`+${stats.logs24h} hoje`} />
                     </motion.div>
 
-                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="bg-[var(--zenith-active)]/10 border border-[var(--zenith-active)]/20 p-6 lg:p-8 rounded-[32px]">
-                        <div className="flex items-center gap-3 text-[var(--zenith-active)] mb-3">
-                            <Activity className="w-4 h-4" />
-                            <span className="text-[10px] uppercase tracking-widest font-black">Taxa Global</span>
-                        </div>
-                        <div className="text-3xl lg:text-4xl font-black text-[var(--zenith-active)] text-shadow-sm">
-                            {stats.totalUsers > 0 ? Math.round((stats.activeUsers24h / stats.totalUsers) * 100) : 0}%
-                        </div>
-                        <div className="text-[10px] text-[var(--zenith-active)] opacity-60 font-bold mt-1">Engagement Diário</div>
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
+                        <MetricCard
+                            tone="accent"
+                            icon={<Activity className="w-4 h-4" />}
+                            label="Taxa Global"
+                            value={`${stats.totalUsers > 0 ? Math.round((stats.activeUsers24h / stats.totalUsers) * 100) : 0}%`}
+                            detail="Engagement diário"
+                        />
                     </motion.div>
                 </section>
             )}
@@ -221,10 +206,7 @@ export default function AdminPage() {
                             ))}
                         </div>
                     ) : feedbacks.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-20 opacity-50 bg-white/5 border border-white/5 rounded-[32px]">
-                            <MessageSquare className="w-12 h-12 mb-4 opacity-50" />
-                            <p>Nenhum feedback recebido ainda.</p>
-                        </div>
+                        <EmptyState icon={<MessageSquare className="w-12 h-12" />} title="Nenhum feedback recebido ainda." />
                     ) : (
                         <div className="grid gap-4 xl:grid-cols-2">
                             {feedbacks.map((item) => (

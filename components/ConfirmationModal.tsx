@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, type ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle, X } from "lucide-react";
 import { deviceHaptics } from "../utils/haptics";
@@ -13,7 +14,8 @@ interface ConfirmationModalProps {
     confirmLabel?: string;
     cancelLabel?: string;
     isDanger?: boolean;
-    children?: React.ReactNode;
+    confirmDisabled?: boolean;
+    children?: ReactNode;
 }
 
 export default function ConfirmationModal({
@@ -25,8 +27,27 @@ export default function ConfirmationModal({
     confirmLabel = "",
     cancelLabel = "",
     isDanger = true,
+    confirmDisabled = false,
     children,
 }: ConfirmationModalProps) {
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const previousOverflow = document.body.style.overflow;
+        document.body.style.overflow = "hidden";
+
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === "Escape") onClose();
+        };
+
+        window.addEventListener("keydown", handleKeyDown);
+
+        return () => {
+            document.body.style.overflow = previousOverflow;
+            window.removeEventListener("keydown", handleKeyDown);
+        };
+    }, [isOpen, onClose]);
+
     return (
         <AnimatePresence>
             {isOpen && (
@@ -44,9 +65,12 @@ export default function ConfirmationModal({
                         animate={{ opacity: 1, scale: 1, y: 0, filter: 'blur(0px)' }}
                         exit={{ opacity: 0, scale: 0.9, y: 20, filter: 'blur(8px)' }}
                         transition={{ duration: 0.35, type: 'spring', damping: 25, stiffness: 300 }}
-                        className="relative w-full max-w-sm bg-[#0A0A0A] border border-white/10 rounded-[32px] p-8 text-center shadow-2xl overflow-hidden"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="confirmation-modal-title"
+                        aria-describedby="confirmation-modal-description"
+                        className="relative w-full max-w-sm overflow-hidden rounded-[1.75rem] border border-white/10 bg-[#0A0A0A] p-7 text-center shadow-2xl sm:p-8"
                     >
-                        {/* Glow Effect */}
                         <div className={`absolute -top-20 -left-20 w-40 h-40 ${isDanger ? 'bg-red-500/10' : 'bg-white/5'} blur-[60px] rounded-full`} />
 
                         <div className="relative z-10">
@@ -54,9 +78,9 @@ export default function ConfirmationModal({
                                 <AlertTriangle className={`w-8 h-8 ${isDanger ? 'text-red-500' : 'text-white/60'}`} />
                             </div>
 
-                            <h2 className="text-2xl font-bold tracking-tight text-white mb-3">{title}</h2>
+                            <h2 id="confirmation-modal-title" className="mb-3 text-2xl font-bold tracking-tight text-white">{title}</h2>
 
-                            <p className="text-white/50 text-sm leading-relaxed mb-8">
+                            <p id="confirmation-modal-description" className="mb-8 text-sm leading-relaxed text-white/50">
                                 {description}
                             </p>
 
@@ -65,6 +89,7 @@ export default function ConfirmationModal({
                             <div className="flex flex-col gap-3 mt-8">
                                 <button
                                     onClick={() => {
+                                        if (confirmDisabled) return;
                                         if (isDanger) {
                                             deviceHaptics.heavyImpact();
                                         } else {
@@ -72,7 +97,8 @@ export default function ConfirmationModal({
                                         }
                                         onConfirm();
                                     }}
-                                    className={`w-full h-14 ${isDanger ? 'bg-red-500 text-white' : 'bg-white text-black'} font-bold rounded-2xl transition-transform active:scale-95 shadow-lg`}
+                                    disabled={confirmDisabled}
+                                    className={`h-14 w-full rounded-2xl font-bold shadow-lg transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-45 ${isDanger ? 'bg-red-500 text-white' : 'bg-white text-black'}`}
                                 >
                                     {confirmLabel}
                                 </button>
@@ -91,7 +117,8 @@ export default function ConfirmationModal({
 
                         <button
                             onClick={onClose}
-                            className="absolute top-4 right-4 p-2 text-white/20 hover:text-white transition-colors"
+                            className="absolute right-4 top-4 p-2 text-white/20 transition-colors hover:text-white"
+                            aria-label={cancelLabel || "Close"}
                         >
                             <X className="w-5 h-5" />
                         </button>

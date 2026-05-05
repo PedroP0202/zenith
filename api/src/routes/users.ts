@@ -1,15 +1,14 @@
 import { Hono } from 'hono';
-import { authenticateRequest } from '../middleware/auth';
-import type { Bindings } from '../types';
+import { getAuthUserId, requireAuth } from '../middleware/auth';
+import type { AuthPayload, Bindings } from '../types';
 
-const userRoutes = new Hono<{ Bindings: Bindings }>();
+const userRoutes = new Hono<{ Bindings: Bindings; Variables: { authPayload: AuthPayload; authUserId: string } }>();
+
+userRoutes.use('*', requireAuth());
 
 userRoutes.get('/me/rewards', async (c) => {
     try {
-        const auth = await authenticateRequest(c);
-        if ('error' in auth) return auth.error;
-
-        const userId = String(auth.payload.id);
+        const userId = getAuthUserId(c);
         const db = c.env.DB;
 
         const rewards = await db.prepare(`

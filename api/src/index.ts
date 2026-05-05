@@ -2,8 +2,8 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
-import type { Bindings } from './types';
-import { authenticateRequest } from './middleware/auth';
+import type { AuthPayload, Bindings } from './types';
+import { getAuthUserId, requireAuth } from './middleware/auth';
 import { isAcceptedFriend } from './repositories/friendships';
 import { getGroupMembership } from './repositories/groups';
 import { groupHabitSchema, groupMemberSchema, groupSchema } from './schemas/groups';
@@ -15,7 +15,7 @@ import leaderboardRoutes from './routes/leaderboard';
 import userRoutes from './routes/users';
 import syncRoutes from './routes/sync';
 
-const app = new Hono<{ Bindings: Bindings }>();
+const app = new Hono<{ Bindings: Bindings; Variables: { authPayload: AuthPayload; authUserId: string } }>();
 
 // Enable CORS for the Capacitor iOS App
 app.use('*', cors());
@@ -24,11 +24,11 @@ app.get('/', (c) => {
     return c.text('Zenith Global API is running at the Edge!');
 });
 
-app.get('/groups', async (c) => {
-    const auth = await authenticateRequest(c);
-    if ('error' in auth) return auth.error;
+app.use('/groups', requireAuth());
+app.use('/groups/*', requireAuth());
 
-    const userId = String(auth.payload.id);
+app.get('/groups', async (c) => {
+    const userId = getAuthUserId(c);
     const db = c.env.DB;
 
     try {
@@ -61,10 +61,7 @@ app.get('/groups', async (c) => {
 });
 
 app.post('/groups', zValidator('json', groupSchema), async (c) => {
-    const auth = await authenticateRequest(c);
-    if ('error' in auth) return auth.error;
-
-    const userId = String(auth.payload.id);
+    const userId = getAuthUserId(c);
     const { name, memberIds } = c.req.valid('json') as z.infer<typeof groupSchema>;
     const db = c.env.DB;
     const now = Date.now();
@@ -104,10 +101,7 @@ app.post('/groups', zValidator('json', groupSchema), async (c) => {
 });
 
 app.get('/groups/:id', async (c) => {
-    const auth = await authenticateRequest(c);
-    if ('error' in auth) return auth.error;
-
-    const userId = String(auth.payload.id);
+    const userId = getAuthUserId(c);
     const groupId = c.req.param('id');
     const db = c.env.DB;
 
@@ -209,10 +203,7 @@ app.get('/groups/:id', async (c) => {
 });
 
 app.post('/groups/:id/members', zValidator('json', groupMemberSchema), async (c) => {
-    const auth = await authenticateRequest(c);
-    if ('error' in auth) return auth.error;
-
-    const userId = String(auth.payload.id);
+    const userId = getAuthUserId(c);
     const groupId = c.req.param('id');
     const { friendId } = c.req.valid('json') as z.infer<typeof groupMemberSchema>;
     const db = c.env.DB;
@@ -247,10 +238,7 @@ app.post('/groups/:id/members', zValidator('json', groupMemberSchema), async (c)
 });
 
 app.post('/groups/:id/habits', zValidator('json', groupHabitSchema), async (c) => {
-    const auth = await authenticateRequest(c);
-    if ('error' in auth) return auth.error;
-
-    const userId = String(auth.payload.id);
+    const userId = getAuthUserId(c);
     const groupId = c.req.param('id');
     const { title, frequency } = c.req.valid('json') as z.infer<typeof groupHabitSchema>;
     const db = c.env.DB;
@@ -274,10 +262,7 @@ app.post('/groups/:id/habits', zValidator('json', groupHabitSchema), async (c) =
 });
 
 app.post('/groups/:id/habits/:habitId/toggle', async (c) => {
-    const auth = await authenticateRequest(c);
-    if ('error' in auth) return auth.error;
-
-    const userId = String(auth.payload.id);
+    const userId = getAuthUserId(c);
     const groupId = c.req.param('id');
     const habitId = c.req.param('habitId');
     const db = c.env.DB;

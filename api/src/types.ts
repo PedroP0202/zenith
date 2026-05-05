@@ -2,6 +2,7 @@ export type Bindings = {
     DB: D1Database;
     JWT_SECRET: string;
     RESEND_API_KEY: string;
+    RATE_LIMIT_KV?: KVNamespace;
     ADMIN_SECRET?: string;
     ENVIRONMENT?: string;
 };

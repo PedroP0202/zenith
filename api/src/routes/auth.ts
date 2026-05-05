@@ -1,9 +1,10 @@
 import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
-import { decode, sign, verify } from 'hono/jwt';
+import { decode, sign } from 'hono/jwt';
 import { z } from 'zod';
 import { hashPassword, verifyPassword } from '../crypto';
-import { checkRateLimit } from '../middleware/rateLimit';
+import { authenticateRequest, getTokenSecret } from '../middleware/auth';
+import { checkRateLimit, createKvRateLimitBackend } from '../middleware/rateLimit';
 import { loginSchema, registerSchema, sendCodeSchema } from '../schemas/auth';
 import type { Bindings } from '../types';
 
@@ -26,14 +27,6 @@ type AuthUserRow = {
     last_login_reward_date: string | null;
 };
 
-function getTokenSecret(c: { env: Bindings }) {
-    const secret = c.env.JWT_SECRET;
-    if (!secret && c.env.ENVIRONMENT === 'production') {
-        throw new Error('MISSING_JWT_SECRET');
-    }
-    return secret || 'zenith-local-dev-secret';
-}
-
 async function createSessionToken(c: { env: Bindings }, payload: { id: string; name: string; email: string }) {
     return sign(
         {
@@ -46,28 +39,13 @@ async function createSessionToken(c: { env: Bindings }, payload: { id: string; n
     );
 }
 
-async function verifyAuthHeader(c: any) {
-    const authHeader = c.req.header('Authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return { error: c.json({ error: 'Não autorizado' }, 401) };
-    }
-
-    try {
-        const token = authHeader.replace('Bearer ', '');
-        const payload = await verify(token, getTokenSecret(c), 'HS256');
-        return { payload };
-    } catch (error: any) {
-        if (error?.message === 'MISSING_JWT_SECRET') {
-            console.error('[AUTH] MISSING JWT_SECRET IN PRODUCTION!');
-            return { error: c.json({ error: 'Erro de configuração do servidor.' }, 500) };
-        }
-        return { error: c.json({ error: 'Token inválido' }, 401) };
-    }
-}
-
 function authConfigErrorResponse(c: any) {
     console.error('[AUTH] MISSING JWT_SECRET IN PRODUCTION!');
     return c.json({ error: 'Erro de configuração do servidor.' }, 500);
+}
+
+function rateLimitBackend(c: { env: Bindings }) {
+    return createKvRateLimitBackend(c.env.RATE_LIMIT_KV);
 }
 
 function serializeAuthUser(user: any, overrides: { id?: string; name?: string; email?: string; language?: string; username?: string | null } = {}) {
@@ -300,7 +278,7 @@ authRoutes.post('/send-code', zValidator('json', sendCodeSchema), async (c) => {
     if (hp) return c.json({ message: 'Código enviado com sucesso.' });
 
     const ip = c.req.header('CF-Connecting-IP') || 'local';
-    if (!checkRateLimit(`send-code-${ip}`, 5, 5 * 60 * 1000)) {
+    if (!(await checkRateLimit(`send-code-${ip}`, 5, 5 * 60 * 1000, rateLimitBackend(c)))) {
         return c.json({ error: 'Muitos códigos pedidos. Tenta novamente em 5 minutos.' }, 429);
     }
 
@@ -363,7 +341,7 @@ authRoutes.post('/register', zValidator('json', registerSchema.extend({ language
     if (hp) return c.json({ error: 'Erro ao processar registo.' }, 400);
 
     const ip = c.req.header('CF-Connecting-IP') || 'local';
-    if (!checkRateLimit(`register-${ip}`, 5, 60 * 60 * 1000)) {
+    if (!(await checkRateLimit(`register-${ip}`, 5, 60 * 60 * 1000, rateLimitBackend(c)))) {
         return c.json({ error: 'Muitos registos. Tenta novamente mais tarde.' }, 429);
     }
 
@@ -402,7 +380,7 @@ authRoutes.post('/login', zValidator('json', loginSchema), async (c) => {
     const { email, password } = c.req.valid('json');
     const ip = c.req.header('CF-Connecting-IP') || 'local';
 
-    if (!checkRateLimit(`login-${ip}`, 10, 60 * 1000)) {
+    if (!(await checkRateLimit(`login-${ip}`, 10, 60 * 1000, rateLimitBackend(c)))) {
         return c.json({ error: 'Muitas tentativas de login. Tenta novamente em 1 minuto.' }, 429);
     }
 
@@ -444,7 +422,7 @@ authRoutes.post('/login', zValidator('json', loginSchema), async (c) => {
 });
 
 authRoutes.patch('/profile', async (c) => {
-    const auth = await verifyAuthHeader(c);
+    const auth = await authenticateRequest(c);
     if ('error' in auth) return auth.error;
 
     const userId = auth.payload.id;
@@ -508,7 +486,7 @@ authRoutes.get('/check-username', async (c) => {
 });
 
 authRoutes.delete('/account', async (c) => {
-    const auth = await verifyAuthHeader(c);
+    const auth = await authenticateRequest(c);
     if ('error' in auth) return auth.error;
 
     const userId = auth.payload.id;
@@ -536,7 +514,7 @@ authRoutes.delete('/account', async (c) => {
 });
 
 authRoutes.post('/change-password', async (c) => {
-    const auth = await verifyAuthHeader(c);
+    const auth = await authenticateRequest(c);
     if ('error' in auth) return auth.error;
 
     const userId = auth.payload.id;
@@ -565,7 +543,7 @@ authRoutes.post('/forgot-password', async (c) => {
         if (hp) return c.json({ message: 'Código enviado com sucesso.' });
 
         const ip = c.req.header('CF-Connecting-IP') || 'local';
-        if (!checkRateLimit(`forgot-${ip}`, 3, 10 * 60 * 1000)) {
+        if (!(await checkRateLimit(`forgot-${ip}`, 3, 10 * 60 * 1000, rateLimitBackend(c)))) {
             return c.json({ error: 'Muitos pedidos de recuperação. Tenta novamente mais tarde.' }, 429);
         }
 

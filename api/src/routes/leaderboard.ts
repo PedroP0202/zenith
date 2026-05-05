@@ -1,15 +1,14 @@
 import { Hono } from 'hono';
 import { getArenaPodiumRankName, getArenaTierFromScore } from '../domain/arena';
-import { authenticateRequest } from '../middleware/auth';
-import type { Bindings } from '../types';
+import { getAuthUserId, requireAuth } from '../middleware/auth';
+import type { AuthPayload, Bindings } from '../types';
 
-const leaderboardRoutes = new Hono<{ Bindings: Bindings }>();
+const leaderboardRoutes = new Hono<{ Bindings: Bindings; Variables: { authPayload: AuthPayload; authUserId: string } }>();
+
+leaderboardRoutes.use('*', requireAuth());
 
 leaderboardRoutes.get('/', async (c) => {
-    const auth = await authenticateRequest(c);
-    if ('error' in auth) return auth.error;
-
-    const userId = String(auth.payload.id);
+    const userId = getAuthUserId(c);
     const db = c.env.DB;
     const now = Date.now();
     const period = c.req.query('period') === 'historical' ? 'historical' : 'seasonal';

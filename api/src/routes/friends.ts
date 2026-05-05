@@ -1,22 +1,13 @@
 import { Hono } from 'hono';
-import { authenticateRequest } from '../middleware/auth';
-import type { Bindings } from '../types';
+import { getAuthUserId, requireAuth } from '../middleware/auth';
+import type { AuthPayload, Bindings } from '../types';
 
-const friendsRoutes = new Hono<{ Bindings: Bindings }>();
+const friendsRoutes = new Hono<{ Bindings: Bindings; Variables: { authPayload: AuthPayload; authUserId: string } }>();
 
-type AuthenticatedUserResult =
-    | { userId: string; error?: never }
-    | { error: any; userId?: never };
-
-async function getAuthenticatedUserId(c: any): Promise<AuthenticatedUserResult> {
-    const auth = await authenticateRequest(c);
-    if ('error' in auth) return { error: auth.error };
-    return { userId: String(auth.payload.id) };
-}
+friendsRoutes.use('*', requireAuth());
 
 friendsRoutes.get('/users/search', async (c) => {
-    const auth = await getAuthenticatedUserId(c);
-    if ('error' in auth) return auth.error;
+    const userId = getAuthUserId(c);
 
     const query = c.req.query('q');
     if (!query || query.length < 2) return c.json({ results: [] });
@@ -47,7 +38,7 @@ friendsRoutes.get('/users/search', async (c) => {
                 SELECT user_id FROM friendships WHERE friend_id = ? AND status = 'pending'
               )
             LIMIT 10
-        `).bind(`%${query}%`, `%${query}%`, auth.userId, auth.userId, auth.userId, auth.userId, auth.userId, auth.userId, auth.userId).all();
+        `).bind(`%${query}%`, `%${query}%`, userId, userId, userId, userId, userId, userId, userId).all();
 
         return c.json({ results });
     } catch (e: any) {
@@ -56,12 +47,11 @@ friendsRoutes.get('/users/search', async (c) => {
 });
 
 friendsRoutes.post('/friends/request', async (c) => {
-    const auth = await getAuthenticatedUserId(c);
-    if ('error' in auth) return auth.error;
+    const userId = getAuthUserId(c);
 
     const { friendId } = await c.req.json().catch(() => ({}));
     if (!friendId) return c.json({ error: 'ID do amigo em falta.' }, 400);
-    if (auth.userId === friendId) return c.json({ error: 'Não te podes adicionar a ti próprio.' }, 400);
+    if (userId === friendId) return c.json({ error: 'Não te podes adicionar a ti próprio.' }, 400);
 
     const db = c.env.DB;
     const now = Date.now();
@@ -69,7 +59,7 @@ friendsRoutes.post('/friends/request', async (c) => {
         await db.prepare(`
             INSERT INTO friendships (id, user_id, friend_id, status, created_at, updated_at)
             VALUES (?, ?, ?, 'pending', ?, ?)
-        `).bind(crypto.randomUUID(), auth.userId, friendId, now, now).run();
+        `).bind(crypto.randomUUID(), userId, friendId, now, now).run();
 
         return c.json({ success: true, message: 'Pedido enviado.' });
     } catch (e: any) {
@@ -81,8 +71,7 @@ friendsRoutes.post('/friends/request', async (c) => {
 });
 
 friendsRoutes.get('/friends/requests', async (c) => {
-    const auth = await getAuthenticatedUserId(c);
-    if ('error' in auth) return auth.error;
+    const userId = getAuthUserId(c);
 
     const db = c.env.DB;
     try {
@@ -91,14 +80,14 @@ friendsRoutes.get('/friends/requests', async (c) => {
             FROM friendships f
             JOIN users u ON u.id = f.user_id
             WHERE f.friend_id = ? AND f.status = 'pending'
-        `).bind(auth.userId).all();
+        `).bind(userId).all();
 
         const outgoing = await db.prepare(`
             SELECT f.id, f.friend_id as to_id, u.name, u.username, f.created_at
             FROM friendships f
             JOIN users u ON u.id = f.friend_id
             WHERE f.user_id = ? AND f.status = 'pending'
-        `).bind(auth.userId).all();
+        `).bind(userId).all();
 
         return c.json({
             incoming: incoming.results,
@@ -110,8 +99,7 @@ friendsRoutes.get('/friends/requests', async (c) => {
 });
 
 friendsRoutes.patch('/friends/request/:id', async (c) => {
-    const auth = await getAuthenticatedUserId(c);
-    if ('error' in auth) return auth.error;
+    const userId = getAuthUserId(c);
 
     const requestId = c.req.param('id');
     const { action } = await c.req.json().catch(() => ({}));
@@ -124,17 +112,17 @@ friendsRoutes.patch('/friends/request/:id', async (c) => {
                 UPDATE friendships 
                 SET status = 'accepted', updated_at = ? 
                 WHERE id = ? AND friend_id = ?
-            `).bind(now, requestId, auth.userId).run();
+            `).bind(now, requestId, userId).run();
 
             if (res.meta.changes === 0) return c.json({ error: 'Pedido não encontrado ou já processado.' }, 404);
 
             return c.json({ success: true, message: 'Pedido aceite.' });
         } else if (action === 'cancel') {
-            const res = await db.prepare('DELETE FROM friendships WHERE id = ? AND user_id = ? AND status = \'pending\'').bind(requestId, auth.userId).run();
+            const res = await db.prepare('DELETE FROM friendships WHERE id = ? AND user_id = ? AND status = \'pending\'').bind(requestId, userId).run();
             if (res.meta.changes === 0) return c.json({ error: 'Pedido não encontrado ou não tens permissão para cancelar.' }, 404);
             return c.json({ success: true, message: 'Pedido cancelado.' });
         } else {
-            await db.prepare('DELETE FROM friendships WHERE id = ? AND friend_id = ?').bind(requestId, auth.userId).run();
+            await db.prepare('DELETE FROM friendships WHERE id = ? AND friend_id = ?').bind(requestId, userId).run();
             return c.json({ success: true, message: 'Pedido rejeitado.' });
         }
     } catch (e: any) {
@@ -143,8 +131,7 @@ friendsRoutes.patch('/friends/request/:id', async (c) => {
 });
 
 friendsRoutes.delete('/friends/:id', async (c) => {
-    const auth = await getAuthenticatedUserId(c);
-    if ('error' in auth) return auth.error;
+    const userId = getAuthUserId(c);
 
     const friendIdToRemove = c.req.param('id');
     const db = c.env.DB;
@@ -154,7 +141,7 @@ friendsRoutes.delete('/friends/:id', async (c) => {
             DELETE FROM friendships 
             WHERE status = 'accepted' AND 
             ((user_id = ? AND friend_id = ?) OR (user_id = ? AND friend_id = ?))
-        `).bind(auth.userId, friendIdToRemove, friendIdToRemove, auth.userId).run();
+        `).bind(userId, friendIdToRemove, friendIdToRemove, userId).run();
 
         if (result.meta.changes === 0) {
             return c.json({ error: 'Amizade não encontrada.' }, 404);
@@ -167,8 +154,7 @@ friendsRoutes.delete('/friends/:id', async (c) => {
 });
 
 friendsRoutes.get('/friends', async (c) => {
-    const auth = await getAuthenticatedUserId(c);
-    if ('error' in auth) return auth.error;
+    const userId = getAuthUserId(c);
 
     const db = c.env.DB;
     try {
@@ -178,7 +164,7 @@ friendsRoutes.get('/friends', async (c) => {
             FROM users u
             JOIN friendships f ON (f.user_id = u.id AND f.friend_id = ?) OR (f.friend_id = u.id AND f.user_id = ?)
             WHERE f.status = 'accepted'
-        `).bind(auth.userId, auth.userId).all();
+        `).bind(userId, userId).all();
 
         return c.json({ friends: results });
     } catch (e: any) {
@@ -187,8 +173,7 @@ friendsRoutes.get('/friends', async (c) => {
 });
 
 friendsRoutes.post('/friends/nudge', async (c) => {
-    const auth = await getAuthenticatedUserId(c);
-    if ('error' in auth) return auth.error;
+    const userId = getAuthUserId(c);
 
     const { targetUserId } = await c.req.json().catch(() => ({}));
     if (!targetUserId) return c.json({ error: 'targetUserId é obrigatório.' }, 400);
@@ -201,21 +186,21 @@ friendsRoutes.post('/friends/nudge', async (c) => {
             SELECT id FROM friendships 
             WHERE ((user_id = ? AND friend_id = ?) OR (user_id = ? AND friend_id = ?))
             AND status = 'accepted'
-        `).bind(auth.userId, targetUserId, targetUserId, auth.userId).first();
+        `).bind(userId, targetUserId, targetUserId, userId).first();
 
         if (!friendship) return c.json({ error: 'Só podes enviar incentivos a amigos.' }, 403);
 
         const recentNudge = await db.prepare(`
             SELECT id FROM nudges 
             WHERE from_user_id = ? AND to_user_id = ? AND created_at > ?
-        `).bind(auth.userId, targetUserId, now - 3600000).first();
+        `).bind(userId, targetUserId, now - 3600000).first();
 
         if (recentNudge) return c.json({ error: 'Já enviaste um incentivo recentemente. Aguarda 1 hora.' }, 429);
 
         await db.prepare('INSERT INTO nudges (id, from_user_id, to_user_id, created_at) VALUES (?, ?, ?, ?)')
-            .bind(crypto.randomUUID(), auth.userId, targetUserId, now).run();
+            .bind(crypto.randomUUID(), userId, targetUserId, now).run();
 
-        const sender = await db.prepare('SELECT name, username FROM users WHERE id = ?').bind(auth.userId).first() as any;
+        const sender = await db.prepare('SELECT name, username FROM users WHERE id = ?').bind(userId).first() as any;
 
         return c.json({
             success: true,
@@ -231,8 +216,7 @@ friendsRoutes.post('/friends/nudge', async (c) => {
 });
 
 friendsRoutes.get('/friends/nudges', async (c) => {
-    const auth = await getAuthenticatedUserId(c);
-    if ('error' in auth) return auth.error;
+    const userId = getAuthUserId(c);
 
     const db = c.env.DB;
     const since = parseInt(c.req.query('since') || '0', 10);
@@ -244,7 +228,7 @@ friendsRoutes.get('/friends/nudges', async (c) => {
             JOIN users u ON u.id = n.from_user_id
             WHERE n.to_user_id = ? AND n.created_at > ?
             ORDER BY n.created_at DESC LIMIT 10
-        `).bind(auth.userId, since).all();
+        `).bind(userId, since).all();
         return c.json({ nudges: results });
     } catch (e: any) {
         if (e.message.includes('no such table')) return c.json({ nudges: [] });
@@ -253,8 +237,7 @@ friendsRoutes.get('/friends/nudges', async (c) => {
 });
 
 friendsRoutes.post('/users/report', async (c) => {
-    const auth = await getAuthenticatedUserId(c);
-    if ('error' in auth) return auth.error;
+    const userId = getAuthUserId(c);
 
     const { reportedUserId, reason } = await c.req.json().catch(() => ({}));
     if (!reportedUserId) return c.json({ error: 'reportedUserId é obrigatório.' }, 400);
@@ -268,7 +251,7 @@ friendsRoutes.post('/users/report', async (c) => {
             VALUES (?, ?, ?, ?, ?, ?)
         `).bind(
             crypto.randomUUID(),
-            `REPORT from ${auth.userId}`,
+            `REPORT from ${userId}`,
             'user_report',
             `Reported user: ${reportedUserId}. Reason: ${reason || 'Not specified'}`,
             'unread',
@@ -282,8 +265,7 @@ friendsRoutes.post('/users/report', async (c) => {
 });
 
 friendsRoutes.post('/friends/block', async (c) => {
-    const auth = await getAuthenticatedUserId(c);
-    if ('error' in auth) return auth.error;
+    const userId = getAuthUserId(c);
 
     const { blockedUserId } = await c.req.json().catch(() => ({}));
     if (!blockedUserId) return c.json({ error: 'blockedUserId é obrigatório.' }, 400);
@@ -295,13 +277,13 @@ friendsRoutes.post('/friends/block', async (c) => {
         await db.prepare(`
             UPDATE friendships SET status = 'blocked', updated_at = ?
             WHERE ((user_id = ? AND friend_id = ?) OR (user_id = ? AND friend_id = ?))
-        `).bind(now, auth.userId, blockedUserId, blockedUserId, auth.userId).run();
+        `).bind(now, userId, blockedUserId, blockedUserId, userId).run();
 
         await db.prepare(`
             DELETE FROM friendships 
             WHERE status = 'pending' AND 
             ((user_id = ? AND friend_id = ?) OR (user_id = ? AND friend_id = ?))
-        `).bind(auth.userId, blockedUserId, blockedUserId, auth.userId).run();
+        `).bind(userId, blockedUserId, blockedUserId, userId).run();
 
         return c.json({ success: true, message: 'Utilizador bloqueado.' });
     } catch (e: any) {
@@ -310,8 +292,7 @@ friendsRoutes.post('/friends/block', async (c) => {
 });
 
 friendsRoutes.get('/friends/blocked', async (c) => {
-    const auth = await getAuthenticatedUserId(c);
-    if ('error' in auth) return auth.error;
+    const userId = getAuthUserId(c);
 
     const db = c.env.DB;
 
@@ -321,7 +302,7 @@ friendsRoutes.get('/friends/blocked', async (c) => {
             FROM friendships f
             JOIN users u ON u.id = f.friend_id
             WHERE f.user_id = ? AND f.status = 'blocked'
-        `).bind(auth.userId).all();
+        `).bind(userId).all();
 
         return c.json({ blocked: results });
     } catch (e: any) {
@@ -330,8 +311,7 @@ friendsRoutes.get('/friends/blocked', async (c) => {
 });
 
 friendsRoutes.post('/friends/unblock', async (c) => {
-    const auth = await getAuthenticatedUserId(c);
-    if ('error' in auth) return auth.error;
+    const userId = getAuthUserId(c);
 
     const { unblockedUserId } = await c.req.json().catch(() => ({}));
     if (!unblockedUserId) return c.json({ error: 'unblockedUserId é obrigatório.' }, 400);
@@ -342,7 +322,7 @@ friendsRoutes.post('/friends/unblock', async (c) => {
         const res = await db.prepare(`
             DELETE FROM friendships 
             WHERE user_id = ? AND friend_id = ? AND status = 'blocked'
-        `).bind(auth.userId, unblockedUserId).run();
+        `).bind(userId, unblockedUserId).run();
 
         if (res.meta.changes === 0) {
             return c.json({ error: 'Utilizador não encontrado na lista de bloqueados.' }, 404);
@@ -355,9 +335,6 @@ friendsRoutes.post('/friends/unblock', async (c) => {
 });
 
 friendsRoutes.get('/friends/compare/:username', async (c) => {
-    const auth = await getAuthenticatedUserId(c);
-    if ('error' in auth) return auth.error;
-
     const friendUsername = c.req.param('username');
     const db = c.env.DB;
     try {
@@ -385,8 +362,7 @@ friendsRoutes.get('/friends/compare/:username', async (c) => {
 });
 
 friendsRoutes.get('/users/:username/profile', async (c) => {
-    const auth = await getAuthenticatedUserId(c);
-    if ('error' in auth) return auth.error;
+    const userId = getAuthUserId(c);
 
     const rawUsername = c.req.param('username');
     const targetUsername = rawUsername.startsWith('@') ? rawUsername.substring(1) : rawUsername;
@@ -396,12 +372,12 @@ friendsRoutes.get('/users/:username/profile', async (c) => {
         const user = await db.prepare('SELECT id, name, username, level, total_xp, arena_points FROM users WHERE LOWER(username) = LOWER(?)').bind(targetUsername).first() as any;
         if (!user) return c.json({ error: 'Utilizador não encontrado.' }, 404);
 
-        if (user.id !== auth.userId) {
+        if (user.id !== userId) {
             const friendship = await db.prepare(`
                 SELECT status FROM friendships 
                 WHERE ((user_id = ? AND friend_id = ?) OR (user_id = ? AND friend_id = ?))
                 AND status = 'accepted'
-            `).bind(auth.userId, user.id, user.id, auth.userId).first();
+            `).bind(userId, user.id, user.id, userId).first();
 
             if (!friendship) return c.json({ error: 'Apenas amigos podem ver este perfil.' }, 403);
         }

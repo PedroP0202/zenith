@@ -7,7 +7,12 @@ import { getLevelFromXp } from '@/utils/progression';
 import { syncWidgetData } from '../utils/widgetSync';
 import { scheduleAllNotifications, cancelAllNotifications } from '../utils/notifications';
 import { Language, translations } from '../locales';
-import { API_URL } from '@/utils/constants';
+import { apiClient } from '@/services/apiClient';
+import { authInitialState, type AuthSlice } from '@/store/slices/authSlice';
+import { habitsInitialState, type HabitsSlice } from '@/store/slices/habitsSlice';
+import { settingsInitialState, type SettingsSlice } from '@/store/slices/settingsSlice';
+import { socialInitialState, type SocialSlice } from '@/store/slices/socialSlice';
+import { syncInitialState, type SyncSlice } from '@/store/slices/syncSlice';
 import { getHabitDayProgress, getHabitFrequency, getHabitGoalType, getHabitPeriodTarget, getHabitProgressForDate, getHabitScheduleType, getHabitTargetValue, getHabitUnitLabel, getHabitWeeklyTarget, isHabitCompleteForDate } from '@/utils/habits';
 
 function isLanguage(value: unknown): value is Language {
@@ -76,254 +81,16 @@ function normalizeHabitInput(input: HabitFormValues): HabitFormValues {
     };
 }
 
-/**
- * Represents the global application state managed by Zustand.
- */
-interface AppState {
-    /** List of all habits, including active and soft-deleted ones. */
-    habits: Habit[];
-    /** History of all habit completions (logs). */
-    logs: LogEntry[];
-    /** The user's personalized display name. */
-    userName: string;
-    /** The user's unique @handle. */
-    username: string | null;
-    /** Current language preference (pt or en) */
-    language: Language;
-    /** Whether the daily Morning Reminder is enabled. */
-    isMorningReminderActive: boolean;
-    /** The preferred time of day for notifications, in 'HH:mm' format */
-    morningReminderTime: string;
-    /** Whether the user has been asked to enable notifications */
-    hasPromptedForNotifications: boolean;
-    /** JWT Token for Cloudflare API Authentication */
-    jwt: string | null;
-    /** Is the auth state currently hydrating from secure storage? */
-    isInitializingAuth: boolean;
-    /** Timestamp of the last successful cloud sync */
-    lastSyncedAt: number;
-    /** Current sync status indicator */
-    syncStatus: 'idle' | 'syncing' | 'error';
-    /** IDs of habits permanently deleted locally but not yet synced */
-    deletedHabitIds: string[];
-    /** IDs of logs deleted locally but not yet synced */
-    deletedLogIds: string[];
-    /** Whether the user has completed the onboarding flow */
-    hasCompletedOnboarding: boolean;
-    /** Whether the user has opted in to the global leaderboard */
-    optInLeaderboard: boolean;
-    /** List of accepted friends */
-    friends: Friend[];
-    /** List of incoming friend requests */
-    friendRequests: FriendRequest[];
-    /** List of outgoing friend requests */
-    outgoingRequests: FriendRequest[];
-    /** Loading state for social actions */
-    friendsLoading: boolean;
-    /** User's total experience points */
-    totalXP: number;
-    /** User's exclusive Arena points */
-    arenaPoints: number;
-    /** User's current level */
-    level: number;
-    /** The UTC date of the last collected daily reward (YYYY-MM-DD) */
-    lastLoginRewardDate: string | null;
-    /** Temporary flag to show reward toast */
-    showDailyRewardToast: boolean;
-
-
-    /**
-     * Creates a new habit and adds it to the global state.
-     * Supports binary and quantitative goals, plus fixed weekdays or weekly quotas.
-     */
-    addHabit: (input: HabitFormValues) => void;
-
-    /**
-     * Soft-deletes a habit by its ID, moving it to the trash.
-     * @param id The UUID of the habit to remove.
-     */
-    removeHabit: (id: string) => void;
-
-    /**
-     * Restores a previously soft-deleted habit from the trash.
-     * @param id The UUID of the habit to restore.
-     */
-    restoreHabit: (id: string) => void;
-
-    /**
-     * Permanently deletes a habit and all of its associated logs from history.
-     * @param id The UUID of the habit to permanently destroy.
-     */
-    permanentlyDeleteHabit: (id: string) => void;
-
-    /**
-     * Updates the custom title of an existing habit.
-     * @param id The UUID of the habit to edit.
-     * @param newTitle The new display title.
-     */
-    editHabit: (id: string, newTitle: string) => void;
-
-    /**
-     * Updates or removes the specific reminder time for an existing habit.
-     * @param id The UUID of the habit.
-     * @param reminderTime The new time in 'HH:mm' format, or undefined to disable it.
-     */
-    editHabitReminder: (id: string, reminderTime?: string) => void;
-
-    /**
-     * Toggles the completion state of a habit for a specific day.
-     * If already logged on that day, it unticks it; otherwise, it ticks it.
-     * @param habitId The UUID of the habit to toggle.
-     * @param dateMs Optional timestamp (ms) to log retroactively. Defaults to today.
-     */
-    toggleHabitLog: (habitId: string, dateMs?: number) => void;
-
-    /**
-     * Increments the progress value of a quantitative habit for a given day.
-     */
-    incrementHabitProgress: (habitId: string, dateMs?: number) => void;
-
-    /**
-     * Decrements the progress value of a quantitative habit for a given day.
-     */
-    decrementHabitProgress: (habitId: string, dateMs?: number) => void;
-
-    /**
-     * Updates the user's customized display name across the app.
-     * @param name The new display name.
-     */
-    setUserName: (name: string) => void;
-
-    /**
-     * Updates the user's unique @handle.
-     * @param username The new username.
-     */
-    setUsername: (username: string) => Promise<void>;
-
-    /**
-     * Sets the user's preferred language.
-     * @param language 'pt' or 'en'
-     */
-    setLanguage: (language: Language) => void;
-
-    /**
-     * Toggles the daily local notification reminder flag.
-     * @param isActive True if notifications are turned on.
-     */
-    setMorningReminder: (isActive: boolean) => void;
-
-    /**
-     * Updates the custom time of day when notifications are triggered.
-     * @param time The 24h custom timestring (e.g. "09:00").
-     */
-    setMorningReminderTime: (time: string) => void;
-
-    /**
-     * Sets whether the onboarding soft prompt for notifications has been shown.
-     * @param prompted True if the user has already been asked.
-     */
-    setHasPromptedForNotifications: (prompted: boolean) => void;
-
-    /**
-     * Sets the user's JWT authentication token.
-
-     * @param token The token or null to log out.
-     */
-    setJwt: (token: string | null) => void;
-
-    /**
-     * Executes the offline-first bi-directional sync with the Cloudflare Edge API.
-     */
-    syncWithCloud: () => Promise<void>;
-
-    /**
-     * Resets the local user data (habits, logs, sync metadata) to prepare for a fresh cloud pull.
-     */
-    clearUserData: () => void;
-
-    /** Fetches the accepted friends list from the cloud. */
-    fetchFriends: () => Promise<void>;
-    /** Fetches incoming and outgoing friend requests from the cloud. */
-    fetchFriendRequests: () => Promise<void>;
-    /** Sends a friend request to another user. */
-    sendFriendRequest: (friendId: string) => Promise<{ success: boolean; error?: string }>;
-    /** Accepts, rejects, or cancels a friend request. */
-    handleFriendRequest: (requestId: string, action: 'accept' | 'reject' | 'cancel') => Promise<void>;
-    /** Removes an accepted friend from the social system */
-    removeFriend: (friendId: string) => Promise<{ success: boolean; error?: string }>;
-
-
-    /**
-     * Internal helper to sync profile (name, language) to the cloud.
-     */
-    syncProfile: () => Promise<void>;
-
-    /**
-     * Logs the user out, clearing all sensitive data and credentials.
-     */
-    logout: () => void;
-
-    /**
-     * Toggles the onboarding completion flag.
-     * @param completed True if the user has finished onboarding.
-     */
-    setHasCompletedOnboarding: (completed: boolean) => void;
-
-    /**
-     * Toggles the user's participation in the global leaderboard.
-     */
-    setOptInLeaderboard: (optedIn: boolean) => void;
-
-    /**
-     * Checks if the user toggled any habits via the iOS Widget while the app was in the background.
-     */
-    checkWidgetToggles: () => Promise<void>;
-
-    /**
-     * Checks if the user should receive a daily login reward.
-     */
-    checkDailyReward: () => void;
-
-    /**
-     * Dismisses the daily reward toast.
-     */
-    dismissDailyRewardToast: () => void;
-
-    /**
-     * Restores user session data from the login API response without triggering profile sync.
-     * Prevents the race condition where clearUserData() zeros out XP before the pull completes.
-     */
-    restoreUserSession: (data: { name?: string; username?: string | null; language?: string; total_xp?: number; level?: number; lastLoginRewardDate?: string | null; optInLeaderboard?: boolean; arena_points?: number; }) => void;
-}
+interface AppState extends AuthSlice, HabitsSlice, SettingsSlice, SocialSlice, SyncSlice {}
 
 export const useStore = create<AppState>()(
     persist(
         (set, get) => ({
-            habits: [],
-            logs: [],
-            userName: 'Pedro',
-            language: 'pt',
-            isMorningReminderActive: false,
-            morningReminderTime: '09:00',
-            hasPromptedForNotifications: false,
-            jwt: null,
-            isInitializingAuth: true,
-            lastSyncedAt: 0,
-            syncStatus: 'idle',
-            deletedHabitIds: [],
-            deletedLogIds: [],
-            hasCompletedOnboarding: false,
-            optInLeaderboard: false,
-            friends: [],
-            friendRequests: [],
-            outgoingRequests: [],
-            friendsLoading: false,
-            username: null,
-            totalXP: 0,
-            arenaPoints: 0,
-            level: 1,
-            lastLoginRewardDate: null,
-            showDailyRewardToast: false,
+            ...authInitialState,
+            ...habitsInitialState,
+            ...settingsInitialState,
+            ...socialInitialState,
+            ...syncInitialState,
 
             setUserName: (name) => {
                 set({ userName: name });
@@ -682,14 +449,17 @@ export const useStore = create<AppState>()(
                     await get().syncProfile();
 
                     // 1. PULL downstream changes (server is authoritative for XP/level)
-                    const pullRes = await fetch(`${API_URL}/sync/pull?lastSyncedAt=${lastSyncedAt}`, {
-                        headers: { 'Authorization': `Bearer ${jwt}` }
-                    });
-
-                    if (!pullRes.ok) {
-                        throw new Error(`Pull failed: ${pullRes.status}`);
-                    }
-                    const pullData = await pullRes.json();
+                    const pullData = await apiClient.get<{
+                        habits: Habit[];
+                        logs: LogEntry[];
+                        timestamp: number;
+                        user?: {
+                            total_xp?: number;
+                            level?: number;
+                            arena_points?: number;
+                            lastLoginRewardDate?: string | null;
+                        };
+                    }>(`/sync/pull?lastSyncedAt=${lastSyncedAt}`, { authToken: jwt });
 
                     // Merge habits
                     const newHabits = [...habits];
@@ -729,24 +499,13 @@ export const useStore = create<AppState>()(
                     const unsyncedLogs = newLogs.filter(l => !(l.syncedAt));
 
                     if (unsyncedHabits.length > 0 || unsyncedLogs.length > 0 || deletedHabitIds.length > 0 || deletedLogIds.length > 0) {
-                        const pushRes = await fetch(`${API_URL}/sync/push`, {
-                            method: 'POST',
-                            headers: {
-                                'Authorization': `Bearer ${jwt}`,
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({
-                                lastSyncedAt: Date.now(),
-                                habits: unsyncedHabits,
-                                logs: unsyncedLogs,
-                                deletedHabitIds,
-                                deletedLogIds
-                            })
-                        });
-
-                        if (!pushRes.ok) {
-                            throw new Error(`Push failed: ${pushRes.status}`);
-                        }
+                        await apiClient.post('/sync/push', {
+                            lastSyncedAt: Date.now(),
+                            habits: unsyncedHabits,
+                            logs: unsyncedLogs,
+                            deletedHabitIds,
+                            deletedLogIds
+                        }, { authToken: jwt });
 
                         // Mark synced
                         const finalHabits = get().habits.map(h =>
@@ -779,21 +538,10 @@ export const useStore = create<AppState>()(
                 if (!jwt) return;
 
                 try {
-                    const res = await fetch(`${API_URL}/auth/profile`, {
-                        method: 'PATCH',
-                        headers: {
-                            'Authorization': `Bearer ${jwt}`,
-                            'Content-Type': 'application/json'
-                        },
-                        // IMPORTANT: total_xp, level, and arena_points are NOT sent here.
-                        // They are authoritatively calculated by the server in /sync/pull.
-                        // Only social/profile fields that the client controls are sent.
-                        body: JSON.stringify({ name: userName, language, optInLeaderboard, username, lastLoginRewardDate })
-                    });
-                    const data = await res.json().catch(() => ({}));
-                    if (!res.ok) {
-                        throw new Error(data.error || 'Falha ao sincronizar perfil.');
-                    }
+                    // IMPORTANT: total_xp, level, and arena_points are NOT sent here.
+                    // They are authoritatively calculated by the server in /sync/pull.
+                    // Only social/profile fields that the client controls are sent.
+                    await apiClient.patch('/auth/profile', { name: userName, language, optInLeaderboard, username, lastLoginRewardDate }, { authToken: jwt });
                 } catch (e) {
                     console.error("[STORE] Failed to sync profile:", e);
                     throw e;
@@ -820,11 +568,8 @@ export const useStore = create<AppState>()(
                 if (!jwt) return;
                 set({ friendsLoading: true });
                 try {
-                    const res = await fetch(`${API_URL}/friends`, {
-                        headers: { 'Authorization': `Bearer ${jwt}` }
-                    });
-                    const data = (await res.json().catch(() => ({}))) as { friends?: Friend[] };
-                    if (res.ok) set({ friends: data.friends || [] });
+                    const data = await apiClient.get<{ friends?: Friend[] }>('/friends', { authToken: jwt });
+                    set({ friends: data.friends || [] });
                 } catch (e) {
                     console.error("[STORE] Failed to fetch friends:", e);
                 } finally {
@@ -836,19 +581,14 @@ export const useStore = create<AppState>()(
                 const { jwt } = get();
                 if (!jwt) return;
                 try {
-                    const res = await fetch(`${API_URL}/friends/requests`, {
-                        headers: { 'Authorization': `Bearer ${jwt}` }
-                    });
-                    const data = (await res.json().catch(() => ({}))) as {
+                    const data = await apiClient.get<{
                         incoming?: FriendRequest[];
                         outgoing?: FriendRequest[];
-                    };
-                    if (res.ok) {
-                        set({ 
-                            friendRequests: data.incoming || [],
-                            outgoingRequests: data.outgoing || []
-                        });
-                    }
+                    }>('/friends/requests', { authToken: jwt });
+                    set({
+                        friendRequests: data.incoming || [],
+                        outgoingRequests: data.outgoing || []
+                    });
                 } catch (e) {
                     console.error("[STORE] Failed to fetch requests:", e);
                 }
@@ -858,19 +598,10 @@ export const useStore = create<AppState>()(
                 const { jwt } = get();
                 if (!jwt) return { success: false, error: 'Not authenticated' };
                 try {
-                    const res = await fetch(`${API_URL}/friends/request`, {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${jwt}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ friendId })
-                    });
-                    const data = await res.json();
-                    if (res.ok) return { success: true };
-                    return { success: false, error: data.error };
+                    await apiClient.post('/friends/request', { friendId }, { authToken: jwt });
+                    return { success: true };
                 } catch (e) {
-                    return { success: false, error: 'Network error' };
+                    return { success: false, error: e instanceof Error ? e.message : 'Network error' };
                 }
             },
 
@@ -878,19 +609,10 @@ export const useStore = create<AppState>()(
                 const { jwt } = get();
                 if (!jwt) return;
                 try {
-                    const res = await fetch(`${API_URL}/friends/request/${requestId}`, {
-                        method: 'PATCH',
-                        headers: {
-                            'Authorization': `Bearer ${jwt}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ action })
-                    });
-                    if (res.ok) {
-                        // Refresh both lists
-                        get().fetchFriends();
-                        get().fetchFriendRequests();
-                    }
+                    await apiClient.patch(`/friends/request/${requestId}`, { action }, { authToken: jwt });
+                    // Refresh both lists
+                    get().fetchFriends();
+                    get().fetchFriendRequests();
                 } catch (e) {
                     console.error("[STORE] Failed to handle request:", e);
                 }
@@ -900,18 +622,11 @@ export const useStore = create<AppState>()(
                 const { jwt, friends } = get();
                 if (!jwt) return { success: false, error: 'Not authenticated' };
                 try {
-                    const res = await fetch(`${API_URL}/friends/${friendId}`, {
-                        method: 'DELETE',
-                        headers: { 'Authorization': `Bearer ${jwt}` }
-                    });
-                    const data = await res.json();
-                    if (res.ok) {
-                        set({ friends: friends.filter(f => f.id !== friendId) });
-                        return { success: true };
-                    }
-                    return { success: false, error: data.error };
+                    await apiClient.delete(`/friends/${friendId}`, { authToken: jwt });
+                    set({ friends: friends.filter(f => f.id !== friendId) });
+                    return { success: true };
                 } catch (e) {
-                    return { success: false, error: 'Network error' };
+                    return { success: false, error: e instanceof Error ? e.message : 'Network error' };
                 }
             },
 

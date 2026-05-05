@@ -1,11 +1,11 @@
 import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
-import { jwt } from 'hono/jwt';
+import { getAuthPayload, requireAuth } from '../middleware/auth';
 import { pushSchema } from '../schemas/sync';
 import { calculateCanonicalHabitPoints, calculateCanonicalXp } from '../services/syncXp';
-import type { Bindings } from '../types';
+import type { AuthPayload, Bindings } from '../types';
 
-const syncRoutes = new Hono<{ Bindings: Bindings }>();
+const syncRoutes = new Hono<{ Bindings: Bindings; Variables: { authPayload: AuthPayload; authUserId: string } }>();
 
 function getCurrentArenaWindow(now: number) {
     const currentDate = new Date(now);
@@ -14,15 +14,11 @@ function getCurrentArenaWindow(now: number) {
     return { startAt, endAt };
 }
 
-syncRoutes.use('*', (c, next) => {
-    const secret = c.env.JWT_SECRET || 'zenith-local-dev-secret';
-    const jwtMiddleware = jwt({ secret, alg: 'HS256' });
-    return jwtMiddleware(c, next);
-});
+syncRoutes.use('*', requireAuth());
 
 syncRoutes.post('/push', zValidator('json', pushSchema), async (c) => {
     const payload = c.req.valid('json');
-    const user = c.get('jwtPayload') as { id: string; name: string; email: string; exp: number };
+    const user = getAuthPayload(c);
     const db = c.env.DB;
 
     const now = Date.now();
@@ -108,7 +104,7 @@ syncRoutes.post('/push', zValidator('json', pushSchema), async (c) => {
 });
 
 syncRoutes.get('/pull', async (c) => {
-    const user = c.get('jwtPayload') as { id: string; name: string; email: string; exp: number };
+    const user = getAuthPayload(c);
     const lastSyncedAt = parseInt(c.req.query('lastSyncedAt') || '0', 10);
     const db = c.env.DB;
 

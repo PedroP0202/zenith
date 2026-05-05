@@ -109,6 +109,7 @@ export default function NewHabit() {
                             deviceHaptics.lightImpact();
                             router.back();
                         }}
+                        aria-label="Voltar"
                         className="mb-8 flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white/80 transition-colors hover:bg-white/[0.08] active:scale-95"
                         initial={{ opacity: 0, x: -12 }}
                         animate={{ opacity: 1, x: 0 }}

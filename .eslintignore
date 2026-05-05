@@ -1,0 +1,7 @@
+.next
+node_modules
+api/node_modules
+marketing-site/node_modules
+ios
+public
+build_log.txt

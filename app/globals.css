@@ -17,10 +17,7 @@
 
 @layer components {
   .app-page {
-    background:
-      radial-gradient(circle at top center, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.03) 16%, transparent 42%),
-      radial-gradient(circle at 82% 14%, rgba(255, 255, 255, 0.08) 0%, transparent 20%),
-      linear-gradient(180deg, #070707 0%, #020202 100%);
+    background: linear-gradient(180deg, #080808 0%, #030303 100%);
   }
 
   .app-shell {
@@ -29,24 +26,24 @@
   }
 
   .app-card {
-    background: linear-gradient(180deg, rgba(22, 22, 24, 0.9) 0%, rgba(8, 8, 10, 0.96) 100%);
+    background: rgba(18, 18, 20, 0.82);
     border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.35);
-    backdrop-filter: blur(24px) saturate(160%);
-    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.22);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
   }
 
   .app-card-soft {
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.045) 0%, rgba(255, 255, 255, 0.02) 100%);
+    background: rgba(255, 255, 255, 0.032);
     border: 1px solid rgba(255, 255, 255, 0.06);
-    backdrop-filter: blur(18px) saturate(150%);
-    -webkit-backdrop-filter: blur(18px) saturate(150%);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
   }
 
   .app-kicker {
     font-size: 0.7rem;
     font-weight: 700;
-    letter-spacing: 0.24em;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
     color: rgba(255, 255, 255, 0.42);
   }

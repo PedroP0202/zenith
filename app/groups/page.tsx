@@ -3,11 +3,13 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, Loader2, Plus, Users, Check, Layers3, Sparkles, CircleAlert } from "lucide-react";
+import { ChevronLeft, Loader2, Plus, Users, Check, Layers3, Sparkles, CircleAlert, RefreshCw } from "lucide-react";
 import { motion } from "framer-motion";
 import { useStore } from "@/store/useStore";
 import { useTranslation } from "@/hooks/useTranslation";
 import { API_URL } from "@/utils/constants";
+import Skeleton from "@/components/Skeleton";
+import EmptyState from "@/components/ui/EmptyState";
 
 function getErrorMessage(error: unknown, fallback: string): string {
     if (error instanceof Error && error.message) return error.message;
@@ -28,6 +30,31 @@ const GROUP_NAME_MIN = 2;
 const GROUP_NAME_MAX = 40;
 const GROUP_MEMBERS_MAX = 20;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function GroupsSkeleton() {
+    return (
+        <div className="space-y-4">
+            <div className="grid grid-cols-3 gap-2.5">
+                {Array.from({ length: 3 }).map((_, index) => (
+                    <div key={index} className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+                        <Skeleton className="h-3 w-14 opacity-40" />
+                        <Skeleton className="mt-3 h-7 w-10 opacity-50" />
+                    </div>
+                ))}
+            </div>
+            {Array.from({ length: 3 }).map((_, index) => (
+                <div key={index} className="rounded-[2rem] border border-white/10 bg-white/[0.03] p-5">
+                    <Skeleton className="h-3 w-24 opacity-35" />
+                    <Skeleton className="mt-4 h-7 w-40 opacity-50" />
+                    <div className="mt-5 flex gap-3">
+                        <Skeleton className="h-3 w-20 opacity-25" />
+                        <Skeleton className="h-3 w-20 opacity-25" />
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+}
 
 export default function GroupsPage() {
     const router = useRouter();
@@ -114,6 +141,19 @@ export default function GroupsPage() {
         };
     }, [groups]);
 
+    const retryLabel = language === "pt" ? "Tentar novamente" : "Try again";
+    const networkErrorTitle = language === "pt" ? "Não conseguimos carregar os grupos" : "We could not load groups";
+    const groupsEmptyTitle = language === "pt" ? "Cria o primeiro grupo" : "Create your first group";
+    const groupsEmptyDescription =
+        language === "pt"
+            ? "Junta amigos em torno de um objetivo partilhado e acompanha hábitos do grupo num espaço próprio."
+            : "Bring friends around a shared goal and track group habits in one dedicated space.";
+    const findFriendsLabel = language === "pt" ? "Procurar amigos" : "Find friends";
+    const noFriendsDescription =
+        language === "pt"
+            ? "Adiciona amigos primeiro para poderes convidá-los para este grupo."
+            : "Add friends first so you can invite them into this group.";
+
     const handleCreateGroup = async () => {
         if (!jwt) {
             setError(language === "pt" ? "Sessão expirada. Faz login novamente." : "Session expired. Please sign in again.");
@@ -190,7 +230,15 @@ export default function GroupsPage() {
         }
     };
 
-    if (!mounted) return null;
+    if (!mounted) {
+        return (
+            <main className="min-h-[100dvh] bg-black px-5 pb-24 pt-6 text-white sm:px-6">
+                <div className="mx-auto w-full max-w-md pt-20">
+                    <GroupsSkeleton />
+                </div>
+            </main>
+        );
+    }
 
     return (
         <main className="min-h-[100dvh] bg-black px-5 pb-24 pt-6 text-white sm:px-6">
@@ -269,9 +317,21 @@ export default function GroupsPage() {
                             </div>
                             <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
                                 {friends.length === 0 ? (
-                                    <div className="rounded-2xl border border-white/5 bg-white/[0.02] px-4 py-5 text-sm text-white/40">
-                                        {t.social.emptyFriends}
-                                    </div>
+                                    <EmptyState
+                                        icon={<Users size={28} />}
+                                        title={t.social.emptyFriends}
+                                        description={noFriendsDescription}
+                                        className="rounded-2xl px-4 py-6"
+                                        action={
+                                            <Link
+                                                href="/friends"
+                                                className="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.16em] text-black transition-transform active:scale-95"
+                                            >
+                                                <Users size={14} />
+                                                {findFriendsLabel}
+                                            </Link>
+                                        }
+                                    />
                                 ) : (
                                     friends.map((friend) => {
                                         const selected = selectedFriendIds.includes(friend.id);
@@ -329,20 +389,46 @@ export default function GroupsPage() {
                     </motion.section>
                 )}
 
-                {error && <div className="mb-4 rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">{error}</div>}
+                {error && (
+                    <div className="mb-4 rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-100">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                                <p className="font-bold">{networkErrorTitle}</p>
+                                <p className="mt-1 text-xs text-red-100/70">{error}</p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={loadGroups}
+                                disabled={groupsLoading}
+                                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-red-200/20 bg-red-50/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-red-50 transition-colors hover:bg-red-50/15 disabled:opacity-50"
+                            >
+                                <RefreshCw size={13} className={groupsLoading ? "animate-spin" : ""} />
+                                {retryLabel}
+                            </button>
+                        </div>
+                    </div>
+                )}
                 {success && <div className="mb-4 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">{success}</div>}
 
                 <section className="space-y-4">
                     {groupsLoading ? (
-                        <div className="flex justify-center py-12">
-                            <Loader2 className="animate-spin text-white/30" />
-                        </div>
+                        <GroupsSkeleton />
                     ) : groups.length === 0 ? (
-                        <div className="rounded-[2rem] border border-white/10 bg-white/[0.03] px-6 py-10 text-center">
-                            <Users size={32} className="mx-auto mb-4 text-white/20" />
-                            <p className="text-sm font-bold uppercase tracking-[0.18em] text-white/40">{t.social.noGroups}</p>
-                            <p className="mt-2 text-xs text-white/35">{t.social.groupsDesc}</p>
-                        </div>
+                        <EmptyState
+                            icon={<Layers3 size={34} />}
+                            title={groupsEmptyTitle}
+                            description={groupsEmptyDescription}
+                            action={
+                                <button
+                                    type="button"
+                                    onClick={() => setShowCreate(true)}
+                                    className="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-3 text-[10px] font-black uppercase tracking-[0.18em] text-black transition-transform active:scale-95"
+                                >
+                                    <Plus size={15} />
+                                    {t.social.createGroup}
+                                </button>
+                            }
+                        />
                     ) : (
                         groups.map((group) => (
                             <Link

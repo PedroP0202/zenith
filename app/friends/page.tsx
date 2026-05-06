@@ -1,7 +1,7 @@
 "use client";
 
 import { useStore } from "@/store/useStore";
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
     ChevronLeft,
@@ -15,6 +15,7 @@ import {
     Clock3,
     ArrowUpRight,
     Sparkles,
+    RefreshCw,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -22,6 +23,8 @@ import { API_URL } from "@/utils/constants";
 import Link from "next/link";
 import UserOrb from "@/components/UserOrb";
 import { FriendRequest, UserSearchResult } from "@/types";
+import Skeleton from "@/components/Skeleton";
+import EmptyState from "@/components/ui/EmptyState";
 
 type Tab = "friends" | "requests";
 
@@ -29,6 +32,32 @@ function getErrorMessage(error: unknown, fallback: string): string {
     if (error instanceof Error && error.message) return error.message;
     if (typeof error === "string" && error) return error;
     return fallback;
+}
+
+function FriendsSkeleton() {
+    return (
+        <div className="space-y-5">
+            <div className="grid grid-cols-3 gap-2.5">
+                {Array.from({ length: 3 }).map((_, index) => (
+                    <div key={index} className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+                        <Skeleton className="h-3 w-14 opacity-40" />
+                        <Skeleton className="mt-3 h-7 w-9 opacity-50" />
+                    </div>
+                ))}
+            </div>
+            <Skeleton className="h-14 w-full rounded-2xl opacity-35" />
+            <Skeleton className="h-24 w-full rounded-[2rem] opacity-30" />
+            {Array.from({ length: 3 }).map((_, index) => (
+                <div key={index} className="flex items-center gap-4 rounded-[2rem] border border-white/10 bg-white/[0.03] p-4">
+                    <Skeleton variant="circle" className="h-12 w-12 opacity-40" />
+                    <div className="flex-1">
+                        <Skeleton className="h-4 w-32 opacity-50" />
+                        <Skeleton className="mt-2 h-3 w-20 opacity-30" />
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
 }
 
 export default function FriendsPage() {
@@ -44,6 +73,7 @@ export default function FriendsPage() {
     } = useStore();
     const { t, language } = useTranslation();
     const router = useRouter();
+    const searchInputRef = useRef<HTMLInputElement | null>(null);
     const [mounted, setMounted] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const [searchResults, setSearchResults] = useState<UserSearchResult[]>([]);
@@ -72,6 +102,18 @@ export default function FriendsPage() {
     const emptyOutgoingLabel = language === "pt" ? "Nenhum pedido enviado" : "No outgoing requests";
     const profileLabel = language === "pt" ? "Perfil" : "Profile";
     const actionsLabel = language === "pt" ? "Ações rápidas" : "Quick actions";
+    const retryLabel = language === "pt" ? "Tentar novamente" : "Try again";
+    const searchFriendsLabel = language === "pt" ? "Procurar amigos" : "Find friends";
+    const addFriendLabel = language === "pt" ? "Adicionar amigo" : "Add friend";
+    const emptyFriendsTitle = language === "pt" ? "Constrói a tua rede" : "Build your network";
+    const emptyFriendsDescription =
+        language === "pt"
+            ? "Procura por username ou nome para adicionares pessoas que tornam a jornada mais visível e acompanhada."
+            : "Search by username or name to add people who make the journey more visible and accountable.";
+    const emptyRequestsDescription =
+        language === "pt"
+            ? "Quando alguém te enviar um pedido, aparece aqui com ações rápidas para aceitar ou recusar."
+            : "When someone sends you a request, it will appear here with quick accept or decline actions.";
 
     const performSearch = useCallback(async () => {
         if (!jwt || searchQuery.length < 2) {
@@ -96,6 +138,11 @@ export default function FriendsPage() {
             setSearching(false);
         }
     }, [jwt, searchQuery, t.common.error]);
+
+    const focusSearch = () => {
+        setTab("friends");
+        searchInputRef.current?.focus();
+    };
 
     useEffect(() => {
         const delayDebounceFn = setTimeout(() => {
@@ -148,7 +195,13 @@ export default function FriendsPage() {
         [friends.length, t.social.friends, t.social.requests, totalPendingRequests]
     );
 
-    if (!mounted) return null;
+    if (!mounted) {
+        return (
+            <main className="mx-auto min-h-[100dvh] max-w-md overflow-x-hidden bg-black p-5 pb-24 pt-20 font-sans text-white sm:px-6">
+                <FriendsSkeleton />
+            </main>
+        );
+    }
 
     return (
         <main className="mx-auto min-h-[100dvh] max-w-md overflow-x-hidden bg-black p-5 pb-24 pt-6 font-sans text-white sm:px-6">
@@ -186,6 +239,7 @@ export default function FriendsPage() {
                     <Search size={18} />
                 </div>
                 <input
+                    ref={searchInputRef}
                     type="text"
                     placeholder={searchPlaceholder}
                     value={searchQuery}
@@ -206,7 +260,18 @@ export default function FriendsPage() {
                                     <Loader2 className="animate-spin text-white/25" />
                                 </div>
                             ) : searchError ? (
-                                <div className="p-4 text-xs text-red-200">{searchError}</div>
+                                <div className="p-4">
+                                    <p className="text-xs text-red-200">{searchError}</p>
+                                    <button
+                                        type="button"
+                                        onClick={performSearch}
+                                        disabled={searching}
+                                        className="mt-3 inline-flex items-center gap-2 rounded-xl border border-red-200/20 bg-red-50/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-red-50 disabled:opacity-50"
+                                    >
+                                        <RefreshCw size={12} className={searching ? "animate-spin" : ""} />
+                                        {retryLabel}
+                                    </button>
+                                </div>
                             ) : searchResults.length === 0 ? (
                                 <div className="p-4 text-xs text-white/45">
                                     {language === "pt" ? "Nenhum utilizador encontrado." : "No users found."}
@@ -221,6 +286,7 @@ export default function FriendsPage() {
                                             </div>
                                             <button
                                                 onClick={() => onSendRequest(user.id)}
+                                                aria-label={`${addFriendLabel} ${user.name}`}
                                                 className="rounded-xl bg-[var(--zenith-active)] p-2 text-black transition-all hover:scale-105 active:scale-95"
                                             >
                                                 <UserPlus size={16} />
@@ -298,10 +364,21 @@ export default function FriendsPage() {
             <div className="space-y-4">
                 {tab === "friends" &&
                     (friends.length === 0 ? (
-                        <div className="flex flex-col items-center gap-4 py-20 text-center opacity-30">
-                            <Users size={46} />
-                            <p className="text-xs font-bold uppercase tracking-[0.2em]">{t.social.emptyFriends}</p>
-                        </div>
+                        <EmptyState
+                            icon={<Users size={42} />}
+                            title={emptyFriendsTitle}
+                            description={emptyFriendsDescription}
+                            action={
+                                <button
+                                    type="button"
+                                    onClick={focusSearch}
+                                    className="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-3 text-[10px] font-black uppercase tracking-[0.18em] text-black transition-transform active:scale-95"
+                                >
+                                    <Search size={15} />
+                                    {searchFriendsLabel}
+                                </button>
+                            }
+                        />
                     ) : (
                         friends.map((friend, index) => (
                             <motion.div
@@ -336,10 +413,12 @@ export default function FriendsPage() {
                         <div className="space-y-4">
                             <h2 className="px-2 text-[10px] font-black uppercase tracking-[0.2em] text-white/30">{incomingLabel}</h2>
                             {incomingRequests.length === 0 ? (
-                                <div className="flex flex-col items-center gap-3 py-10 text-center opacity-30">
-                                    <Clock3 size={30} />
-                                    <p className="text-[10px] font-bold uppercase tracking-[0.18em]">{t.social.emptyRequests}</p>
-                                </div>
+                                <EmptyState
+                                    icon={<Clock3 size={30} />}
+                                    title={t.social.emptyRequests}
+                                    description={emptyRequestsDescription}
+                                    className="px-5 py-9"
+                                />
                             ) : (
                                 incomingRequests.map((req, i) => (
                                     <motion.div
@@ -360,12 +439,14 @@ export default function FriendsPage() {
                                         <div className="flex gap-2">
                                             <button
                                                 onClick={() => handleRequest(req.id, "reject")}
+                                                aria-label={`${t.social.decline} ${req.name}`}
                                                 className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/8 text-white/35 transition-colors hover:bg-red-500/20 hover:text-red-400"
                                             >
                                                 <X size={18} />
                                             </button>
                                             <button
                                                 onClick={() => handleRequest(req.id, "accept")}
+                                                aria-label={`${t.social.accept} ${req.name}`}
                                                 className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--zenith-active)] text-black transition-transform active:scale-95"
                                             >
                                                 <Check size={18} />
@@ -379,10 +460,22 @@ export default function FriendsPage() {
                         <div className="space-y-4">
                             <h2 className="px-2 text-[10px] font-black uppercase tracking-[0.2em] text-white/30">{outgoingLabel}</h2>
                             {sentRequests.length === 0 ? (
-                                <div className="flex flex-col items-center gap-3 py-10 text-center opacity-30">
-                                    <Sparkles size={30} />
-                                    <p className="text-[10px] font-bold uppercase tracking-[0.18em]">{emptyOutgoingLabel}</p>
-                                </div>
+                                <EmptyState
+                                    icon={<Sparkles size={30} />}
+                                    title={emptyOutgoingLabel}
+                                    description={language === "pt" ? "Envia um pedido para começares a acompanhar alguém." : "Send a request to start following someone's progress."}
+                                    className="px-5 py-9"
+                                    action={
+                                        <button
+                                            type="button"
+                                            onClick={focusSearch}
+                                            className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.16em] text-white/75 transition-colors hover:bg-white/[0.09]"
+                                        >
+                                            <Search size={14} />
+                                            {searchFriendsLabel}
+                                        </button>
+                                    }
+                                />
                             ) : (
                                 sentRequests.map((req, i) => (
                                     <motion.div

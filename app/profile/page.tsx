@@ -16,7 +16,7 @@ import {
     Loader2,
     Lock,
     Mail,
-    Settings as SettingsIcon,
+    RefreshCw,
     ShieldOff,
     Target,
     Trophy,
@@ -26,6 +26,8 @@ import {
 import { AnimatePresence, motion } from "framer-motion";
 
 import ConfirmationModal from "@/components/ConfirmationModal";
+import EmptyState from "@/components/ui/EmptyState";
+import Skeleton from "@/components/Skeleton";
 import TrophyWall from "@/components/TrophyWall";
 import type { ArenaReward, BlockedUser } from "@/types";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -81,7 +83,7 @@ function getToneClasses(tone: Tone) {
     return {
         icon: "text-white/36",
         value: "text-white",
-        surface: "border-white/8 bg-white/[0.03]",
+        surface: "border-white/8 bg-white/[0.025]",
     };
 }
 
@@ -100,7 +102,7 @@ function SectionHeading({
         <div className="mb-4 flex items-end justify-between gap-4">
             <div>
                 <p className="app-kicker">{eyebrow}</p>
-                <h2 className="mt-2 text-2xl font-semibold tracking-[-0.05em] text-white">{title}</h2>
+                <h2 className="mt-2 text-xl font-semibold text-white">{title}</h2>
                 {description ? <p className="mt-2 max-w-[34rem] text-sm leading-relaxed text-white/45">{description}</p> : null}
             </div>
             {action}
@@ -130,10 +132,10 @@ function MetricCard({
             initial={{ opacity: 0, scale: 0.97, y: 8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 0.35, delay, type: "spring" }}
-            className={`rounded-[26px] border p-4 ${toneClasses.surface}`}
+            className={`rounded-2xl border p-4 ${toneClasses.surface}`}
         >
             <Icon size={16} className={toneClasses.icon} strokeWidth={1.7} />
-            <p className={`mt-4 text-2xl font-semibold tracking-[-0.06em] ${toneClasses.value}`}>{value}</p>
+            <p className={`mt-4 text-2xl font-semibold ${toneClasses.value}`}>{value}</p>
             <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.22em] text-white/35">{label}</p>
             {detail ? <p className="mt-3 text-[11px] leading-relaxed text-white/38">{detail}</p> : null}
         </motion.div>
@@ -154,13 +156,46 @@ function StatusCard({
     const toneClasses = getToneClasses(tone);
 
     return (
-        <div className={`rounded-[24px] border p-4 ${toneClasses.surface}`}>
+        <div className={`rounded-2xl border p-4 ${toneClasses.surface}`}>
             <div className="flex items-center gap-2">
                 <Icon size={15} className={toneClasses.icon} strokeWidth={1.7} />
                 <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-white/35">{label}</span>
             </div>
             <p className={`mt-3 text-sm font-semibold ${toneClasses.value}`}>{detail}</p>
         </div>
+    );
+}
+
+function ProfileSkeleton() {
+    return (
+        <main className="app-page relative min-h-[100dvh] overflow-x-hidden text-white">
+            <div className="app-main-spacing relative z-10">
+                <div className="app-shell space-y-5">
+                    <div className="flex items-center gap-3">
+                        <Skeleton className="h-10 w-10 rounded-xl opacity-35" />
+                        <div className="flex-1">
+                            <Skeleton className="h-3 w-24 opacity-35" />
+                            <Skeleton className="mt-3 h-7 w-32 opacity-50" />
+                        </div>
+                    </div>
+                    <div className="app-card-soft rounded-[28px] p-5">
+                        <Skeleton variant="circle" className="h-16 w-16 opacity-35" />
+                        <Skeleton className="mt-5 h-7 w-40 opacity-50" />
+                        <Skeleton className="mt-3 h-4 w-32 opacity-30" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                        {Array.from({ length: 4 }).map((_, index) => (
+                            <div key={index} className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
+                                <Skeleton className="h-4 w-4 opacity-40" />
+                                <Skeleton className="mt-4 h-8 w-12 opacity-50" />
+                                <Skeleton className="mt-2 h-3 w-20 opacity-30" />
+                            </div>
+                        ))}
+                    </div>
+                    <Skeleton className="h-48 w-full rounded-[32px] opacity-30" />
+                </div>
+            </div>
+        </main>
     );
 }
 
@@ -212,7 +247,9 @@ export default function ProfilePage() {
     const [showArenaOptOutConfirm, setShowArenaOptOutConfirm] = useState(false);
     const [rewards, setRewards] = useState<ArenaReward[]>([]);
     const [isLoadingRewards, setIsLoadingRewards] = useState(false);
+    const [rewardsError, setRewardsError] = useState<string | null>(null);
     const [blockedUsers, setBlockedUsers] = useState<BlockedUser[]>([]);
+    const [blockedUsersError, setBlockedUsersError] = useState<string | null>(null);
     const [unblockingId, setUnblockingId] = useState<string | null>(null);
     const [isCheckingUsername, setIsCheckingUsername] = useState(false);
     const [isUsernameAvailable, setIsUsernameAvailable] = useState<boolean | null>(null);
@@ -222,18 +259,18 @@ export default function ProfilePage() {
             ? {
                   title: "Perfil",
                   subtitle: "Identidade, progressão e controlo da conta num espaço mais claro e intencional.",
-                  heroEyebrow: "Zenith ID",
-                  heroTitle: "Centro pessoal",
-                  heroDescription: "Tudo o que define a tua presença na Zenith: nome, progressão, cloud, Arena e preferências centrais.",
+                  heroEyebrow: "Conta",
+                  heroTitle: "Perfil",
+                  heroDescription: "Nome, progresso e presença social.",
                   performanceEyebrow: "Snapshot",
                   performanceTitle: "Visão geral",
                   performanceDescription: "Os sinais mais importantes da tua disciplina, sem ruído visual.",
                   arenaEyebrow: "Presença",
                   arenaTitle: "Arena e conquistas",
                   arenaDescription: "Posição competitiva, mural de troféus e histórico de condecorações num só fluxo.",
-                  settingsEyebrow: "Control Center",
-                  settingsTitle: "Conta e preferências",
-                  settingsDescription: "Idioma, cloud, segurança, notificações, Arena e privacidade organizados por prioridade.",
+                  settingsEyebrow: "Definições",
+                  settingsTitle: "Preferências",
+                  settingsDescription: "Conta, sync, notificações e privacidade num só lugar.",
                   openControls: "Abrir",
                   closeControls: "Fechar",
                   localMode: "Modo local",
@@ -269,11 +306,17 @@ export default function ProfilePage() {
                   supportDescription: "Questões, ideias e feedback direto para a equipa.",
                   blockedTitle: "Utilizadores bloqueados",
                   blockedEmpty: "Nenhum utilizador bloqueado.",
+                  blockedEmptyDescription: "Se bloqueares alguém, vais poder rever e desfazer essa decisão aqui.",
+                  blockedLoadError: "Não foi possível carregar utilizadores bloqueados.",
                   unblock: "Desbloquear",
+                  retry: "Tentar novamente",
                   awardsSingular: "Condecoração",
                   awardsPlural: "Condecorações",
                   seasonAwardsTitle: "Histórico de Arena",
                   seasonAwardsDescription: "Registo das tuas condecorações competitivas ao longo das épocas.",
+                  seasonAwardsEmptyTitle: "Sem condecorações ainda",
+                  seasonAwardsEmptyDescription: "Quando fechares uma época da Arena com prémios, o histórico aparece aqui.",
+                  seasonAwardsLoadError: "Não foi possível carregar o histórico da Arena.",
                   cloudSummaryDescription: "Estado da ligação e sincronização da tua conta.",
                   notificationsSummaryDescription: "Mantém o sistema de lembretes útil sem criar fricção.",
                   arenaSummaryDescription: "Controla a tua participação competitiva e visibilidade.",
@@ -282,18 +325,18 @@ export default function ProfilePage() {
             : {
                   title: "Profile",
                   subtitle: "Identity, progression, and account controls in a cleaner, more intentional space.",
-                  heroEyebrow: "Zenith ID",
-                  heroTitle: "Personal hub",
-                  heroDescription: "Everything that defines your presence in Zenith: name, progression, cloud, Arena, and core preferences.",
+                  heroEyebrow: "Account",
+                  heroTitle: "Profile",
+                  heroDescription: "Name, progress, and social presence.",
                   performanceEyebrow: "Snapshot",
                   performanceTitle: "Overview",
                   performanceDescription: "The most important signals of your discipline, without visual noise.",
                   arenaEyebrow: "Presence",
                   arenaTitle: "Arena and trophies",
                   arenaDescription: "Competitive position, trophy wall, and season rewards in one flow.",
-                  settingsEyebrow: "Control Center",
-                  settingsTitle: "Account and preferences",
-                  settingsDescription: "Language, cloud, security, notifications, Arena, and privacy organized by priority.",
+                  settingsEyebrow: "Settings",
+                  settingsTitle: "Preferences",
+                  settingsDescription: "Account, sync, notifications, and privacy in one place.",
                   openControls: "Open",
                   closeControls: "Close",
                   localMode: "Local mode",
@@ -329,11 +372,17 @@ export default function ProfilePage() {
                   supportDescription: "Questions, ideas, and direct feedback for the team.",
                   blockedTitle: "Blocked users",
                   blockedEmpty: "No blocked users.",
+                  blockedEmptyDescription: "If you block someone, you can review and undo that decision here.",
+                  blockedLoadError: "We could not load blocked users.",
                   unblock: "Unblock",
+                  retry: "Try again",
                   awardsSingular: "Award",
                   awardsPlural: "Awards",
                   seasonAwardsTitle: "Arena history",
                   seasonAwardsDescription: "A record of your competitive rewards across seasons.",
+                  seasonAwardsEmptyTitle: "No awards yet",
+                  seasonAwardsEmptyDescription: "When you finish an Arena season with rewards, the history will appear here.",
+                  seasonAwardsLoadError: "We could not load Arena history.",
                   cloudSummaryDescription: "Connection status and sync health for your account.",
                   notificationsSummaryDescription: "Keep reminders useful without turning them into friction.",
                   arenaSummaryDescription: "Control competitive participation and visibility.",
@@ -343,16 +392,19 @@ export default function ProfilePage() {
     const fetchBlockedUsers = useCallback(async () => {
         if (!jwt) return;
 
+        setBlockedUsersError(null);
         try {
             const res = await fetch(`${API_URL}/friends/blocked`, {
                 headers: { Authorization: `Bearer ${jwt}` },
             });
-            const data = (await res.json().catch(() => ({}))) as { blocked?: BlockedUser[] };
-            if (res.ok) setBlockedUsers(data.blocked || []);
+            const data = (await res.json().catch(() => ({}))) as { blocked?: BlockedUser[]; error?: string };
+            if (!res.ok) throw new Error(data.error || copy.blockedLoadError);
+            setBlockedUsers(data.blocked || []);
         } catch (error) {
             console.error("Failed to fetch blocked users:", error);
+            setBlockedUsersError(error instanceof Error && error.message ? error.message : copy.blockedLoadError);
         }
-    }, [jwt]);
+    }, [copy.blockedLoadError, jwt]);
 
     useEffect(() => {
         setMounted(true);
@@ -420,22 +472,24 @@ export default function ProfilePage() {
     }, [username, usernameInput]);
 
     const fetchRewards = useCallback(async () => {
+        if (!jwt) return;
         setIsLoadingRewards(true);
+        setRewardsError(null);
         try {
             const res = await fetch(`${API_URL}/users/me/rewards`, {
                 headers: { Authorization: `Bearer ${jwt}` },
             });
 
-            if (res.ok) {
-                const data = (await res.json().catch(() => [])) as ArenaReward[];
-                setRewards(Array.isArray(data) ? data : []);
-            }
+            const data = (await res.json().catch(() => [])) as ArenaReward[] | { error?: string };
+            if (!res.ok) throw new Error(!Array.isArray(data) && data.error ? data.error : copy.seasonAwardsLoadError);
+            setRewards(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error("Error fetching rewards:", error);
+            setRewardsError(error instanceof Error && error.message ? error.message : copy.seasonAwardsLoadError);
         } finally {
             setIsLoadingRewards(false);
         }
-    }, [jwt]);
+    }, [copy.seasonAwardsLoadError, jwt]);
 
     useEffect(() => {
         if (jwt) {
@@ -733,136 +787,100 @@ export default function ProfilePage() {
         }
     };
 
-    if (!mounted) return null;
+    if (!mounted) return <ProfileSkeleton />;
 
     return (
         <main className="app-page relative min-h-[100dvh] overflow-x-hidden text-white">
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-white/[0.045] to-transparent" />
-            <div className="pointer-events-none absolute left-1/2 top-20 h-[28rem] w-[28rem] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(16,185,129,0.16)_0%,rgba(16,185,129,0.05)_34%,transparent_68%)] blur-3xl" />
-
             <div className="app-main-spacing relative z-10">
                 <div className="app-shell">
                     <motion.header
-                        className="mb-6 flex items-center gap-3"
+                        className="mb-5 flex items-center gap-3"
                         initial={{ opacity: 0, y: -12 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.45, type: "spring", bounce: 0.18 }}
                     >
                         <button
                             onClick={() => router.push("/")}
-                            className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-white/58 transition-colors hover:text-white"
+                            className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.035] text-white/58 transition-colors hover:text-white"
                             aria-label="Back to Home"
                         >
-                            <ChevronLeft className="h-6 w-6" />
+                            <ChevronLeft className="h-5 w-5" />
                         </button>
 
                         <div className="min-w-0 flex-1">
                             <p className="app-kicker">{copy.heroEyebrow}</p>
-                            <h1 className="mt-2 text-[clamp(2rem,7vw,3rem)] font-semibold tracking-[-0.07em] text-white">{copy.title}</h1>
+                            <h1 className="mt-1 text-2xl font-semibold text-white">{copy.title}</h1>
                         </div>
                     </motion.header>
 
-                    <div className="space-y-4 pb-32">
+                    <div className="space-y-6 pb-32">
                         <motion.section
                             initial={{ opacity: 0, y: 16 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.45, delay: 0.04, type: "spring", bounce: 0.16 }}
-                            className="app-card overflow-hidden rounded-[36px] p-6"
+                            className="app-card-soft overflow-hidden rounded-[28px] p-5"
                         >
-                            <SectionHeading
-                                eyebrow={copy.heroEyebrow}
-                                title={copy.heroTitle}
-                                description={copy.heroDescription}
-                            />
-
-                            <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
-                                <div className="relative shrink-0">
-                                    <div className="absolute inset-0 rounded-[34px] bg-[var(--zenith-active)]/15 blur-2xl" />
-                                    <div className="relative flex h-24 w-24 items-center justify-center rounded-[30px] border border-white/12 bg-gradient-to-br from-white/12 to-white/[0.03] shadow-[0_24px_80px_rgba(0,0,0,0.35)]">
-                                        <span className="text-[2.1rem] font-semibold tracking-[-0.08em] text-white">{profileInitial}</span>
+                            <div className="flex items-start gap-4">
+                                <div className="shrink-0">
+                                    <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.045]">
+                                        <span className="text-2xl font-semibold text-white">{profileInitial}</span>
                                     </div>
                                 </div>
 
                                 <div className="min-w-0 flex-1">
-                                    <div className="flex flex-wrap items-center gap-2">
-                                        <h2 className="truncate text-[clamp(1.8rem,8vw,3rem)] font-semibold leading-none tracking-[-0.08em] text-white">
-                                            {displayName}
-                                        </h2>
-                                        <span className="rounded-full border border-white/10 bg-white/[0.045] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.22em] text-white/62">
-                                            LV {level}
-                                        </span>
-                                    </div>
+                                    <h2 className="truncate text-2xl font-semibold text-white">{displayName}</h2>
+                                    <p className="mt-1 font-mono text-sm text-white/42">@{username || copy.noUsername}</p>
 
                                     <div className="mt-3 flex flex-wrap items-center gap-2">
-                                        <span className="rounded-full border border-[color:rgba(var(--zenith-active-rgb),0.2)] bg-[color:rgba(var(--zenith-active-rgb),0.12)] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.22em] text-[var(--zenith-active)]">
+                                        <span className="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-white/70">
+                                            LV {level}
+                                        </span>
+                                        <span className="rounded-full border border-[color:rgba(var(--zenith-active-rgb),0.16)] bg-[color:rgba(var(--zenith-active-rgb),0.08)] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--zenith-active)]">
                                             {currentRank.name}
                                         </span>
-                                        <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.22em] text-white/48">
+                                        <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-white/45">
                                             {jwt ? copy.connected : copy.guest}
                                         </span>
                                     </div>
-
-                                    <p className="mt-4 max-w-[32rem] text-sm leading-relaxed text-white/48">{currentRankDescription}</p>
-                                    <p className="mt-2 font-mono text-sm text-white/34">@{username || copy.noUsername}</p>
                                 </div>
                             </div>
 
-                            <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                            <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-3">
                                 <StatusCard icon={Cloud} label={t.settings.cloudSync} detail={cloudStatus.detail} tone={cloudStatus.tone} />
                                 <StatusCard icon={Bell} label={t.settings.notifications.title} detail={reminderStatus.detail} tone={reminderStatus.tone} />
                                 <StatusCard icon={Trophy} label={t.arena.title} detail={arenaStatus.detail} tone={arenaStatus.tone} />
                             </div>
 
-                            <div className="mt-6 rounded-[28px] border border-white/10 bg-black/20 p-5">
-                                <div className="flex items-end justify-between gap-4">
+                            <div className="mt-5 border-t border-white/8 pt-5">
+                                <div className="flex items-start justify-between gap-4">
                                     <div>
-                                        <p className="app-kicker">{t.settings.cloudSync}</p>
-                                        <p className="mt-3 text-[clamp(3rem,15vw,4.75rem)] font-semibold leading-none tracking-[-0.1em] text-white">
-                                            {level}
-                                        </p>
+                                        <p className="app-kicker">XP</p>
+                                        <p className="mt-2 text-sm leading-relaxed text-white/45">{currentRankDescription}</p>
                                     </div>
 
                                     <div className="text-right">
-                                        <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-white/35">{t.settings.pending}</p>
-                                        <p className="mt-2 text-lg font-semibold tracking-[-0.05em] text-white/82">
-                                            {Math.round(levelProgress * 100)}%
-                                        </p>
+                                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/35">LV {level}</p>
+                                        <p className="mt-1 text-sm font-semibold text-white/82">{Math.round(levelProgress * 100)}%</p>
                                     </div>
                                 </div>
 
-                                <div className="mt-5 flex items-end justify-between gap-3">
-                                    <div>
-                                        <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-white/35">XP</p>
-                                        <p className="mt-2 text-lg font-semibold tracking-[-0.05em] text-white">
-                                            {xpInLevel}
-                                            <span className="text-white/25"> / {xpRequiredForNext}</span>
-                                        </p>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-white/35">Total</p>
-                                        <p className="mt-2 text-lg font-semibold tracking-[-0.05em] text-white">{totalXP} ZP</p>
-                                    </div>
-                                </div>
-
-                                <div className="mt-5 h-3 overflow-hidden rounded-full border border-white/10 bg-white/[0.05] p-[2px]">
+                                <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/[0.08]">
                                     <motion.div
                                         initial={{ width: 0 }}
                                         animate={{ width: `${Math.max(levelProgress * 100, 4)}%` }}
                                         transition={{ duration: 0.9, ease: "easeOut" }}
-                                        className="relative h-full rounded-full bg-gradient-to-r from-[var(--zenith-active)]/45 to-[var(--zenith-active)]"
-                                    >
-                                        <div className="absolute inset-0 animate-pulse bg-white/15" />
-                                    </motion.div>
+                                        className="h-full rounded-full bg-[var(--zenith-active)]"
+                                    />
                                 </div>
 
-                                <div className="mt-4 flex items-center justify-between border-t border-white/5 pt-4 text-[11px] text-white/42">
-                                    <span>{currentRankDescription}</span>
-                                    <span className="font-semibold text-white/68">{currentRank.name}</span>
+                                <div className="mt-3 flex items-center justify-between text-xs text-white/42">
+                                    <span>{xpInLevel}/{xpRequiredForNext} XP</span>
+                                    <span>{totalXP} ZP</span>
                                 </div>
                             </div>
 
-                            <div className="mt-6 grid grid-cols-1 gap-3">
-                                <div className="rounded-[28px] border border-white/8 bg-white/[0.03] p-5">
+                            <div className="mt-5 grid grid-cols-1 gap-3">
+                                <div className="rounded-2xl border border-white/8 bg-white/[0.025] p-4">
                                     <p className="app-kicker">{t.auth.name}</p>
                                     <input
                                         type="text"
@@ -875,13 +893,13 @@ export default function ProfilePage() {
                                             }
                                         }}
                                         placeholder={t.settings.namePlaceholder}
-                                        className="mt-4 w-full bg-transparent text-[1.7rem] font-semibold tracking-[-0.07em] text-white outline-none placeholder:text-white/18"
+                                        className="mt-3 w-full bg-transparent text-xl font-semibold text-white outline-none placeholder:text-white/18"
                                         maxLength={24}
                                     />
                                     <p className="mt-2 text-[11px] leading-relaxed text-white/36">{copy.profileNameHint}</p>
                                 </div>
 
-                                <div className="rounded-[28px] border border-white/8 bg-white/[0.03] p-5">
+                                <div className="rounded-2xl border border-white/8 bg-white/[0.025] p-4">
                                     <div className="flex items-start justify-between gap-3">
                                         <div>
                                             <p className="app-kicker">Tag</p>
@@ -891,14 +909,14 @@ export default function ProfilePage() {
                                             <button
                                                 onClick={handleSaveUsername}
                                                 disabled={isSavingUsername || isCheckingUsername}
-                                                className="rounded-2xl bg-[var(--zenith-active)] px-4 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-black transition-transform active:scale-[0.98] disabled:opacity-50"
+                                                className="rounded-xl bg-white px-4 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-black transition-transform active:scale-[0.98] disabled:opacity-50"
                                             >
                                                 {isSavingUsername ? "..." : copy.saveTag}
                                             </button>
                                         ) : null}
                                     </div>
 
-                                    <div className="mt-4 flex items-center gap-2 text-[1.25rem] font-mono text-white/78">
+                                    <div className="mt-4 flex items-center gap-2 text-lg font-mono text-white/78">
                                         <span className="text-white/30">@</span>
                                         <input
                                             type="text"
@@ -1054,7 +1072,7 @@ export default function ProfilePage() {
                                     <TrophyWall />
                                 </div>
 
-                                {(isLoadingRewards || rewards.length > 0) ? (
+                                {(isLoadingRewards || rewards.length > 0 || rewardsError || jwt) ? (
                                     <div className="app-card-soft rounded-[32px] p-5">
                                         <SectionHeading
                                             eyebrow={t.arena.championsWall}
@@ -1077,6 +1095,30 @@ export default function ProfilePage() {
                                                     <div key={item} className="h-28 animate-pulse rounded-[24px] border border-white/5 bg-white/[0.03]" />
                                                 ))}
                                             </div>
+                                        ) : rewardsError ? (
+                                            <EmptyState
+                                                icon={<Trophy size={30} />}
+                                                title={copy.seasonAwardsLoadError}
+                                                description={rewardsError}
+                                                className="px-5 py-9"
+                                                action={
+                                                    <button
+                                                        type="button"
+                                                        onClick={fetchRewards}
+                                                        className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-2.5 text-[10px] font-bold uppercase tracking-[0.16em] text-white/75 transition-colors hover:bg-white/[0.09]"
+                                                    >
+                                                        <RefreshCw size={13} />
+                                                        {copy.retry}
+                                                    </button>
+                                                }
+                                            />
+                                        ) : rewards.length === 0 ? (
+                                            <EmptyState
+                                                icon={<Trophy size={30} />}
+                                                title={copy.seasonAwardsEmptyTitle}
+                                                description={copy.seasonAwardsEmptyDescription}
+                                                className="px-5 py-9"
+                                            />
                                         ) : (
                                             <div className="grid grid-cols-2 gap-3">
                                                 {rewards.map((reward) => {
@@ -1407,13 +1449,30 @@ export default function ProfilePage() {
                                         />
 
                                         <div className="overflow-hidden rounded-[24px] border border-white/8 bg-white/[0.03]">
-                                            {blockedUsers.length === 0 ? (
-                                                <div className="flex items-center gap-4 p-5 text-white/25">
-                                                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.05]">
-                                                        <ShieldOff className="h-5 w-5" />
-                                                    </div>
-                                                    <span className="text-sm font-medium">{copy.blockedEmpty}</span>
-                                                </div>
+                                            {blockedUsersError ? (
+                                                <EmptyState
+                                                    icon={<ShieldOff size={28} />}
+                                                    title={copy.blockedLoadError}
+                                                    description={blockedUsersError}
+                                                    className="border-0 bg-transparent px-5 py-9"
+                                                    action={
+                                                        <button
+                                                            type="button"
+                                                            onClick={fetchBlockedUsers}
+                                                            className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-2.5 text-[10px] font-bold uppercase tracking-[0.16em] text-white/75 transition-colors hover:bg-white/[0.09]"
+                                                        >
+                                                            <RefreshCw size={13} />
+                                                            {copy.retry}
+                                                        </button>
+                                                    }
+                                                />
+                                            ) : blockedUsers.length === 0 ? (
+                                                <EmptyState
+                                                    icon={<ShieldOff size={28} />}
+                                                    title={copy.blockedEmpty}
+                                                    description={copy.blockedEmptyDescription}
+                                                    className="border-0 bg-transparent px-5 py-9"
+                                                />
                                             ) : (
                                                 blockedUsers.map((user, index) => (
                                                     <div

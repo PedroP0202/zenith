@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import {
     addDays,
     addMonths,
@@ -16,10 +17,11 @@ import {
 } from 'date-fns';
 import { enUS, pt } from 'date-fns/locale';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Activity, Calendar, CheckCircle2, ChevronDown, Flame, ShieldAlert, TrendingUp } from 'lucide-react';
+import { Activity, Calendar, CheckCircle2, ChevronDown, Flame, Plus, ShieldAlert, TrendingUp } from 'lucide-react';
 
 import HabitCalendar from '../../components/HabitCalendar';
 import Skeleton from '../../components/Skeleton';
+import EmptyState from '../../components/ui/EmptyState';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useStore } from '../../store/useStore';
 import type { Habit, LogEntry } from '../../types';
@@ -187,6 +189,9 @@ export default function StatsPage() {
                       activeDayHint: 'Volume médio nos dias em que houve ação',
                       onTrackHint: 'Hábitos a sustentar sem pressão',
                       todayHint: 'Períodos já fechados hoje',
+                      emptyStatsTitle: 'Ainda não há hábitos para analisar',
+                      emptyStatsDescription: 'Cria um hábito ativo para desbloquear gráficos, streaks, comparações semanais e saúde do mês.',
+                      createHabit: 'Criar hábito',
                       daysAgo: (days: number) => `há ${days}d`,
                   }
                 : {
@@ -229,6 +234,9 @@ export default function StatsPage() {
                       activeDayHint: 'Average output on days with activity',
                       onTrackHint: 'Habits progressing without friction',
                       todayHint: 'Periods already closed today',
+                      emptyStatsTitle: 'No habits to analyze yet',
+                      emptyStatsDescription: 'Create an active habit to unlock charts, streaks, weekly comparisons, and monthly health.',
+                      createHabit: 'Create habit',
                       daysAgo: (days: number) => `${days}d ago`,
                   },
         [language]
@@ -948,9 +956,21 @@ export default function StatsPage() {
                                 </div>
 
                                 {activeHabits.length === 0 ? (
-                                    <div className="app-card-soft rounded-[28px] p-8 text-center">
-                                        <p className="text-sm text-white/42">{t.stats.noData}</p>
-                                    </div>
+                                    <EmptyState
+                                        icon={<Activity size={34} />}
+                                        title={copy.emptyStatsTitle}
+                                        description={copy.emptyStatsDescription}
+                                        className="app-card-soft"
+                                        action={
+                                            <Link
+                                                href="/habit/new"
+                                                className="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-3 text-[10px] font-bold uppercase tracking-[0.18em] text-black transition-transform active:scale-95"
+                                            >
+                                                <Plus size={15} />
+                                                {copy.createHabit}
+                                            </Link>
+                                        }
+                                    />
                                 ) : (
                                     <div className="space-y-3">
                                         {habitStats.map((habitStat, index) => {

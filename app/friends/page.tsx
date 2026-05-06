@@ -46,9 +46,9 @@ function FriendsSkeleton() {
                 ))}
             </div>
             <Skeleton className="h-14 w-full rounded-2xl opacity-35" />
-            <Skeleton className="h-24 w-full rounded-[2rem] opacity-30" />
+            <Skeleton className="h-24 w-full rounded-2xl opacity-30" />
             {Array.from({ length: 3 }).map((_, index) => (
-                <div key={index} className="flex items-center gap-4 rounded-[2rem] border border-white/10 bg-white/[0.03] p-4">
+                <div key={index} className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
                     <Skeleton variant="circle" className="h-12 w-12 opacity-40" />
                     <div className="flex-1">
                         <Skeleton className="h-4 w-32 opacity-50" />
@@ -214,23 +214,23 @@ export default function FriendsPage() {
                     <ChevronLeft size={20} />
                 </button>
                 <div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/35">{t.social.title}</p>
-                    <h1 className="text-2xl font-black tracking-tight">{t.social.friends}</h1>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35">{t.social.title}</p>
+                    <h1 className="text-2xl font-semibold tracking-tight">{t.social.friends}</h1>
                 </div>
             </header>
 
             <section className="mb-6 grid grid-cols-3 gap-2.5">
                 <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
-                    <p className="text-[9px] font-black uppercase tracking-[0.16em] text-white/35">{t.social.friends}</p>
-                    <p className="mt-2 text-2xl font-black">{friends.length}</p>
+                    <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-white/35">{t.social.friends}</p>
+                    <p className="mt-2 text-2xl font-semibold">{friends.length}</p>
                 </div>
                 <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
-                    <p className="text-[9px] font-black uppercase tracking-[0.16em] text-white/35">{t.social.requests}</p>
-                    <p className="mt-2 text-2xl font-black text-[var(--zenith-active)]">{totalPendingRequests}</p>
+                    <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-white/35">{t.social.requests}</p>
+                    <p className="mt-2 text-2xl font-semibold text-[var(--zenith-active)]">{totalPendingRequests}</p>
                 </div>
                 <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
-                    <p className="text-[9px] font-black uppercase tracking-[0.16em] text-white/35">{actionsLabel}</p>
-                    <p className="mt-2 text-2xl font-black">{outgoingRequests.length}</p>
+                    <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-white/35">{actionsLabel}</p>
+                    <p className="mt-2 text-2xl font-semibold">{outgoingRequests.length}</p>
                 </div>
             </section>
 
@@ -244,7 +244,7 @@ export default function FriendsPage() {
                     placeholder={searchPlaceholder}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full rounded-2xl border border-white/10 bg-white/[0.03] py-4 pl-12 pr-4 font-medium placeholder:text-white/25 focus:border-[var(--zenith-active)]/50 focus:ring-1 focus:ring-[var(--zenith-active)]/20 focus:outline-none"
+                    className="w-full rounded-2xl border border-white/10 bg-white/[0.03] py-4 pl-12 pr-4 font-medium placeholder:text-white/25 focus:border-white/20 focus:outline-none"
                 />
 
                 <AnimatePresence>
@@ -253,7 +253,7 @@ export default function FriendsPage() {
                             initial={{ opacity: 0, y: -10 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -10 }}
-                            className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-2xl border border-white/10 bg-zinc-900 shadow-2xl"
+                            className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-2xl border border-white/10 bg-zinc-900 shadow-[0_12px_28px_rgba(0,0,0,0.28)]"
                         >
                             {searching ? (
                                 <div className="flex justify-center p-8">
@@ -266,7 +266,7 @@ export default function FriendsPage() {
                                         type="button"
                                         onClick={performSearch}
                                         disabled={searching}
-                                        className="mt-3 inline-flex items-center gap-2 rounded-xl border border-red-200/20 bg-red-50/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-red-50 disabled:opacity-50"
+                                        className="mt-3 inline-flex items-center gap-2 rounded-xl border border-red-200/20 bg-red-50/10 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-red-50 disabled:opacity-50"
                                     >
                                         <RefreshCw size={12} className={searching ? "animate-spin" : ""} />
                                         {retryLabel}
@@ -287,7 +287,7 @@ export default function FriendsPage() {
                                             <button
                                                 onClick={() => onSendRequest(user.id)}
                                                 aria-label={`${addFriendLabel} ${user.name}`}
-                                                className="rounded-xl bg-[var(--zenith-active)] p-2 text-black transition-all hover:scale-105 active:scale-95"
+                                                className="rounded-xl bg-white p-2 text-black transition-colors hover:bg-white/90"
                                             >
                                                 <UserPlus size={16} />
                                             </button>
@@ -302,18 +302,18 @@ export default function FriendsPage() {
 
             <Link
                 href="/groups"
-                className="mb-8 block rounded-[2rem] border border-white/12 bg-gradient-to-br from-white/[0.06] to-white/[0.02] p-5 transition-colors hover:bg-white/[0.08]"
+                className="mb-8 block rounded-2xl border border-white/12 bg-white/[0.032] p-5 transition-colors hover:bg-white/[0.08]"
             >
                 <div className="flex items-start justify-between gap-4">
                     <div>
-                        <div className="mb-2 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--zenith-active)]">
+                        <div className="mb-2 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--zenith-active)]">
                             <Layers3 size={14} />
                             {t.social.groups}
                         </div>
-                        <h2 className="text-lg font-black tracking-tight text-white">{t.social.groupsTitle}</h2>
+                        <h2 className="text-lg font-semibold tracking-tight text-white">{t.social.groupsTitle}</h2>
                         <p className="mt-1 text-sm text-white/50">{t.social.groupsDesc}</p>
                     </div>
-                    <div className="rounded-2xl bg-white/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-white/70">
+                    <div className="rounded-2xl bg-white/10 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/70">
                         <ArrowUpRight size={14} />
                     </div>
                 </div>
@@ -336,14 +336,14 @@ export default function FriendsPage() {
                     <button
                         key={tabItem.id}
                         onClick={() => setTab(tabItem.id)}
-                        className={`relative z-10 flex-1 rounded-xl py-2.5 text-[10px] font-black uppercase tracking-[0.16em] transition-all ${
+                        className={`relative z-10 flex-1 rounded-xl py-2.5 text-[10px] font-semibold uppercase tracking-[0.12em] transition-all ${
                             tab === tabItem.id ? "text-black" : "text-white/50 hover:text-white/75"
                         }`}
                     >
                         {tabItem.label}
                         {tabItem.badge > 0 && (
                             <span
-                                className={`absolute -right-1 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[8px] font-black ${
+                                className={`absolute -right-1 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[8px] font-semibold ${
                                     tab === tabItem.id ? "bg-black/20 text-black" : "bg-[var(--zenith-active)] text-black"
                                 }`}
                             >
@@ -372,7 +372,7 @@ export default function FriendsPage() {
                                 <button
                                     type="button"
                                     onClick={focusSearch}
-                                    className="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-3 text-[10px] font-black uppercase tracking-[0.18em] text-black transition-transform active:scale-95"
+                                    className="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-black transition-transform active:scale-95"
                                 >
                                     <Search size={15} />
                                     {searchFriendsLabel}
@@ -387,20 +387,20 @@ export default function FriendsPage() {
                                 initial={{ opacity: 0, y: 16 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ duration: 0.28, delay: index * 0.03 }}
-                                className="flex items-center justify-between rounded-[2rem] border border-white/10 bg-gradient-to-br from-white/[0.06] to-white/[0.02] p-4"
+                                className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.032] p-4"
                             >
                                 <div className="flex min-w-0 items-center gap-4">
-                                    <UserOrb seed={friend.username} size={48} className="shadow-lg" />
+                                    <UserOrb seed={friend.username} size={48} />
                                     <div className="min-w-0">
-                                        <p className="truncate text-lg font-black leading-tight">{friend.name}</p>
-                                        <p className="mt-0.5 text-[10px] font-black uppercase tracking-[0.16em] text-white/45">
+                                        <p className="truncate text-lg font-semibold leading-tight">{friend.name}</p>
+                                        <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45">
                                             @{friend.username} • {friend.score || 0}
                                         </p>
                                     </div>
                                 </div>
                                 <Link
                                     href={`/friends/profile?u=${friend.username}`}
-                                    className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.16em] text-white/75 transition-colors hover:bg-white/10"
+                                    className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/75 transition-colors hover:bg-white/10"
                                 >
                                     {profileLabel}
                                 </Link>
@@ -411,7 +411,7 @@ export default function FriendsPage() {
                 {tab === "requests" && (
                     <div className="space-y-8">
                         <div className="space-y-4">
-                            <h2 className="px-2 text-[10px] font-black uppercase tracking-[0.2em] text-white/30">{incomingLabel}</h2>
+                            <h2 className="px-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/30">{incomingLabel}</h2>
                             {incomingRequests.length === 0 ? (
                                 <EmptyState
                                     icon={<Clock3 size={30} />}
@@ -427,10 +427,10 @@ export default function FriendsPage() {
                                         initial={{ opacity: 0, scale: 0.95 }}
                                         animate={{ opacity: 1, scale: 1 }}
                                         transition={{ duration: 0.25, delay: i * 0.03 }}
-                                        className="flex items-center justify-between rounded-[2rem] border border-white/10 bg-gradient-to-br from-white/[0.06] to-white/[0.02] p-4"
+                                        className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.032] p-4"
                                     >
                                         <div className="flex items-center gap-3">
-                                            <UserOrb seed={req.username} size={42} className="shadow-lg" />
+                                            <UserOrb seed={req.username} size={42} />
                                             <div>
                                                 <p className="font-bold leading-tight">{req.name}</p>
                                                 <p className="text-[10px] font-mono text-white/40">@{req.username}</p>
@@ -458,7 +458,7 @@ export default function FriendsPage() {
                         </div>
 
                         <div className="space-y-4">
-                            <h2 className="px-2 text-[10px] font-black uppercase tracking-[0.2em] text-white/30">{outgoingLabel}</h2>
+                            <h2 className="px-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/30">{outgoingLabel}</h2>
                             {sentRequests.length === 0 ? (
                                 <EmptyState
                                     icon={<Sparkles size={30} />}
@@ -469,7 +469,7 @@ export default function FriendsPage() {
                                         <button
                                             type="button"
                                             onClick={focusSearch}
-                                            className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.16em] text-white/75 transition-colors hover:bg-white/[0.09]"
+                                            className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-2.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/75 transition-colors hover:bg-white/[0.09]"
                                         >
                                             <Search size={14} />
                                             {searchFriendsLabel}
@@ -484,10 +484,10 @@ export default function FriendsPage() {
                                         initial={{ opacity: 0, scale: 0.95 }}
                                         animate={{ opacity: 1, scale: 1 }}
                                         transition={{ duration: 0.25, delay: i * 0.03 }}
-                                        className="flex items-center justify-between rounded-[2rem] border border-white/10 bg-gradient-to-br from-white/[0.06] to-white/[0.02] p-4"
+                                        className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.032] p-4"
                                     >
                                         <div className="flex items-center gap-3">
-                                            <UserOrb seed={req.username} size={42} className="shadow-lg" />
+                                            <UserOrb seed={req.username} size={42} />
                                             <div>
                                                 <p className="font-bold leading-tight">{req.name}</p>
                                                 <p className="text-[10px] font-mono text-white/40">@{req.username}</p>
@@ -495,7 +495,7 @@ export default function FriendsPage() {
                                         </div>
                                         <button
                                             onClick={() => handleRequest(req.id, "cancel")}
-                                            className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/60 transition-colors hover:border-red-400/30 hover:bg-red-500/10 hover:text-red-300"
+                                            className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/60 transition-colors hover:border-red-400/30 hover:bg-red-500/10 hover:text-red-300"
                                         >
                                             {language === "pt" ? "Cancelar" : "Cancel"}
                                         </button>

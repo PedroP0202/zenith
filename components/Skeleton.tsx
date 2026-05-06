@@ -18,7 +18,7 @@ export default function Skeleton({ className = "", variant = "rect", style }: Sk
                 repeat: Infinity,
                 ease: "easeInOut",
             }}
-            className={`bg-white/10 ${variant === "circle" ? "rounded-full" : "rounded-2xl"} ${className}`}
+            className={`bg-white/[0.07] ${variant === "circle" ? "rounded-full" : "rounded-xl"} ${className}`}
             style={style}
         />
     );

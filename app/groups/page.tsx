@@ -43,7 +43,7 @@ function GroupsSkeleton() {
                 ))}
             </div>
             {Array.from({ length: 3 }).map((_, index) => (
-                <div key={index} className="rounded-[2rem] border border-white/10 bg-white/[0.03] p-5">
+                <div key={index} className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
                     <Skeleton className="h-3 w-24 opacity-35" />
                     <Skeleton className="mt-4 h-7 w-40 opacity-50" />
                     <div className="mt-5 flex gap-3">
@@ -252,12 +252,12 @@ export default function GroupsPage() {
                         <ChevronLeft size={20} />
                     </button>
                     <div className="flex-1">
-                        <p className="text-[10px] font-black uppercase tracking-[0.24em] text-white/35">{t.social.groups}</p>
-                        <h1 className="text-2xl font-black tracking-tight text-white">{t.social.groupsTitle}</h1>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-white/35">{t.social.groups}</p>
+                        <h1 className="text-2xl font-semibold tracking-tight text-white">{t.social.groupsTitle}</h1>
                     </div>
                     <button
                         onClick={() => setShowCreate((prev) => !prev)}
-                        className="rounded-2xl bg-white px-4 py-3 text-[10px] font-black uppercase tracking-[0.18em] text-black transition-transform active:scale-95"
+                        className="rounded-2xl bg-white px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-black transition-transform active:scale-95"
                     >
                         {t.social.createGroup}
                     </button>
@@ -265,16 +265,16 @@ export default function GroupsPage() {
 
                 <section className="mb-6 grid grid-cols-3 gap-2.5">
                     <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
-                        <p className="text-[9px] font-black uppercase tracking-[0.16em] text-white/35">{t.social.groups}</p>
-                        <p className="mt-2 text-2xl font-black">{groupOverview.groupsCount}</p>
+                        <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-white/35">{t.social.groups}</p>
+                        <p className="mt-2 text-2xl font-semibold">{groupOverview.groupsCount}</p>
                     </div>
                     <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
-                        <p className="text-[9px] font-black uppercase tracking-[0.16em] text-white/35">{t.social.groupMembers}</p>
-                        <p className="mt-2 text-2xl font-black">{groupOverview.totalMembers}</p>
+                        <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-white/35">{t.social.groupMembers}</p>
+                        <p className="mt-2 text-2xl font-semibold">{groupOverview.totalMembers}</p>
                     </div>
                     <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
-                        <p className="text-[9px] font-black uppercase tracking-[0.16em] text-white/35">{t.social.groupHabits}</p>
-                        <p className="mt-2 text-2xl font-black">{groupOverview.totalHabits}</p>
+                        <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-white/35">{t.social.groupHabits}</p>
+                        <p className="mt-2 text-2xl font-semibold">{groupOverview.totalHabits}</p>
                     </div>
                 </section>
 
@@ -282,21 +282,21 @@ export default function GroupsPage() {
                     <motion.section
                         initial={{ opacity: 0, y: 12 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="mb-8 rounded-[2rem] border border-white/12 bg-gradient-to-br from-white/[0.06] to-white/[0.02] p-5"
+                        className="mb-8 rounded-2xl border border-white/12 bg-white/[0.032] p-5"
                     >
                         <div className="mb-5">
                             <div className="mb-3 flex items-center justify-between">
                                 <div className="flex items-center gap-2">
                                     <Sparkles size={14} className="text-[var(--zenith-active)]" />
-                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--zenith-active)]">
+                                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--zenith-active)]">
                                         {t.social.createGroup}
                                     </p>
                                 </div>
-                                <p className="text-[10px] font-black uppercase tracking-[0.14em] text-white/35">
+                                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35">
                                     {groupName.trim().length}/{GROUP_NAME_MAX}
                                 </p>
                             </div>
-                            <label className="mb-2 block text-[10px] font-black uppercase tracking-[0.2em] text-white/35">
+                            <label className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35">
                                 {t.social.groupName}
                             </label>
                             <input
@@ -310,8 +310,8 @@ export default function GroupsPage() {
 
                         <div className="mb-4">
                             <div className="mb-3 flex items-center justify-between gap-3">
-                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/35">{t.social.addFriends}</p>
-                                <p className="text-[10px] font-black uppercase tracking-[0.14em] text-white/35">
+                                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35">{t.social.addFriends}</p>
+                                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35">
                                     {selectedFriendIds.length}/{GROUP_MEMBERS_MAX}
                                 </p>
                             </div>
@@ -325,7 +325,7 @@ export default function GroupsPage() {
                                         action={
                                             <Link
                                                 href="/friends"
-                                                className="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.16em] text-black transition-transform active:scale-95"
+                                                className="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-2.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-black transition-transform active:scale-95"
                                             >
                                                 <Users size={14} />
                                                 {findFriendsLabel}
@@ -363,7 +363,7 @@ export default function GroupsPage() {
                         {selectedFriends.length > 0 && (
                             <div className="mb-4 flex flex-wrap gap-2">
                                 {selectedFriends.map((friend) => (
-                                    <span key={friend.id} className="rounded-full bg-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.15em] text-white/70">
+                                    <span key={friend.id} className="rounded-full bg-white/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-white/70">
                                         @{friend.username}
                                     </span>
                                 ))}
@@ -381,7 +381,7 @@ export default function GroupsPage() {
                             type="button"
                             onClick={handleCreateGroup}
                             disabled={creating || !hasValidGroupName}
-                            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-4 py-4 text-sm font-black uppercase tracking-[0.2em] text-black transition-transform disabled:opacity-40 active:scale-[0.98]"
+                            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-4 py-4 text-sm font-semibold uppercase tracking-[0.14em] text-black transition-transform disabled:opacity-40 active:scale-[0.98]"
                         >
                             {creating ? <Loader2 size={18} className="animate-spin" /> : <Plus size={18} />}
                             {t.social.createGroup}
@@ -400,7 +400,7 @@ export default function GroupsPage() {
                                 type="button"
                                 onClick={loadGroups}
                                 disabled={groupsLoading}
-                                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-red-200/20 bg-red-50/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-red-50 transition-colors hover:bg-red-50/15 disabled:opacity-50"
+                                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-red-200/20 bg-red-50/10 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-red-50 transition-colors hover:bg-red-50/15 disabled:opacity-50"
                             >
                                 <RefreshCw size={13} className={groupsLoading ? "animate-spin" : ""} />
                                 {retryLabel}
@@ -422,7 +422,7 @@ export default function GroupsPage() {
                                 <button
                                     type="button"
                                     onClick={() => setShowCreate(true)}
-                                    className="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-3 text-[10px] font-black uppercase tracking-[0.18em] text-black transition-transform active:scale-95"
+                                    className="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-black transition-transform active:scale-95"
                                 >
                                     <Plus size={15} />
                                     {t.social.createGroup}
@@ -434,17 +434,17 @@ export default function GroupsPage() {
                             <Link
                                 key={group.id}
                                 href={`/groups/detail?id=${group.id}`}
-                                className="block rounded-[2rem] border border-white/10 bg-gradient-to-br from-white/[0.06] to-white/[0.02] p-5 transition-colors hover:bg-white/[0.07]"
+                                className="block rounded-2xl border border-white/10 bg-white/[0.032] p-5 transition-colors hover:bg-white/[0.07]"
                             >
                                 <div className="mb-3 flex items-center justify-between gap-4">
                                     <div>
-                                        <p className="mb-1 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--zenith-active)]">
+                                        <p className="mb-1 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--zenith-active)]">
                                             <Layers3 size={12} />
                                             {t.social.groups}
                                         </p>
-                                        <h2 className="text-xl font-black tracking-tight">{group.name}</h2>
+                                        <h2 className="text-xl font-semibold tracking-tight">{group.name}</h2>
                                     </div>
-                                    <div className="rounded-2xl bg-white/5 px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-white/60">
+                                    <div className="rounded-2xl bg-white/5 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/60">
                                         {t.social.openGroup}
                                     </div>
                                 </div>

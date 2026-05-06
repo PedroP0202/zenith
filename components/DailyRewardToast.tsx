@@ -26,14 +26,14 @@ export default function DailyRewardToast() {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -20, scale: 0.9 }}
                 >
-                    <div className="bg-white/10 backdrop-blur-xl border border-white/20 p-4 rounded-[2.5rem] shadow-2xl flex items-center justify-between gap-4">
+                    <div className="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-[#0d0d0f]/95 p-4 shadow-[0_12px_28px_rgba(0,0,0,0.28)] backdrop-blur-xl">
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-yellow-400 to-orange-500 flex items-center justify-center shadow-[0_0_15px_rgba(234,179,8,0.4)]">
-                                <Sparkles size={20} className="text-black" />
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.06]">
+                                <Sparkles size={18} className="text-white/75" />
                             </div>
                             <div className="flex flex-col text-left">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-white/40">Daily Zen</span>
-                                <span className="text-sm font-bold text-white">+5 Zenith Points</span>
+                                <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">Daily Zen</span>
+                                <span className="text-sm font-semibold text-white">+5 Zenith Points</span>
                             </div>
                         </div>
                         <button 

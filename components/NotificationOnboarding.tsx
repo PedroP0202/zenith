@@ -62,7 +62,7 @@ export default function NotificationOnboarding() {
                     transition={{ type: "spring", stiffness: 400, damping: 30 }}
                     className="fixed banner-safe-bottom left-0 right-0 z-50 flex justify-center px-6"
                 >
-                    <div className="bg-[#1A1A1A] border border-white/10 w-full max-w-sm rounded-3xl p-5 shadow-2xl flex flex-col gap-4">
+                    <div className="flex w-full max-w-sm flex-col gap-4 rounded-2xl border border-white/10 bg-[#111] p-5 shadow-[0_14px_32px_rgba(0,0,0,0.3)]">
                         <div className="flex gap-4 items-start">
                             <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center flex-shrink-0">
                                 <Bell className="w-5 h-5 text-white/80" />
@@ -78,13 +78,13 @@ export default function NotificationOnboarding() {
                         <div className="flex gap-2">
                             <button
                                 onClick={handleDecline}
-                                className="flex-1 py-3 px-4 rounded-xl text-[13px] font-medium text-white/50 bg-white/5 hover:bg-white/10 transition-colors"
+                                className="flex-1 rounded-xl bg-white/5 px-4 py-3 text-[13px] font-medium text-white/50 transition-colors hover:bg-white/9"
                             >
                                 Not now
                             </button>
                             <button
                                 onClick={handleAccept}
-                                className="flex-1 py-3 px-4 rounded-xl text-[13px] font-medium text-black bg-white hover:scale-[1.02] active:scale-[0.98] transition-all"
+                                className="flex-1 rounded-xl bg-white px-4 py-3 text-[13px] font-medium text-black transition-colors hover:bg-white/90"
                             >
                                 Enable Alerts
                             </button>

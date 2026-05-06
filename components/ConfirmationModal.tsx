@@ -69,16 +69,14 @@ export default function ConfirmationModal({
                         aria-modal="true"
                         aria-labelledby="confirmation-modal-title"
                         aria-describedby="confirmation-modal-description"
-                        className="relative w-full max-w-sm overflow-hidden rounded-[1.75rem] border border-white/10 bg-[#0A0A0A] p-7 text-center shadow-2xl sm:p-8"
+                        className="relative w-full max-w-sm overflow-hidden rounded-[28px] border border-white/10 bg-[#0A0A0A] p-7 text-center shadow-[0_16px_36px_rgba(0,0,0,0.32)] sm:p-8"
                     >
-                        <div className={`absolute -top-20 -left-20 w-40 h-40 ${isDanger ? 'bg-red-500/10' : 'bg-white/5'} blur-[60px] rounded-full`} />
-
                         <div className="relative z-10">
-                            <div className={`w-16 h-16 ${isDanger ? 'bg-red-500/10 border-red-500/20' : 'bg-white/5 border-white/10'} rounded-2xl flex items-center justify-center mx-auto mb-6 border`}>
-                                <AlertTriangle className={`w-8 h-8 ${isDanger ? 'text-red-500' : 'text-white/60'}`} />
+                            <div className={`mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-2xl border ${isDanger ? 'border-red-500/20 bg-red-500/10' : 'border-white/10 bg-white/5'}`}>
+                                <AlertTriangle className={`h-7 w-7 ${isDanger ? 'text-red-500' : 'text-white/60'}`} />
                             </div>
 
-                            <h2 id="confirmation-modal-title" className="mb-3 text-2xl font-bold tracking-tight text-white">{title}</h2>
+                            <h2 id="confirmation-modal-title" className="mb-3 text-xl font-semibold text-white">{title}</h2>
 
                             <p id="confirmation-modal-description" className="mb-8 text-sm leading-relaxed text-white/50">
                                 {description}
@@ -98,7 +96,7 @@ export default function ConfirmationModal({
                                         onConfirm();
                                     }}
                                     disabled={confirmDisabled}
-                                    className={`h-14 w-full rounded-2xl font-bold shadow-lg transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-45 ${isDanger ? 'bg-red-500 text-white' : 'bg-white text-black'}`}
+                                    className={`h-12 w-full rounded-xl font-semibold transition-colors active:opacity-80 disabled:cursor-not-allowed disabled:opacity-45 ${isDanger ? 'bg-red-500 text-white' : 'bg-white text-black'}`}
                                 >
                                     {confirmLabel}
                                 </button>
@@ -108,7 +106,7 @@ export default function ConfirmationModal({
                                         deviceHaptics.lightImpact();
                                         onClose();
                                     }}
-                                    className="w-full h-14 bg-white/5 text-white/70 font-bold rounded-2xl transition-all hover:bg-white/10 active:scale-95"
+                                    className="h-12 w-full rounded-xl bg-white/5 font-semibold text-white/70 transition-colors hover:bg-white/9 active:opacity-80"
                                 >
                                     {cancelLabel}
                                 </button>

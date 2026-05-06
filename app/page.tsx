@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { CheckCircle2, Flame, Plus, Target, Trophy, User } from 'lucide-react';
 import { format } from 'date-fns';
 import { enUS, pt } from 'date-fns/locale';
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import SwipeableHabit from '../components/SwipeableHabit';
 import NotificationOnboarding from '../components/NotificationOnboarding';
 import BetaFeedback from '../components/BetaFeedback';
@@ -31,7 +31,6 @@ export default function Home() {
     } = useStore();
     const { t, language } = useTranslation();
     const [mounted, setMounted] = useState(false);
-    const shouldReduceMotion = useReducedMotion();
 
     useEffect(() => {
         setMounted(true);
@@ -131,8 +130,6 @@ export default function Home() {
     const currentRank = getRankForLevel(level);
     const userRank = currentRank.name;
 
-    const orbY = 100 - (todayCompletionPercentage * 0.8); // 100% to 20% from top
-    const orbOpacity = 0.05 + (todayCompletionPercentage / 100) * 0.25;
     const roundedCompletion = Math.round(todayCompletionPercentage);
     const heroMessage =
         todayHabitCards.length === 0
@@ -173,52 +170,30 @@ export default function Home() {
 
     return (
         <main className="app-page relative min-h-[100dvh] overflow-x-hidden text-white">
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-white/[0.04] to-transparent" />
-            {mounted && (
-                <motion.div 
-                    className="pointer-events-none fixed left-1/2 z-0 h-[32rem] w-[32rem] -translate-x-1/2 rounded-full blur-[110px] transition-all duration-1000 ease-out md:h-[36rem] md:w-[36rem]"
-                    style={{
-                        top: `${orbY}%`,
-                        opacity: orbOpacity,
-                        backgroundColor: todayCompletionPercentage === 100 ? '#eab308' : '#ffffff'
-                    }}
-                    animate={
-                        !shouldReduceMotion && todayCompletionPercentage === 100
-                            ? { scale: [1, 1.05, 1], opacity: [orbOpacity, orbOpacity + 0.1, orbOpacity] }
-                            : { scale: 1, opacity: orbOpacity }
-                    }
-                    transition={
-                        !shouldReduceMotion && todayCompletionPercentage === 100
-                            ? { repeat: Infinity, duration: 4, ease: "easeInOut" }
-                            : { duration: 0.2 }
-                    }
-                />
-            )}
-            
             <div className="app-main-spacing relative z-10">
                 <div className="app-shell">
                 <motion.header
-                    className="mb-8"
+                    className="mb-6"
                     initial={{ opacity: 0, y: -16 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, type: 'spring', bounce: 0.2 }}
                 >
-                    <div className="space-y-6">
+                    <div className="space-y-5">
                         <div className="flex items-start justify-between gap-4">
                             <div className="min-w-0 flex-1">
-                                <div className="inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/[0.035] px-4 py-2 backdrop-blur-xl">
+                                <div className="inline-flex items-center gap-3 rounded-full border border-white/8 bg-white/[0.025] px-3.5 py-2">
                                     <Logo className="text-lg text-white/70" />
                                     <div className="h-3 w-px bg-white/15" />
-                                    <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-white/45">
+                                    <span className="text-[10px] font-medium uppercase tracking-[0.14em] text-white/45">
                                         {t.home.dailyBrief} • {dateStr}
                                     </span>
                                 </div>
 
                                 <div className="mt-5">
-                                    <h1 className="text-[clamp(2.5rem,10vw,4rem)] font-semibold leading-[0.9] tracking-[-0.06em] text-white">
+                                    <h1 className="text-[clamp(2.2rem,9vw,3.4rem)] font-semibold leading-[0.96] text-white">
                                         {greeting}
                                     </h1>
-                                    <h2 className="mt-2 max-w-[14ch] text-[clamp(1.4rem,5vw,2.2rem)] font-medium leading-tight tracking-[-0.04em] text-white/55 sm:max-w-none">
+                                    <h2 className="mt-1 max-w-[14ch] text-[clamp(1.25rem,4vw,1.8rem)] font-medium leading-tight text-white/55 sm:max-w-none">
                                         {userName}
                                     </h2>
                                     {mounted && (
@@ -228,8 +203,8 @@ export default function Home() {
                                             animate={{ opacity: 1, x: 0 }}
                                             transition={{ delay: 0.4 }}
                                         >
-                                            <div className="h-1.5 w-1.5 rounded-full bg-[var(--zenith-active)] shadow-[0_0_8px_var(--zenith-active)]" />
-                                            <span className="text-[10px] font-black uppercase tracking-[0.24em] text-[var(--zenith-active)]">
+                                            <div className="h-1.5 w-1.5 rounded-full bg-[var(--zenith-active)]" />
+                                            <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/55">
                                                 {userRank}
                                             </span>
                                         </motion.div>
@@ -243,12 +218,12 @@ export default function Home() {
                                 animate={{ opacity: 1, scale: 1 }}
                                 transition={{ duration: 0.4, delay: 0.2, type: 'spring' }}
                             >
-                                <div className="app-card-soft flex items-center gap-1 rounded-full p-1.5 shadow-[0_12px_32px_rgba(0,0,0,0.22)]">
-                                    <Link id="top-leaderboard" href="/leaderboard" className="flex h-11 w-11 items-center justify-center rounded-full text-white/50 transition-all hover:bg-white/10 hover:text-[#eab308] active:scale-95" aria-label="Leaderboard">
+                                <div className="app-card-soft flex items-center gap-1 rounded-2xl p-1">
+                                    <Link id="top-leaderboard" href="/leaderboard" className="flex h-10 w-10 items-center justify-center rounded-xl text-white/50 transition-colors hover:bg-white/8 hover:text-white" aria-label="Leaderboard">
                                         <Trophy size={18} />
                                     </Link>
                                     <div className="mx-1 h-4 w-px bg-white/10" />
-                                    <Link id="top-profile" href="/profile" className="flex h-11 w-11 items-center justify-center rounded-full text-white/50 transition-all hover:bg-white/10 hover:text-white active:scale-95" aria-label="Profile">
+                                    <Link id="top-profile" href="/profile" className="flex h-10 w-10 items-center justify-center rounded-xl text-white/50 transition-colors hover:bg-white/8 hover:text-white" aria-label="Profile">
                                         <User size={18} />
                                     </Link>
                                 </div>
@@ -256,21 +231,20 @@ export default function Home() {
                         </div>
 
                         <motion.section
-                            className="app-card relative overflow-hidden rounded-[2rem] p-5 sm:p-6"
+                            className="app-card-soft relative overflow-hidden rounded-[28px] p-5"
                             initial={{ opacity: 0, y: 18 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.55, delay: 0.15, type: 'spring', bounce: 0.16 }}
                         >
-                            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.12),transparent_34%)]" />
                             <div className="relative z-10">
                                 <div className="flex items-start justify-between gap-4">
                                     <div className="min-w-0 flex-1">
                                         <p className="app-kicker">{t.home.todayProgress}</p>
                                         <div className="mt-3 flex items-end gap-3">
-                                            <span className="text-[3.25rem] font-semibold leading-none tracking-[-0.1em] text-white">
+                                            <span className="text-[3rem] font-semibold leading-none text-white">
                                                 {roundedCompletion}%
                                             </span>
-                                            <span className="mb-1 rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/55">
+                                            <span className="mb-1 rounded-full border border-white/8 bg-white/[0.035] px-3 py-1.5 text-[11px] font-medium uppercase tracking-[0.12em] text-white/55">
                                                 {heroStatLabel}
                                             </span>
                                         </div>
@@ -280,12 +254,12 @@ export default function Home() {
                                     </div>
 
                                     <div
-                                        className="relative flex h-20 w-20 shrink-0 items-center justify-center rounded-full p-[6px]"
+                                        className="relative flex h-[4.5rem] w-[4.5rem] shrink-0 items-center justify-center rounded-full p-[5px]"
                                         style={{
                                             background: `conic-gradient(var(--zenith-active) ${roundedCompletion * 3.6}deg, rgba(255,255,255,0.08) 0deg)`,
                                         }}
                                     >
-                                        <div className="flex h-full w-full items-center justify-center rounded-full border border-white/10 bg-black/70">
+                                        <div className="flex h-full w-full items-center justify-center rounded-full border border-white/8 bg-black/70">
                                             <span className="text-sm font-semibold tracking-[-0.04em] text-white/80">
                                                 {roundedCompletion}%
                                             </span>
@@ -293,16 +267,16 @@ export default function Home() {
                                     </div>
                                 </div>
 
-                                <div className="mt-5 grid grid-cols-3 gap-3">
+                                <div className="mt-5 grid grid-cols-3 gap-2.5">
                                     {summaryCards.map(({ label, value, icon: Icon }) => (
-                                        <div key={label} className="rounded-[1.35rem] border border-white/[0.08] bg-white/[0.035] p-3.5">
+                                        <div key={label} className="rounded-2xl border border-white/[0.07] bg-white/[0.025] p-3">
                                             <div className="flex items-center gap-2 text-white/40">
                                                 <Icon size={14} />
-                                                <span className="text-[10px] font-semibold uppercase tracking-[0.18em]">
+                                                <span className="text-[10px] font-medium uppercase tracking-[0.12em]">
                                                     {label}
                                                 </span>
                                             </div>
-                                            <div className="mt-3 text-2xl font-semibold leading-none tracking-[-0.07em] text-white">
+                                            <div className="mt-3 text-2xl font-semibold leading-none text-white">
                                                 {value}
                                             </div>
                                         </div>
@@ -315,7 +289,7 @@ export default function Home() {
 
                 {!mounted ? (
                     <div className="space-y-6">
-                        <div className="app-card rounded-[2rem] p-5">
+                        <div className="app-card-soft rounded-[28px] p-5">
                             <div className="flex items-start justify-between gap-4">
                                 <div className="space-y-3">
                                     <Skeleton className="h-3 w-24 opacity-50" />
@@ -340,12 +314,12 @@ export default function Home() {
                     </div>
                 ) : allActiveHabits.length === 0 ? (
                     <motion.div
-                        className="app-card mt-10 flex flex-col items-center justify-center rounded-[2rem] px-6 py-12 text-center"
+                        className="app-card-soft mt-10 flex flex-col items-center justify-center rounded-[28px] px-6 py-12 text-center"
                         initial={{ opacity: 0, scale: 0.9, y: 20 }}
                         animate={{ opacity: 0.7, scale: 1, y: 0 }}
                         transition={{ duration: 0.6, delay: 0.3, type: 'spring', bounce: 0.2 }}
                     >
-                        <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-[1.5rem] border border-white/10 bg-white/[0.04]">
+                        <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.035]">
                             <Plus size={20} />
                         </div>
                         <p className="text-2xl font-semibold tracking-[-0.04em] text-white">{t.home.emptyState}</p>
@@ -353,7 +327,7 @@ export default function Home() {
                         <Link
                             id="add-habit-empty"
                             href="/habit/new"
-                            className="mt-8 flex h-14 items-center justify-center gap-2 rounded-full bg-white px-8 text-sm font-bold text-black transition-all hover:-translate-y-0.5 active:scale-95 shadow-glow-white hover:shadow-[0_0_25px_rgba(255,255,255,0.25)]"
+                            className="mt-8 flex h-12 items-center justify-center gap-2 rounded-xl bg-white px-6 text-sm font-semibold text-black transition-colors hover:bg-white/90 active:opacity-80"
                         >
                             <Plus size={20} />
                             {t.home.startHabit}
@@ -409,7 +383,7 @@ export default function Home() {
 
                         {todayHabitCards.length === 0 && (
                             <motion.div
-                                className="app-card-soft rounded-[1.8rem] p-5"
+                                className="app-card-soft rounded-[24px] p-5"
                                 initial={{ opacity: 0, y: 12 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ duration: 0.35, delay: 0.15 }}
@@ -495,10 +469,10 @@ export default function Home() {
                 >
                     <Link
                         href="/habit/new"
-                        className="group flex h-14 w-14 flex-col items-center justify-center rounded-full border-[3px] border-black bg-gradient-to-tr from-[var(--zenith-active)] to-orange-500 text-black shadow-[0_8px_24px_rgba(234,179,8,0.45)] transition-transform hover:scale-105"
+                        className="group flex h-14 w-14 flex-col items-center justify-center rounded-full border border-white/10 bg-white text-black shadow-[0_12px_28px_rgba(0,0,0,0.28)] transition-colors hover:bg-white/90"
                         aria-label="Add Habit"
                     >
-                        <Plus size={26} className="text-black fill-black/10 group-hover:scale-110 transition-transform" />
+                        <Plus size={24} className="text-black" />
                     </Link>
                 </motion.div>
             )}

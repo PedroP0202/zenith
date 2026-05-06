@@ -70,27 +70,23 @@ export default function SwipeableHabit({
 
     if (isDeleting) return null;
 
-    let glowShadow = 'shadow-[0_0_15px_rgba(255,255,255,0.1)]';
-    let flameColor = 'text-orange-500/80';
-    let flameDoneColor = 'text-orange-500/30';
+    let flameColor = 'text-white/55';
+    let flameDoneColor = 'text-white/28';
 
     if (streak >= 365) {
-        glowShadow = 'shadow-[0_0_20px_rgba(255,215,0,0.6)]';
-        flameColor = 'text-yellow-500/90';
-        flameDoneColor = 'text-yellow-500/40';
+        flameColor = 'text-yellow-300/85';
+        flameDoneColor = 'text-yellow-300/35';
     } else if (streak >= 90) {
-        glowShadow = 'shadow-[0_0_18px_rgba(192,192,192,0.5)]';
-        flameColor = 'text-gray-400/90';
-        flameDoneColor = 'text-gray-400/40';
+        flameColor = 'text-white/70';
+        flameDoneColor = 'text-white/35';
     } else if (streak >= 30) {
-        glowShadow = 'shadow-[0_0_15px_rgba(184,115,51,0.4)]';
-        flameColor = 'text-orange-700/90';
-        flameDoneColor = 'text-orange-700/40';
+        flameColor = 'text-amber-300/75';
+        flameDoneColor = 'text-amber-300/32';
     }
 
     return (
         <motion.div
-            className="relative group will-animate overflow-hidden rounded-3xl"
+            className="relative group will-animate overflow-hidden rounded-2xl"
             style={{ touchAction: 'pan-y' }}
             layout
             initial={{ opacity: 0, y: 16 }}
@@ -99,7 +95,7 @@ export default function SwipeableHabit({
             transition={{ duration: 0.45, type: 'spring', bounce: 0.25 }}
         >
             <motion.div
-                className="absolute inset-0 flex items-center justify-end rounded-3xl px-6"
+                className="absolute inset-0 flex items-center justify-end rounded-2xl px-6"
                 style={{ backgroundColor: backgroundRed }}
             >
                 <motion.div style={{ opacity: trashOpacity, scale: trashScale }}>
@@ -116,11 +112,11 @@ export default function SwipeableHabit({
                 onDragEnd={handleDragEnd}
                 animate={controls}
                 whileTap={{ scale: 0.975 }}
-                className={`relative z-10 flex items-center justify-between rounded-[1.75rem] border p-4 transition-all duration-300 backdrop-blur-xl ${isComplete ? 'bg-white/[0.03] border-white/[0.05] shadow-none' : 'bg-white/[0.04] border-white/[0.08] shadow-glass hover:bg-white/[0.055]'}`}
+                className={`relative z-10 flex items-center justify-between rounded-2xl border p-4 transition-colors duration-300 ${isComplete ? 'bg-white/[0.02] border-white/[0.05]' : 'bg-white/[0.032] border-white/[0.08] hover:bg-white/[0.05]'}`}
             >
                 <Link href={`/habit/detail?id=${habit.id}`} className="card-press block min-w-0 flex-1 pr-4">
                     <div className="flex items-center gap-3">
-                        <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-[1rem] border text-sm font-bold uppercase tracking-[0.16em] ${isComplete ? 'border-white/[0.08] bg-white/[0.03] text-white/35' : 'border-white/[0.12] bg-white/[0.05] text-white/70'}`}>
+                        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border text-sm font-semibold uppercase tracking-[0.12em] ${isComplete ? 'border-white/[0.08] bg-white/[0.025] text-white/35' : 'border-white/[0.1] bg-white/[0.04] text-white/70'}`}>
                             {habit.title.slice(0, 1)}
                         </div>
                         <div className="min-w-0">
@@ -129,12 +125,12 @@ export default function SwipeableHabit({
                             </span>
                             <div className="mt-1.5 flex flex-wrap items-center gap-2">
                                 {streak > 0 && (
-                                    <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-bold transition-colors duration-300 ${isComplete ? `border-white/[0.06] bg-white/[0.03] ${flameDoneColor}` : `border-white/[0.08] bg-white/[0.04] ${flameColor}`}`}>
+                                    <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors duration-300 ${isComplete ? `border-white/[0.06] bg-white/[0.02] ${flameDoneColor}` : `border-white/[0.08] bg-white/[0.03] ${flameColor}`}`}>
                                         <Flame size={12} strokeWidth={2.3} />
                                         {streak} {streak === 1 ? t.habit.day : t.habit.days}
                                     </span>
                                 )}
-                                <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] ${isComplete ? 'border-white/[0.08] bg-white/[0.04] text-white/55' : 'border-white/[0.06] bg-white/[0.03] text-white/38'}`}>
+                                <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.1em] ${isComplete ? 'border-white/[0.08] bg-white/[0.03] text-white/55' : 'border-white/[0.06] bg-white/[0.025] text-white/38'}`}>
                                     {progressLabel}
                                 </span>
                             </div>
@@ -143,7 +139,7 @@ export default function SwipeableHabit({
                 </Link>
 
                 {isQuantitative ? (
-                    <div className={`relative flex shrink-0 items-center gap-1 rounded-[1.2rem] border p-1 ${isComplete ? 'border-white/10 bg-white/[0.06]' : 'border-white/8 bg-white/[0.03]'}`}>
+                    <div className={`relative flex shrink-0 items-center gap-1 rounded-xl border p-1 ${isComplete ? 'border-white/10 bg-white/[0.05]' : 'border-white/8 bg-white/[0.025]'}`}>
                         <button
                             type="button"
                             onClick={(e) => {
@@ -152,7 +148,7 @@ export default function SwipeableHabit({
                                 onDecrement?.();
                             }}
                             disabled={progressValue <= 0}
-                            className="flex h-10 w-10 items-center justify-center rounded-[0.95rem] text-white/70 transition hover:bg-white/8 disabled:opacity-30"
+                            className="flex h-10 w-10 items-center justify-center rounded-lg text-white/70 transition hover:bg-white/8 disabled:opacity-30"
                             aria-label={t.habit.decrease}
                         >
                             <Minus size={16} />
@@ -182,7 +178,7 @@ export default function SwipeableHabit({
                                 }
                             }}
                             disabled={progressValue >= targetValue}
-                            className={`relative flex h-10 w-10 items-center justify-center rounded-[0.95rem] transition ${isComplete ? 'bg-white text-black' : 'bg-white/[0.08] text-white hover:bg-white/[0.14]'} disabled:opacity-40`}
+                            className={`relative flex h-10 w-10 items-center justify-center rounded-lg transition ${isComplete ? 'bg-white text-black' : 'bg-white/[0.06] text-white hover:bg-white/[0.1]'} disabled:opacity-40`}
                             aria-label={t.habit.increase}
                         >
                             <Plus size={16} />
@@ -214,7 +210,7 @@ export default function SwipeableHabit({
                                     deviceHaptics.lightImpact();
                                 }
                             }}
-                            className={`relative z-10 flex h-14 w-14 items-center justify-center rounded-[1.1rem] transition-all duration-300 ${isComplete ? `bg-white text-black ${glowShadow}` : 'bg-white/[0.03] border border-white/10 text-transparent hover:border-white/30 hover:bg-white/[0.06]'}`}
+                            className={`relative z-10 flex h-[3.25rem] w-[3.25rem] items-center justify-center rounded-xl transition-colors duration-300 ${isComplete ? 'bg-white text-black' : 'border border-white/10 bg-white/[0.025] text-transparent hover:border-white/24 hover:bg-white/[0.05]'}`}
                             aria-label="Marcar como feito"
                         >
                             <motion.div

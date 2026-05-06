@@ -24,7 +24,7 @@ export default function AppInput({
 
     return (
         <div className={className}>
-            <label htmlFor={inputId} className="mb-2 ml-1 block text-[11px] font-bold uppercase tracking-[0.16em] text-white/42">
+            <label htmlFor={inputId} className="mb-2 ml-1 block text-[11px] font-medium uppercase tracking-[0.12em] text-white/42">
                 {label}
             </label>
             <div className="relative">
@@ -33,7 +33,7 @@ export default function AppInput({
                     aria-invalid={error ? true : undefined}
                     aria-describedby={[hintId, errorId].filter(Boolean).join(' ') || undefined}
                     className={[
-                        'w-full rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-4 text-white outline-none transition-all placeholder:text-white/22 focus:border-white/25 focus:bg-white/[0.06]',
+                        'w-full rounded-xl border border-white/10 bg-white/[0.032] px-4 py-3.5 text-white outline-none transition-colors placeholder:text-white/22 focus:border-white/20 focus:bg-white/[0.05]',
                         trailing ? 'pr-14' : '',
                         inputClassName,
                     ].filter(Boolean).join(' ')}

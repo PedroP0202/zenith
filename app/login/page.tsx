@@ -290,8 +290,8 @@ export default function LoginPage() {
                 className="max-w-md mx-auto w-full"
             >
                 <div className="flex justify-between items-center mb-2">
-                    <h1 className="text-3xl font-black tracking-tight">Bem-vindo.</h1>
-                    <span className="text-[10px] font-bold text-white/20 uppercase tracking-widest bg-white/5 px-2 py-1 rounded">v{APP_VERSION}</span>
+                    <h1 className="text-3xl font-semibold">Bem-vindo.</h1>
+                    <span className="rounded bg-white/[0.04] px-2 py-1 text-[10px] font-medium uppercase tracking-[0.12em] text-white/24">v{APP_VERSION}</span>
                 </div>
                 <p className="text-white/60 text-sm mb-12">Faz login para sincronizar os teus hábitos de forma invisível.</p>
 
@@ -373,7 +373,7 @@ export default function LoginPage() {
 
                     <div className="flex items-center gap-4 my-8">
                         <div className="flex-1 h-px bg-white/10" />
-                        <span className="text-xs text-white/30 uppercase tracking-widest font-bold">Ou usa</span>
+                        <span className="text-xs font-medium uppercase tracking-[0.14em] text-white/30">Ou usa</span>
                         <div className="flex-1 h-px bg-white/10" />
                     </div>
 

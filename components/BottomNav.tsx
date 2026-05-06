@@ -50,7 +50,7 @@ export default function BottomNav() {
 
     return (
         <nav
-            className="fixed left-1/2 z-50 flex -translate-x-1/2 items-center gap-1 rounded-[2rem] border border-white/10 bg-[rgba(10,10,10,0.86)] p-2 shadow-[0_24px_48px_rgba(0,0,0,0.42)] backdrop-blur-2xl"
+            className="fixed left-1/2 z-50 flex -translate-x-1/2 items-center gap-1 rounded-2xl border border-white/10 bg-[rgba(8,8,8,0.9)] p-1.5 shadow-[0_12px_28px_rgba(0,0,0,0.28)] backdrop-blur-xl"
             style={{
                 bottom: 'calc(0.75rem + var(--zenith-safe-bottom))',
                 width: 'min(var(--zenith-app-width), calc(100vw - (var(--zenith-safe-x) * 2)))',
@@ -66,13 +66,13 @@ export default function BottomNav() {
                         key={tab.href}
                         href={tab.href}
                         id={`nav-${tab.href.replace('/', '') || 'home'}`}
-                        className="relative z-10 flex min-h-[3.5rem] flex-1 items-center justify-center rounded-[1.35rem] px-3 py-2 transition-colors duration-300"
+                        className="relative z-10 flex min-h-[3.25rem] flex-1 items-center justify-center rounded-xl px-3 py-2 transition-colors duration-300"
                         aria-label={tab.label}
                     >
                         {isActive && (
                             <motion.div
                                 layoutId="nav-pill"
-                                className="absolute inset-0 rounded-[1.35rem] bg-white/[0.08] ring-1 ring-white/10 nav-pill-glow"
+                                className="absolute inset-0 rounded-xl bg-white/[0.08] ring-1 ring-white/8 nav-pill-glow"
                                 transition={{ type: 'spring', stiffness: 400, damping: 35 }}
                             />
                         )}
@@ -87,7 +87,7 @@ export default function BottomNav() {
                         >
                             {isStats ? (
                                 <motion.div animate={statsControls} className="relative">
-                                    <Icon size={24} strokeWidth={isActive ? 2.5 : 2} />
+                                    <Icon size={21} strokeWidth={isActive ? 2.25 : 1.9} />
                                     <AnimatePresence>
                                         {showHighlight && (
                                             <motion.div
@@ -95,20 +95,20 @@ export default function BottomNav() {
                                                 animate={{ opacity: [0, 1, 0], scale: [0.5, 2, 3] }}
                                                 exit={{ opacity: 0 }}
                                                 transition={{ duration: 1, ease: "easeOut" }}
-                                                className="absolute inset-0 bg-white/30 rounded-full -z-10 blur-sm"
+                                                className="absolute inset-0 rounded-full bg-white/18 -z-10"
                                             />
                                         )}
                                     </AnimatePresence>
                                 </motion.div>
                             ) : (
                                 <div className="relative">
-                                    <Icon size={24} strokeWidth={isActive ? 2.5 : 2} />
+                                    <Icon size={21} strokeWidth={isActive ? 2.25 : 1.9} />
                                     {tab.href === '/friends' && friendRequests.length > 0 && (
                                         <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-[#0b0b0c] bg-red-500" />
                                     )}
                                 </div>
                             )}
-                            <span className="text-[10px] font-semibold uppercase tracking-[0.16em]">
+                            <span className="text-[10px] font-medium uppercase tracking-[0.12em]">
                                 {tab.label}
                             </span>
                         </motion.div>

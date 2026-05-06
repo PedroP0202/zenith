@@ -37,10 +37,9 @@ export default function ActivityHeatmap({ data }: ActivityHeatmapProps) {
     function cellColor(count: number, date: Date): string {
         if (count === 0) return 'rgba(255,255,255,0.05)';
         const t = Math.min(count / maxCount, 1);
-        // Gradient: low=white/30 → mid=white/70 → high=green
-        if (t <= 0.33) return `rgba(255,255,255,${0.15 + t * 0.6})`;
-        if (t <= 0.66) return `rgba(100,240,170,${0.45 + t * 0.4})`;
-        return `rgba(0,200,83,${0.7 + t * 0.3})`;
+        if (t <= 0.33) return `rgba(255,255,255,${0.12 + t * 0.45})`;
+        if (t <= 0.66) return `rgba(16,185,129,${0.28 + t * 0.34})`;
+        return `rgba(16,185,129,${0.56 + t * 0.22})`;
     }
 
     const CELL = 13;
@@ -48,7 +47,7 @@ export default function ActivityHeatmap({ data }: ActivityHeatmapProps) {
     const totalWidth = weeksCount * (CELL + GAP) - GAP;
 
     return (
-        <div className="app-card rounded-[32px] p-5 md:p-6">
+        <div className="app-card-soft rounded-[28px] p-5 md:p-6">
             <div className="mb-5 flex items-baseline justify-between gap-4">
                 <span className="app-kicker">{t.stats.activity}</span>
                 <span className="text-[12px] text-white/48">
@@ -92,7 +91,7 @@ export default function ActivityHeatmap({ data }: ActivityHeatmapProps) {
                                 <motion.div
                                     key={i}
                                     title={label}
-                                    className={`rounded-[4px] ${isToday ? 'ring-1 ring-white/40 ring-offset-1 ring-offset-[#0d0d0f]' : ''}`}
+                                    className={`rounded-[4px] ${isToday ? 'ring-1 ring-white/30 ring-offset-1 ring-offset-[#0d0d0f]' : ''}`}
                                     style={{
                                         width: CELL,
                                         height: CELL,
@@ -124,11 +123,11 @@ export default function ActivityHeatmap({ data }: ActivityHeatmapProps) {
                                 height: 11,
                                 backgroundColor: t === 0
                                     ? 'rgba(255,255,255,0.05)'
-                                    : t <= 0.33
-                                        ? `rgba(255,255,255,${0.15 + t * 0.6})`
-                                        : t <= 0.66
-                                            ? `rgba(100,240,170,${0.45 + t * 0.4})`
-                                            : `rgba(0,200,83,${0.7 + t * 0.3})`
+                                        : t <= 0.33
+                                            ? `rgba(255,255,255,${0.12 + t * 0.45})`
+                                            : t <= 0.66
+                                                ? `rgba(16,185,129,${0.28 + t * 0.34})`
+                                                : `rgba(16,185,129,${0.56 + t * 0.22})`
                             }}
                         />
                     ))}

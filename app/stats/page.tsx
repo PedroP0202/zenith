@@ -43,7 +43,7 @@ import {
 } from '../../utils/streak';
 
 const ActivityHeatmap = dynamic(() => import('../../components/ActivityHeatmap'), {
-    loading: () => <div className="app-card rounded-[28px] p-5 h-[220px] animate-pulse" />,
+    loading: () => <div className="app-card-soft h-[220px] rounded-[28px] p-5 animate-pulse" />,
     ssr: false,
 });
 
@@ -600,9 +600,6 @@ export default function StatsPage() {
 
     return (
         <main className="app-page relative min-h-[100dvh] overflow-x-hidden text-white">
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-48 bg-gradient-to-b from-white/[0.045] to-transparent" />
-            <div className="pointer-events-none absolute inset-x-0 top-10 mx-auto h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(16,185,129,0.18)_0%,rgba(16,185,129,0.04)_38%,transparent_70%)] blur-3xl" />
-
             <div className="app-main-spacing relative z-10">
                 <div className="app-shell">
                     <motion.header
@@ -611,17 +608,17 @@ export default function StatsPage() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.45, type: 'spring' }}
                     >
-                        <div className="inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/[0.035] px-4 py-2 backdrop-blur-xl">
+                        <div className="inline-flex items-center gap-3 rounded-full border border-white/8 bg-white/[0.025] px-3.5 py-2">
                             <span className="app-kicker text-[10px]">{copy.snapshot}</span>
                             <div className="h-3 w-px bg-white/10" />
-                            <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-white/45">
+                            <span className="text-[10px] font-medium uppercase tracking-[0.14em] text-white/45">
                                 {copy.monthToDate} • {monthName}
                             </span>
                         </div>
 
                         <div className="mt-5 flex items-end justify-between gap-4">
                             <div>
-                                <h1 className="text-[clamp(2.4rem,9vw,3.6rem)] font-semibold leading-[0.92] tracking-[-0.07em] text-white">
+                                <h1 className="text-[clamp(2.2rem,8vw,3.2rem)] font-semibold leading-[0.96] text-white">
                                     {t.stats.title}
                                 </h1>
                                 <p className="mt-3 max-w-[32rem] text-sm leading-relaxed text-white/55">

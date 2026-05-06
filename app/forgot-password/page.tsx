@@ -133,7 +133,7 @@ export default function ForgotPasswordPage() {
                 className="max-w-md mx-auto w-full flex-1"
             >
                 <div className="mb-12">
-                    <h1 className="text-4xl font-black tracking-tighter mb-2 bg-gradient-to-br from-white to-white/60 bg-clip-text text-transparent">
+                    <h1 className="mb-2 text-3xl font-semibold text-white">
                         Recupera o Acesso.
                     </h1>
                     <p className="text-white/40 text-sm font-medium">Forja uma nova chave de entrada na tua conta.</p>
@@ -145,12 +145,12 @@ export default function ForgotPasswordPage() {
                             key="success"
                             initial={{ opacity: 0, scale: 0.95 }} 
                             animate={{ opacity: 1, scale: 1 }} 
-                            className="flex flex-col items-center justify-center p-10 bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-[2.5rem] shadow-glow-primary"
+                            className="flex flex-col items-center justify-center rounded-[28px] border border-white/10 bg-white/[0.03] p-10"
                         >
-                            <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mb-6">
-                                <Check className="w-8 h-8 text-green-500" />
+                            <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl border border-green-500/20 bg-green-500/10">
+                                <Check className="h-7 w-7 text-green-400" />
                             </div>
-                            <h2 className="text-2xl font-black tracking-tight text-white mb-2">Concluído.</h2>
+                            <h2 className="mb-2 text-xl font-semibold text-white">Concluído.</h2>
                             <p className="text-white/40 text-center text-sm font-medium">{successMsg}</p>
                         </motion.div>
                     ) : (
@@ -202,7 +202,7 @@ export default function ForgotPasswordPage() {
                                             value={code}
                                             onChange={(e) => setCode(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
                                             required
-                                            inputClassName="py-6 text-center text-4xl font-black tracking-[0.5em] text-[var(--zenith-active)] font-mono"
+                                            inputClassName="py-5 text-center text-3xl font-semibold tracking-[0.42em] text-white font-mono"
                                         />
                                     </div>
                                     <div className="relative group">
@@ -255,7 +255,7 @@ export default function ForgotPasswordPage() {
                         className="mt-8 space-y-4"
                     >
                         {error && (
-                            <motion.p initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="text-red-400 text-xs text-center font-bold tracking-tight bg-red-400/10 py-4 rounded-2xl border border-red-400/20 px-4">
+                            <motion.p initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-center text-xs font-medium text-red-300">
                                 {error}
                             </motion.p>
                         )}
@@ -265,7 +265,7 @@ export default function ForgotPasswordPage() {
                             form="forgot-form"
                             disabled={loading}
                             fullWidth
-                            className="h-16 bg-[var(--zenith-active)] shadow-glow-primary hover:shadow-[0_0_30px_rgba(16,185,129,0.3)]"
+                            className="h-12"
                         >
                             {loading ? (
                                 <Loader2 className="w-6 h-6 animate-spin" />
@@ -279,7 +279,7 @@ export default function ForgotPasswordPage() {
 
                         <button
                             onClick={() => router.push('/login')}
-                            className="w-full py-4 text-xs font-bold text-white/20 hover:text-white/40 transition-colors uppercase tracking-[0.2em]"
+                            className="w-full py-4 text-xs font-medium uppercase tracking-[0.14em] text-white/24 transition-colors hover:text-white/45"
                         >
                             Cancelar
                         </button>

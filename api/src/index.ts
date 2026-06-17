@@ -17,8 +17,21 @@ import syncRoutes from './routes/sync';
 
 const app = new Hono<{ Bindings: Bindings; Variables: { authPayload: AuthPayload; authUserId: string } }>();
 
-// Enable CORS for the Capacitor iOS App
-app.use('*', cors());
+// Enable CORS — restrict to known trusted origins
+const ALLOWED_ORIGINS = [
+    'https://zenith-rsnv.vercel.app',
+    'capacitor://localhost',
+    'ionic://localhost',
+    'http://localhost:3000',
+    'http://localhost:8080',
+];
+
+app.use('*', cors({
+    origin: (origin) => ALLOWED_ORIGINS.includes(origin ?? '') ? origin : null,
+    allowHeaders: ['Content-Type', 'Authorization'],
+    allowMethods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+    credentials: true,
+}));
 
 app.get('/', (c) => {
     return c.text('Zenith Global API is running at the Edge!');

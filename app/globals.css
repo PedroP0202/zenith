@@ -45,7 +45,7 @@
     font-weight: 700;
     letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.42);
+    color: rgb(255 255 255 / 0.40);
   }
 
   .app-main-spacing {
@@ -140,7 +140,6 @@ body {
   scroll-behavior: smooth;
   background-color: var(--zenith-bg);
   color: #ffffff;
-  -webkit-overflow-scrolling: touch;
   overscroll-behavior: none;
   color-scheme: dark;
 }
@@ -154,13 +153,10 @@ body {
   background: #050505;
 }
 
-body::before {
-  content: none;
-}
+/* body::before intentionally omitted — no pseudo-element needed */
 
 /* Reusable momentum scroll container */
 .scroll-smooth-ios {
-  -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: none;
 }
 
@@ -195,7 +191,7 @@ a,
 [role="switch"],
 [role="link"] {
   -webkit-tap-highlight-color: transparent;
-  transform: translateZ(0); /* GPU layer for instant response */
+  will-change: transform; /* GPU layer hint — doesn't break Framer Motion like translateZ(0) */
   user-select: none;
   -webkit-user-select: none;
 }

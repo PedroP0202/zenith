@@ -68,7 +68,7 @@ function getToneClasses(tone: Tone) {
         return {
             icon: "text-amber-300",
             value: "text-amber-300",
-            surface: "border-amber-300/15 bg-amber-300/8",
+            surface: "border-amber-300/15 bg-amber-300/10",
         };
     }
 
@@ -76,14 +76,14 @@ function getToneClasses(tone: Tone) {
         return {
             icon: "text-red-400",
             value: "text-red-400",
-            surface: "border-red-400/15 bg-red-400/8",
+            surface: "border-red-400/15 bg-red-400/10",
         };
     }
 
     return {
-        icon: "text-white/36",
+        icon: "text-white/35",
         value: "text-white",
-        surface: "border-white/8 bg-white/[0.025]",
+        surface: "border-white/10 bg-white/[0.025]",
     };
 }
 

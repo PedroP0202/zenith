@@ -291,7 +291,7 @@ export default function LoginPage() {
             >
                 <div className="flex justify-between items-center mb-2">
                     <h1 className="text-3xl font-semibold">Bem-vindo.</h1>
-                    <span className="rounded bg-white/[0.04] px-2 py-1 text-[10px] font-medium uppercase tracking-[0.12em] text-white/24">v{APP_VERSION}</span>
+                    <span className="rounded bg-white/[0.04] px-2 py-1 text-[10px] font-medium uppercase tracking-[0.12em] text-white/25">v{APP_VERSION}</span>
                 </div>
                 <p className="text-white/60 text-sm mb-12">Faz login para sincronizar os teus hábitos de forma invisível.</p>
 
@@ -378,19 +378,6 @@ export default function LoginPage() {
                     </div>
 
                     <div className="flex flex-col gap-3">
-                        {/* Apple Login Hidden (Requires paid Developer Account)
-                        <button
-                            type="button"
-                            onClick={handleAppleLogin}
-                            disabled={loading}
-                            className="w-full h-14 bg-black border border-white/20 text-white font-medium rounded-2xl flex items-center justify-center gap-3 hover:bg-white/5 transition-colors active:scale-95 disabled:opacity-50"
-                        >
-                            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm3.328 14.505C14.7 17.593 13.565 18 12.3 18c-1.348 0-2.553-.42-3.23-1.464-.78-1.205-.83-3.15-.09-4.52.41-.75 1.15-1.2 1.89-1.2 1.05 0 1.57.57 2.37.57.8 0 1.57-.6 2.52-.6 1.05 0 1.76.45 2.18 1.06-1.84 1.14-1.52 3.65.18 4.49-.28.82-.57 1.57-.8 2.16zM13.2 10.6c-.19-1.2.78-2.3 1.95-2.5.21 1.3-.87 2.4-1.95 2.5z" />
-                            </svg>
-                            Continuar com Apple
-                        </button>
-                        */}
                         <button
                             type="button"
                             onClick={handleGoogleLogin}

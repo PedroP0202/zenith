@@ -70,6 +70,9 @@ adminRoutes.post('/feedbacks/:id/status', async (c) => {
 });
 
 adminRoutes.post('/award-arena', async (c) => {
+    const adminError = requireAdminSecret(c);
+    if (adminError) return adminError;
+
     try {
         const { userId, seasonId, rankName, position } = await c.req.json();
         const db = c.env.DB;

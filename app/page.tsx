@@ -185,7 +185,7 @@ export default function Home() {
                                     <Logo className="text-lg text-white/70" />
                                     <div className="h-3 w-px bg-white/15" />
                                     <span className="text-[10px] font-medium uppercase tracking-[0.14em] text-white/45">
-                                        {t.home.dailyBrief} • {dateStr}
+                                        {t.home.dailyBrief}{mounted ? ` • ${dateStr}` : ''}
                                     </span>
                                 </div>
 

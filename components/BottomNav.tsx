@@ -40,9 +40,9 @@ export default function BottomNav() {
 
     if (!jwt) return null;
 
-    const isAuthRoute = 
-        pathname.startsWith('/login') || 
-        pathname.startsWith('/register') || 
+    const isAuthRoute =
+        pathname.startsWith('/login') ||
+        pathname.startsWith('/register') ||
         pathname.startsWith('/forgot-password') ||
         pathname.startsWith('/admin');
 

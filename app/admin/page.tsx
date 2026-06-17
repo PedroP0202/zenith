@@ -226,7 +226,7 @@ export default function AdminPage() {
                                                 <span className="text-[10px] font-mono bg-white/10 px-2 py-0.5 rounded text-white/50 truncate max-w-[150px]">
                                                     {item.platform}
                                                 </span>
-                                                <div className="flex items-center text-[10px] text-white/40 text-[10px]">
+                                                <div className="flex items-center text-[10px] text-white/40">
                                                     <Clock className="w-3 h-3 mr-1" />
                                                     {format(item.created_at, "dd MMM, HH:mm", { locale: pt })}
                                                 </div>

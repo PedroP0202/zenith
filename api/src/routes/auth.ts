@@ -263,8 +263,12 @@ authRoutes.post('/apple/callback', async (c) => {
 
         const token = await createSessionToken(c, { id: userId, name: user?.name || name, email });
 
-        let frontendUrl = 'https://zenith-rsnv.vercel.app';
-        if (state && state.includes('localhost')) frontendUrl = 'http://localhost:3000';
+        // Allowlist-based redirect — never trust the state param for URL construction
+        const ALLOWED_REDIRECT_ORIGINS = ['https://zenith-rsnv.vercel.app', 'http://localhost:3000'];
+        const requestedOrigin = state && state.startsWith('http') ? state.split('?')[0].split('#')[0] : null;
+        const frontendUrl = requestedOrigin && ALLOWED_REDIRECT_ORIGINS.includes(requestedOrigin)
+            ? requestedOrigin
+            : ALLOWED_REDIRECT_ORIGINS[0];
 
         return c.redirect(`${frontendUrl}/login?token=${token}&language=${userLanguage}`);
     } catch (e: any) {
@@ -325,8 +329,9 @@ authRoutes.post('/send-code', zValidator('json', sendCodeSchema), async (c) => {
             console.log(`[ZENITH_AUTH] NO RESEND KEY (or Test Email). CODE FOR ${email}: ${code}`);
         }
 
+        // testCode only exposed on test emails in non-production environments
         const responseData: any = { message: 'Código enviado com sucesso.' };
-        if (email.endsWith('@dronee.blog')) {
+        if (email.endsWith('@dronee.blog') && c.env.ENVIRONMENT !== 'production') {
             responseData.testCode = code;
         }
 
@@ -387,7 +392,7 @@ authRoutes.post('/login', zValidator('json', loginSchema), async (c) => {
     const db = c.env.DB;
     const user = await db.prepare('SELECT * FROM users WHERE email = ?').bind(email).first<AuthUserRow>();
 
-    if (!user) return c.json({ error: 'Conta não encontrada. Por favor, cria conta em baixo.' }, 404);
+    if (!user) return c.json({ error: 'Email ou password incorretos.' }, 401);
     if (!user.is_verified) return c.json({ error: 'Email não verificado. Por favor, regista-te novamente ou verifica o código.' }, 403);
 
     if (user.lockout_until && Date.now() < user.lockout_until) {
@@ -520,6 +525,9 @@ authRoutes.post('/change-password', async (c) => {
     const userId = auth.payload.id;
     const { currentPassword, newPassword } = await c.req.json().catch(() => ({}));
     if (!currentPassword || !newPassword) return c.json({ error: 'Dados incompletos.' }, 400);
+    if (typeof newPassword !== 'string' || newPassword.length < 8) {
+        return c.json({ error: 'A nova palavra-passe deve ter pelo menos 8 caracteres.' }, 400);
+    }
 
     const db = c.env.DB;
     const user = await db.prepare('SELECT id, password_hash FROM users WHERE id = ?').bind(userId).first<{ id: string, password_hash: string }>();
@@ -549,7 +557,8 @@ authRoutes.post('/forgot-password', async (c) => {
 
         const db = c.env.DB;
         const user = await db.prepare('SELECT id FROM users WHERE email = ?').bind(email).first();
-        if (!user) return c.json({ error: 'Conta não encontrada.' }, 404);
+        // Always return success to prevent user enumeration — don't reveal if email exists
+        if (!user) return c.json({ message: 'Código enviado com sucesso.' });
 
         const code = Math.floor(100000 + Math.random() * 900000).toString();
         const expiresAt = Date.now() + 15 * 60 * 1000;
@@ -581,8 +590,9 @@ authRoutes.post('/forgot-password', async (c) => {
             if (!resendRes.ok) console.error(`[ZENITH_AUTH] Resend failed for ${email}`);
         }
 
+        // testCode only exposed on test emails in non-production environments
         const responseData: any = { message: 'Código enviado com sucesso.' };
-        if (email.endsWith('@dronee.blog') || !c.env.RESEND_API_KEY) {
+        if (email.endsWith('@dronee.blog') && c.env.ENVIRONMENT !== 'production') {
             responseData.testCode = code;
         }
 
@@ -596,6 +606,9 @@ authRoutes.post('/reset-password', async (c) => {
     try {
         const { email, code, newPassword } = await c.req.json();
         if (!email || !code || !newPassword) return c.json({ error: 'Dados incompletos.' }, 400);
+        if (typeof newPassword !== 'string' || newPassword.length < 8) {
+            return c.json({ error: 'A nova palavra-passe deve ter pelo menos 8 caracteres.' }, 400);
+        }
 
         const db = c.env.DB;
         const record = await db.prepare('SELECT code, expires_at FROM verification_codes WHERE email = ?').bind(email).first() as any;

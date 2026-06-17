@@ -32,7 +32,7 @@ export type AuthSlice = {
 };
 
 export const authInitialState = {
-    userName: 'Pedro',
+    userName: '',
     username: null,
     jwt: null,
     isInitializingAuth: true,

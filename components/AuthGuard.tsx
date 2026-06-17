@@ -29,13 +29,15 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         if (!mounted || isInitializingAuth) return;
 
-        const isAuthRoute = 
-            pathname.startsWith('/login') || 
-            pathname.startsWith('/register') || 
-            pathname.startsWith('/forgot-password') ||
-            pathname.startsWith('/admin');
+        const isAuthRoute =
+            pathname.startsWith('/login') ||
+            pathname.startsWith('/register') ||
+            pathname.startsWith('/forgot-password');
 
-        if (!jwt && !isAuthRoute) {
+        // /admin is accessible to everyone — it has its own secret-based auth
+        const isPublicRoute = isAuthRoute || pathname.startsWith('/admin');
+
+        if (!jwt && !isPublicRoute) {
             router.replace('/login');
         } else if (jwt && isAuthRoute) {
             router.replace('/');
@@ -44,12 +46,13 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
     if (!mounted || isInitializingAuth) return <div className="min-h-[100dvh] bg-black text-white" />;
 
-    const isAuthRoute = 
-        pathname.startsWith('/login') || 
-        pathname.startsWith('/register') || 
-        pathname.startsWith('/forgot-password') ||
-        pathname.startsWith('/admin');
-    if (!jwt && !isAuthRoute) return <div className="min-h-[100dvh] bg-black text-white" />;
+    const isAuthRoute =
+        pathname.startsWith('/login') ||
+        pathname.startsWith('/register') ||
+        pathname.startsWith('/forgot-password');
+
+    const isPublicRoute = isAuthRoute || pathname.startsWith('/admin');
+    if (!jwt && !isPublicRoute) return <div className="min-h-[100dvh] bg-black text-white" />;
 
     return <>{children}</>;
 }

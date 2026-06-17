@@ -156,7 +156,7 @@ export const useStore = create<AppState>()(
                 set({
                     habits: [],
                     logs: [],
-                    userName: 'Pedro',
+                    userName: '',
                     username: null,
                     lastSyncedAt: 0,
                     syncStatus: 'idle',
@@ -186,7 +186,7 @@ export const useStore = create<AppState>()(
                     syncStatus: 'idle',
                     deletedHabitIds: [],
                     deletedLogIds: [],
-                    userName: 'Pedro',
+                    userName: '',
                     username: null,
                     language: currentLanguage,
                     hasCompletedOnboarding: false,

@@ -40,21 +40,18 @@ export async function hashPassword(password: string): Promise<string> {
 }
 
 export async function verifyPassword(password: string, storedValue: string): Promise<boolean> {
+    // Legacy SHA-256 fallback removed — all passwords must be PBKDF2 hashes (salt:hash format).
+    // Accounts with old hashes must reset their password.
     if (!storedValue || !storedValue.includes(':')) {
-        // Fallback for old SHA-256 hashes if any exist during migration
-        const encoder = new TextEncoder();
-        const data = encoder.encode(password + "ZENITH_GLOBAL_SALT");
-        const hash = await crypto.subtle.digest('SHA-256', data);
-        const legacyHash = Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
-        return legacyHash === storedValue;
+        return false;
     }
 
     const [saltHex, originalHashHex] = storedValue.split(':');
     const salt = new Uint8Array(saltHex.match(/.{1,2}/g)!.map(byte => parseInt(byte, 16)));
-    
+
     const encoder = new TextEncoder();
     const passwordBuffer = encoder.encode(password);
-    
+
     const baseKey = await crypto.subtle.importKey(
         'raw',
         passwordBuffer,
@@ -75,6 +72,12 @@ export async function verifyPassword(password: string, storedValue: string): Pro
     );
 
     const newHashHex = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
-    
-    return newHashHex === originalHashHex;
+
+    // Constant-time comparison to prevent timing attacks
+    if (newHashHex.length !== originalHashHex.length) return false;
+    let diff = 0;
+    for (let i = 0; i < newHashHex.length; i++) {
+        diff |= newHashHex.charCodeAt(i) ^ originalHashHex.charCodeAt(i);
+    }
+    return diff === 0;
 }

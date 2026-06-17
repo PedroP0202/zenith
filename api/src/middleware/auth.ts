@@ -4,10 +4,10 @@ import type { AuthPayload, Bindings } from '../types';
 
 export const getTokenSecret = (c: { env: Bindings }) => {
     const secret = c.env.JWT_SECRET;
-    if (!secret && c.env.ENVIRONMENT === 'production') {
+    if (!secret) {
         throw new Error('MISSING_JWT_SECRET');
     }
-    return secret || 'zenith-local-dev-secret';
+    return secret;
 };
 
 export const authenticateRequest = async (
